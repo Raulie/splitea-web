@@ -1,0 +1,38 @@
+# Cloudflare Workers + Static Assets config for the Splitea
+# web client. The Vite build emits the SPA into `dist/`; the
+# Worker serves those files with SPA-routing fallback (any path
+# the assets bundle doesn't match returns `index.html`).
+#
+# Pairs with the existing splitea-live worker:
+#  - splitea-live owns: /r/<id>, /live/*, /.well-known/*, favicons
+#  - splitea-web owns:  everything else under splitea.app
+#
+# Cloudflare's route-precedence model means specific worker
+# routes win — the splitea-live routes keep working unchanged
+# even when this worker is bound to splitea.app/*.
+#
+# Deploy:    `npx wrangler deploy`
+# Develop:   `npm run dev`  (Vite dev server, no Worker)
+
+name = "splitea-web"
+compatibility_date = "2025-04-01"
+
+# Static-assets-only worker (no `main`, no Worker code). The
+# Vite build emits the SPA into `dist/`; this binding tells
+# Cloudflare to serve those files directly. Equivalent in
+# behavior to Cloudflare Pages but uses the modern unified
+# Workers Static Assets API.
+[assets]
+directory = "./dist"
+# `single-page-application` makes any unknown path return
+# index.html with status 200, which is what `@solidjs/router`
+# expects for client-side routing.
+not_found_handling = "single-page-application"
+
+# Custom-domain route. Cloudflare's ranking puts the existing
+# splitea-live routes (more specific patterns) ahead of this
+# catch-all, so /r/<id>, /live/*, etc. continue to hit that
+# worker. Everything else falls here.
+routes = [
+  { pattern = "splitea.app/*", zone_name = "splitea.app" },
+]
