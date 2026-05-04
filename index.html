@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <title>Splitea</title>
+
+    <!-- Reuses the same icons the worker already serves at the
+         apex (`/apple-touch-icon.png`, `/favicon-*.png`). When
+         this SPA is deployed to the same domain the icons are
+         already there; in the unlikely event it's hosted
+         elsewhere, the worker URL still works as the source. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+    <!-- Inter as the cross-platform fallback for SF Pro. Apple
+         devices won't fetch this — `-apple-system` resolves
+         locally first. -->
+    <link rel="preconnect" href="https://rsms.me/" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  </head>
+  <body class="bg-ios-bg text-ios-label">
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
