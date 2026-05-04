@@ -17,9 +17,24 @@
 name = "splitea-web"
 compatibility_date = "2025-04-01"
 
-# Static-assets-only worker (no `main`, no Worker code). The
-# Vite build emits the SPA into `dist/`; this binding tells
-# Cloudflare to serve those files directly. Equivalent in
+# Disable the auto-generated `*.workers.dev` URL — splitea.app
+# is the only public surface we want. Cloudflare warns when
+# this isn't explicitly set; setting it false silences the
+# warning AND keeps the worker private outside its custom
+# routes.
+workers_dev = false
+preview_urls = false
+
+# Custom-domain routing. NOTE: `routes` MUST be declared at
+# the TOML top level, not under `[assets]`. Putting it after
+# the `[assets]` table header would scope it as `assets.routes`
+# (which Wrangler then warns about as "unexpected field").
+routes = [
+  { pattern = "splitea.app/*", zone_name = "splitea.app" },
+]
+
+# Static-assets-only worker (no `main`, no Worker code). Vite's
+# `dist/` directory is what Cloudflare serves. Equivalent in
 # behavior to Cloudflare Pages but uses the modern unified
 # Workers Static Assets API.
 [assets]
@@ -28,11 +43,3 @@ directory = "./dist"
 # index.html with status 200, which is what `@solidjs/router`
 # expects for client-side routing.
 not_found_handling = "single-page-application"
-
-# Custom-domain route. Cloudflare's ranking puts the existing
-# splitea-live routes (more specific patterns) ahead of this
-# catch-all, so /r/<id>, /live/*, etc. continue to hit that
-# worker. Everything else falls here.
-routes = [
-  { pattern = "splitea.app/*", zone_name = "splitea.app" },
-]
