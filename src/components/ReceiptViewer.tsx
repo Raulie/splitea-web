@@ -1,4 +1,5 @@
-import { onCleanup, onMount, Show } from "solid-js";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { Portal } from "solid-js/web";
 import { CloseButton } from "./CloseButton";
 import { DownloadButton } from "./DownloadButton";
 import { NavBar } from "./NavBar";
@@ -42,9 +43,40 @@ export interface ReceiptViewerProps {
   onClose: () => void;
 }
 
+/// Duration of the slide-up enter / slide-down exit animation
+/// in ms. Match this with the CSS transition on `.ios-cover-*`
+/// classes below — when the user dismisses, we trigger the
+/// exit animation by flipping `presented` to false, then call
+/// `props.onClose()` once this many ms have elapsed so the
+/// parent unmounts only after the slide-down finishes.
+const COVER_ANIMATION_MS = 320;
+
 export function ReceiptViewer(props: ReceiptViewerProps) {
   const dataURL = () => `data:${props.mimeType};base64,${props.base64}`;
   const isPDF = () => props.mimeType.toLowerCase().includes("pdf");
+
+  /// Drives the iOS `.fullScreenCover()`-style slide animation.
+  /// Starts `false` so the first paint renders the cover at
+  /// translateY(100%) (off-screen below); a `requestAnimationFrame`
+  /// in `onMount` flips it to `true` on the next tick, which
+  /// triggers the CSS transition to `translateY(0)`. The two-
+  /// frame split (initial paint at 100% → next-frame transition
+  /// to 0) is what makes the browser actually animate the
+  /// transform rather than render the final state directly.
+  const [presented, setPresented] = createSignal(false);
+  /// True once the user has triggered dismiss but the slide-
+  /// down animation is still running. We keep the cover
+  /// mounted (the parent's `<Show>` is still true) until the
+  /// slide-down completes, then call `props.onClose()` to
+  /// flip the parent's flag and unmount.
+  const [dismissing, setDismissing] = createSignal(false);
+
+  const handleDismiss = () => {
+    if (dismissing()) return;
+    setDismissing(true);
+    setPresented(false);
+    setTimeout(() => props.onClose(), COVER_ANIMATION_MS);
+  };
 
   /// Triggers a download with the same filename pattern iOS
   /// uses (`Splitea - <Merchant> - <yyyy-MM-dd>.<ext>`). The
@@ -79,7 +111,7 @@ export function ReceiptViewer(props: ReceiptViewerProps) {
   // iOS sheet's swipe-down feel for users on hardware keyboards.
   onMount(() => {
     const handler = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape") props.onClose();
+      if (ev.key === "Escape") handleDismiss();
     };
     window.addEventListener("keydown", handler);
     onCleanup(() => window.removeEventListener("keydown", handler));
@@ -95,9 +127,38 @@ export function ReceiptViewer(props: ReceiptViewerProps) {
     });
   });
 
+  // Trigger the present animation on the next paint.
+  // Initial render: `presented = false` → the cover paints at
+  // translateY(100%) (off-screen). Next frame: flip to true,
+  // CSS transitions slide it to translateY(0). Without the
+  // double-rAF, browsers may collapse the two states into one
+  // paint and skip the animation.
+  onMount(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setPresented(true));
+    });
+  });
+
   return (
+    // `<Portal>` mounts the cover at the body root, OUTSIDE the
+    // `.ios-nav-stack` whose `clip-path: inset(0 calc(50% - 220px))`
+    // on desktop would otherwise mask the cover to the 440px
+    // column — clipping the leading/trailing nav-bar buttons
+    // (which sit at the column edges) entirely off-screen on
+    // wide viewports. `position: fixed` already escapes layout
+    // flow but NOT clip-path, hence the portal.
+    <Portal>
     <div
-      class="fixed inset-0 z-50 bg-black flex flex-col"
+      // `ios-nav-cover-*` classes drive the slide-up enter and
+      // slide-down exit. Initial paint is `translate3d(0,100%,
+      // 0)`; once `presented` flips to true on the next frame,
+      // the CSS transition lerps to `translate3d(0,0,0)`. On
+      // dismiss, `presented` flips back to false and the
+      // transition reverses. Z-index 60 sits above the nav-
+      // stack overlay (z-50) so the cover is the topmost
+      // surface.
+      class="fixed inset-0 z-[60] bg-black flex flex-col ios-nav-cover"
+      classList={{ "ios-nav-cover-presented": presented() }}
       role="dialog"
       aria-modal="true"
       aria-label="Receipt viewer"
@@ -119,7 +180,7 @@ export function ReceiptViewer(props: ReceiptViewerProps) {
       <NavBar
         title="Receipt"
         leading={<DownloadButton onClick={handleDownload} />}
-        trailing={<CloseButton onClick={() => props.onClose()} />}
+        trailing={<CloseButton onClick={handleDismiss} />}
       />
 
       <div class="flex-1 min-h-0 relative">
@@ -153,5 +214,6 @@ export function ReceiptViewer(props: ReceiptViewerProps) {
         </Show>
       </div>
     </div>
+    </Portal>
   );
 }

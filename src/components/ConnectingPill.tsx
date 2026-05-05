@@ -1,4 +1,4 @@
-import { Match, Switch } from "solid-js";
+import { createEffect, createSignal, Match, Switch } from "solid-js";
 import { CheckmarkGlyph } from "./CheckmarkGlyph";
 import { WifiSlashGlyph } from "./WifiSlashGlyph";
 
@@ -31,8 +31,31 @@ export interface ConnectingPillProps {
 
 export function ConnectingPill(props: ConnectingPillProps) {
   const visible = () => props.state !== "hidden";
+
+  /// Last non-hidden state — the label, icon, and tint all
+  /// read from THIS rather than `props.state` directly so the
+  /// pill's content stays put while it slides out on dismiss.
+  /// Without this, when `props.state` flips to `"hidden"` the
+  /// label collapsed to `""` and the icon fell back to the
+  /// spinner instantly (in the same frame that the slide-up
+  /// started), making the pill appear to scale down + fly up
+  /// rather than just translating cleanly. Holding the
+  /// previous state's content for the duration of the slide
+  /// produces a pure-translate exit animation, matching
+  /// OnsenUI's `AscendToastAnimator`.
+  type VisibleState = Exclude<ConnectingPillState, "hidden">;
+  const initialVisibleState: VisibleState =
+    props.state === "hidden" ? "connecting" : props.state;
+  const [lastVisibleState, setLastVisibleState] =
+    createSignal<VisibleState>(initialVisibleState);
+  createEffect(() => {
+    if (props.state !== "hidden") {
+      setLastVisibleState(props.state);
+    }
+  });
+
   const label = () => {
-    switch (props.state) {
+    switch (lastVisibleState()) {
       case "connecting":
         return "Connecting…";
       case "reconnecting":
@@ -41,17 +64,17 @@ export function ConnectingPill(props: ConnectingPillProps) {
         return "Connected";
       case "offline":
         return "Offline";
-      default:
-        return "";
     }
   };
 
   /// Material/tint variant. The default neutral glass works
   /// for connecting/reconnecting; success and offline get
   /// tinted glass so the state communicates without color-
-  /// blind-unsafe icon changes.
-  const isSuccess = () => props.state === "connected";
-  const isOffline = () => props.state === "offline";
+  /// blind-unsafe icon changes. Reads from `lastVisibleState`
+  /// for the same reason as `label` — the pill's tint shouldn't
+  /// flicker mid-slide on dismiss.
+  const isSuccess = () => lastVisibleState() === "connected";
+  const isOffline = () => lastVisibleState() === "offline";
 
   return (
     <div
@@ -61,16 +84,28 @@ export function ConnectingPill(props: ConnectingPillProps) {
         // safe-area inset so the pill clears the notch /
         // Dynamic Island on iPhone Pro models.
         top: "calc(12px + env(safe-area-inset-top))",
-        // Single transform handles both centering and the
-        // enter/exit slide. Combining them in one value
-        // means the transition stays smooth without fighting
-        // a separate translateX rule.
+        // Show / hide animation parameters ported from OnsenUI's
+        // `AscendToastAnimator` (`core/src/elements/ons-toast/
+        // ascend-toast-animator.js`):
+        //   • duration: 400ms (OnsenUI default 0.4s)
+        //   • timing:   cubic-bezier(.1, .7, .1, 1)
+        //   • show:     translateY(-100%) → translateY(0)
+        //   • hide:     translateY(0)     → translateY(-100%)
+        // OnsenUI's `-100%` translates by the element's OWN
+        // height — for a ~30pt-tall pill that's only -30pt,
+        // not enough to fully hide it when it's positioned
+        // 12pt + env(inset-top) below the viewport top. We
+        // extend the hidden-state translate via `calc()` so
+        // the pill ends up above the viewport edge with no
+        // peek. The `-50%` X-axis half handles centering;
+        // both axes move on a single `transform` so the
+        // transition doesn't fight a separate `translateX`.
+        // No opacity fade — OnsenUI's ascend is a pure slide.
         transform: visible()
           ? "translate(-50%, 0)"
-          : "translate(-50%, -20px)",
-        opacity: visible() ? "1" : "0",
+          : "translate(-50%, calc(-100% - 12px - env(safe-area-inset-top)))",
         transition:
-          "transform 220ms cubic-bezier(0.32, 0.72, 0, 1), opacity 220ms cubic-bezier(0.32, 0.72, 0, 1)",
+          "transform 400ms cubic-bezier(.1, .7, .1, 1)",
       }}
       aria-live="polite"
       aria-atomic="true"

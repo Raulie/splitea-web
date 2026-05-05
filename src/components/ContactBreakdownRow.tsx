@@ -110,10 +110,10 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
         </div>
       )}
     >
-      <div class="px-4 pb-3">
+      <div class="px-4 pb-4">
         {/* Solid divider between the header and the items
             list — iOS `Divider()` with vertical padding 4. */}
-        <div class="border-t border-ios-separator my-2" />
+        <div class="border-t border-ios-separator mt-1 mb-3" />
 
         {/* Per-item shares — VStack(spacing: 6) on iOS, NO
             dividers between rows. */}
@@ -151,7 +151,7 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
             color matches the solid-divider token so both
             stack visually-paired. */}
         <div
-          class="my-2 border-t border-dashed border-ios-separator"
+          class="my-3 border-t border-dashed border-ios-separator"
           aria-hidden="true"
         />
 

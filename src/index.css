@@ -33,6 +33,28 @@ body {
    smooth-scroll the rest. */
 html { scroll-behavior: smooth; }
 
+/* iOS `.fullScreenCover()` slide-up enter / slide-down exit
+   animation, used by `ReceiptViewer`. Default state (no
+   modifier class) parks the cover off-screen below at
+   `translate3d(0,100%,0)`; adding `.ios-nav-cover-presented`
+   transitions it to `translate3d(0,0,0)`. The reverse fires
+   automatically on class removal — Solid's `classList` swap
+   triggers the transition, no extra animation classes needed.
+   320ms is the duration UIKit uses for `.fullScreen`
+   modalTransitionStyle (`coverVertical`); the easing matches
+   `UIView.AnimationCurve.easeOut`. Keep the JS
+   `COVER_ANIMATION_MS` constant in `ReceiptViewer.tsx` in
+   sync — it's how the parent's `<Show>` knows when to
+   actually unmount after the dismiss animation completes. */
+.ios-nav-cover {
+  transform: translate3d(0, 100%, 0);
+  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+.ios-nav-cover.ios-nav-cover-presented {
+  transform: translate3d(0, 0, 0);
+}
+
 /* Horizontal padding utility that respects landscape-phone
    safe-area insets. On a phone rotated to landscape, the
    Dynamic Island / notch pokes into one side of the
