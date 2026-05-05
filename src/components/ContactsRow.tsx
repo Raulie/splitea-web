@@ -230,7 +230,7 @@ export function ContactsRow(props: ContactsRowProps) {
       // for proper contrast against the items list above.
       // Bottom padding stays at `pb-3` (12pt) since the
       // Continue button below provides its own spacing.
-      class="px-4 pt-6 pb-3 flex items-center gap-3 overflow-x-auto"
+      class="safe-px pt-6 pb-3 flex items-center gap-3 overflow-x-auto"
       style={{
         // Hide the scrollbar — iOS doesn't show one on
         // horizontal contact rows. The pseudo-element rule

@@ -18,6 +18,8 @@ import { BillSummary } from "../components/BillSummary";
 import { ReceiptViewer } from "../components/ReceiptViewer";
 import { ConnectingPill, type ConnectingPillState } from "../components/ConnectingPill";
 import { SavedReceiptView } from "./SavedReceiptView";
+import { BackButton } from "../components/BackButton";
+import { NavBar } from "../components/NavBar";
 import { createSnapshotStore } from "../lib/store";
 import { LiveSession, type LiveStatus } from "../lib/socket";
 import {
@@ -25,6 +27,11 @@ import {
   getGuestUserId,
   newMutationId,
 } from "../lib/identity";
+import {
+  HAPTIC_LIGHT,
+  HAPTIC_MEDIUM,
+  triggerHaptic,
+} from "../lib/haptics";
 import type { MutationOp } from "../types/live";
 import {
   calculateContactBreakdowns,
@@ -130,58 +137,150 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
   /// keyframes both run for 400ms). Keep in sync.
   const PUSH_ANIMATION_MS = 400;
 
-  /// History-driven push/pop. Pushing the summary adds a
-  /// history entry with `state.view === "summary"`; the
-  /// browser back button (and iOS Safari's edge-swipe
-  /// gesture, which delegates to `history.back()`) fire
-  /// popstate, which our listener resolves into a SPA pop
-  /// animation instead of letting Safari leave Splitea.
+  /// "Summary-first" entry mode. The decision is COMPUTED ONCE
+  /// per mount — but NOT at construction time. Reason: at
+  /// construction the only data available is the static
+  /// `/r/<id>/snapshot` blob, which is frozen at share-creation
+  /// time and contains zero assignments (assignments live in
+  /// the WebSocket mutation log, not the snapshot). If we
+  /// captured the mode at construction we'd ALWAYS see "no
+  /// items assigned" and fall into items-first mode regardless
+  /// of the actual current state.
   ///
-  /// Two pop entry points share the same animation:
-  ///   • `popSummary()` — what the in-app back button calls.
-  ///     Just delegates to `history.back()`; the popstate
-  ///     handler does the actual work.
-  ///   • The popstate listener — fires on browser back AND
-  ///     on `history.back()`. Inspects `e.state` to decide
-  ///     push vs pop, so forward navigation re-opens the
-  ///     summary correctly.
+  /// Instead we wait for the WebSocket to replay the mutation
+  /// tail up to the relay's `latestSeq` (sent via `hello`),
+  /// THEN snapshot the assignment state and lock the mode.
+  /// `modeCaptured()` returns null while waiting, true for
+  /// summary-first, false for items-first. Loaded() renders
+  /// a brief loading placeholder while null.
+  ///
+  /// Locked once: a mid-session change in assignment state
+  /// (an iOS user finishing the last assignment over the live
+  /// channel after the page is loaded) does NOT auto-flip the
+  /// mode — that would yank the UI out from under the user.
+  ///
+  /// 3-second timeout fallback covers slow networks where the
+  /// WebSocket hasn't connected yet — we capture from whatever
+  /// state we have and let live updates trickle in normally.
+  const [modeCaptured, setModeCaptured] = createSignal<boolean | null>(null);
+  /// `latestSeq` reported by the relay's hello; once we've
+  /// applied a mutation with `seq >= helloLatestSeq` we know
+  /// replay has caught up and the snapshot is current.
+  let helloLatestSeq: number | null = null;
+  const captureMode = () => {
+    if (modeCaptured() !== null) return;
+    const items = store.snapshot.items;
+    const all =
+      items.length > 0 &&
+      items.every((item) =>
+        store.snapshot.assignments.some((a) => a.itemId === item.id),
+      );
+    setModeCaptured(all);
+  };
+  /// Convenience getter for the JSX. Returns false while
+  /// loading (so during the brief pre-capture window the JSX
+  /// can render whichever fallback it wants without hitting
+  /// the null branch); the wrapping `<Show when>` on the
+  /// Loaded() body gates rendering on `modeCaptured() !== null`.
+  const summaryFirst = () => modeCaptured() === true;
+
+  /// History-driven push/pop. The state machine is mode-
+  /// agnostic — it just tracks whether the overlay is mounted,
+  /// not which view IS the overlay (the JSX's `summaryFirst()`
+  /// gate decides that):
+  ///
+  ///   • Items-first mode (some items still unassigned):
+  ///     base = ItemsView, overlay = SavedReceiptView.
+  ///     Continue button → pushSummary() → overlay slides in.
+  ///     Back button → popSummary() → history.back() →
+  ///     popstate fires → closeSummaryAnimated → overlay
+  ///     slides out, ItemsView visible underneath.
+  ///
+  ///   • Summary-first mode (every item assigned at first
+  ///     paint): base = SavedReceiptView, overlay = ItemsView.
+  ///     Pencil button → pushSummary() → overlay slides in.
+  ///     Back / Done button → popSummary() → same.
+  ///
+  /// Both flows go through the same `pushSummary` / `popSummary`
+  /// pair and share the same popstate semantics. The history
+  /// state object uses `view: "overlay"` (not "summary",
+  /// which would be misleading in summary-first mode where
+  /// the overlay is the items editor).
+  ///
+  /// Forward navigation (browser → ) after a back: popstate
+  /// fires with state.view === "overlay" again → we re-set
+  /// pushPhase to "open" without running the slide-in
+  /// animation (Safari doesn't animate forward popstate
+  /// transitions either, so this is consistent).
   const pushSummary = () => {
     if (pushPhase() !== "closed") return;
     setPushPhase("open");
-    history.pushState({ view: "summary" }, "");
+    history.pushState({ view: "overlay" }, "");
   };
   const closeSummaryAnimated = () => {
     if (pushPhase() !== "open") return;
     setPushPhase("closing");
     setTimeout(() => setPushPhase("closed"), PUSH_ANIMATION_MS);
   };
-  /// User-facing pop entry point used by the in-app back
-  /// button. Calls `history.back()` which fires popstate;
-  /// the listener handles the actual close. Routing through
-  /// history keeps the browser's navigation stack and our
-  /// SPA's nav state in sync — without this, tapping the
-  /// in-app back leaves a stale history entry and the next
-  /// browser-back press would no-op.
+  /// User-facing pop entry point used by the in-app back /
+  /// Done button. Calls `history.back()` which fires
+  /// popstate; the listener handles the actual close.
+  /// Routing through history keeps the browser's navigation
+  /// stack and our SPA's nav state in sync — without this,
+  /// tapping the in-app back leaves a stale history entry
+  /// and the next browser-back press would no-op.
   const popSummary = () => {
     if (pushPhase() !== "open") return;
     history.back();
   };
   const onPopState = (e: PopStateEvent) => {
-    const wantSummary =
-      (e.state as { view?: string } | null)?.view === "summary";
+    // Decide based on OUR `pushPhase` first, not on `e.state`.
+    //
+    // Reason: `@solidjs/router` registers its own popstate
+    // listener BEFORE ours and runs `saveCurrentDepth()`
+    // which can `history.replaceState` to merge a `_depth`
+    // field into the current entry's state, AND can call
+    // `history.go(-delta)` under certain conditions to
+    // reverse a navigation it considers blocked. The reversal
+    // fires a SECOND popstate, by which time `history.state`
+    // is back to our pushed entry's state — so trying to
+    // distinguish back-from-overlay from forward-into-overlay
+    // by reading `e.state.view === "overlay"` is unreliable
+    // (we observed a real failure where popstate fired with
+    // `e.state = { view: "overlay", _depth: 8 }` AND
+    // `pushPhase === "open"`, leaving the overlay open).
+    //
+    // Defensive policy:
+    //   • If we're showing the overlay and ANY popstate fires
+    //     → close. The user navigated, and from our point of
+    //     view that means "go back".
+    //   • If we're NOT showing and the popstate's state has
+    //     `view: "overlay"` → forward navigation back into
+    //     the overlay; reopen.
+    //   • Otherwise → no-op (other route changes).
+    const wantOverlay =
+      (e.state as { view?: string } | null)?.view === "overlay";
     const showing = pushPhase() === "open";
-    if (wantSummary && !showing) {
-      // Forward navigation back into the summary state
-      // (e.g. user hit browser-forward after a back).
-      // Skip the animation here — Safari doesn't show one
-      // for popstate-driven forward nav either.
-      setPushPhase("open");
-    } else if (!wantSummary && showing) {
+    if (showing) {
       closeSummaryAnimated();
+    } else if (wantOverlay) {
+      // Forward navigation back into the overlay. Skip the
+      // slide animation — Safari doesn't animate popstate-
+      // driven forward navigation either.
+      setPushPhase("open");
     }
   };
   onMount(() => {
     window.addEventListener("popstate", onPopState);
+    // Safety net: if the WebSocket hasn't connected and
+    // replayed within 3 seconds (slow network, blocked socket,
+    // etc.), capture mode from whatever state we have so the
+    // user sees SOME UI rather than an indefinite loading
+    // placeholder. Live updates continue to apply normally
+    // when the connection eventually comes through.
+    setTimeout(() => {
+      if (modeCaptured() === null) captureMode();
+    }, 3000);
   });
   onCleanup(() => {
     window.removeEventListener("popstate", onPopState);
@@ -238,9 +337,28 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
         // state from leaking across the boundary.
         window.location.reload();
       }
+      // Note the relay's current high-water seq so we know
+      // when replay has caught up. If the relay has zero
+      // mutations to replay (`latestSeq === 0`), there's no
+      // tail to wait for and we can capture mode immediately.
+      helloLatestSeq = msg.latestSeq ?? 0;
+      if (helloLatestSeq === 0 || store.lastSeenSeq >= helloLatestSeq) {
+        captureMode();
+      }
     },
     onMutation: (msg) => {
       applyMutation(msg.op, msg.seq);
+      // Replay has caught up to the latestSeq the relay
+      // reported in `hello`. Snapshot is now current —
+      // capture summary-first mode. Subsequent live edits
+      // continue flowing; the captured mode stays locked.
+      if (
+        helloLatestSeq !== null &&
+        msg.seq >= helloLatestSeq &&
+        modeCaptured() === null
+      ) {
+        captureMode();
+      }
     },
     onPresence: (_peers) => {
       // Presence display isn't on the page yet — Day 3 is
@@ -363,6 +481,11 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
     if (liveStatus() !== "open") return;
     const active = activeContactId();
     if (!active) return;
+    // Selection-style haptic on item tap — matches iOS's
+    // `UIImpactFeedbackGenerator(style: .light)` on the same
+    // gesture. Fired AFTER the connection gate so we don't
+    // pretend an action landed when it was dropped.
+    triggerHaptic(HAPTIC_LIGHT);
 
     if (active === EVERYONE_ID) {
       const allContacts = store.snapshot.contacts;
@@ -429,42 +552,23 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
     }
   };
 
-  return (
+  /// JSX builder for the items-editor body (header +
+  /// instructions + ReceiptInfoCard + ItemsList + BillSummary).
+  /// Used by both the base and overlay variants of ItemsView.
+  /// `showHeaderNavBar` adds a nav bar with a back button at
+  /// the top — used only when the editor is the OVERLAY
+  /// (summary-first mode), so the user has a way to pop back
+  /// to SavedReceiptView. In items-first mode the editor is
+  /// the root, so no nav bar is needed.
+  const editorBody = (showHeaderNavBar: boolean) => (
     <>
-      {/* Connection-status pill — sibling of `.ios-nav-stack`
-          (NOT a child) so its `position: fixed` stays anchored
-          to the viewport even while the stack's children
-          have `transform` applied during the iOS-style push
-          animation. A transformed ancestor would otherwise
-          re-root the pill against the moving page. */}
-      <ConnectingPill state={pillState()} />
-      <div class="ios-nav-stack">
-      {/* The "page" wrapper holds ItemsView's contents. CSS
-          drives the iOS-push parallax: when the summary is
-          pushed on top, this page slides 25% to the left and
-          dims to opacity 0.9, mirroring UIKit's
-          `_UIParallaxDimmingView`. The class is applied ONLY
-          in the "open" state. During "closing", removing the
-          class triggers the CSS transition back from
-          translate(-25%) opacity:0.9 to translate(0)
-          opacity:1, animating the under-page over 400ms in
-          lockstep with the pushed view's slide-out. Mirrors
-          OnsenUI's `IOSSlideNavigatorAnimator.pop()`. */}
-      <div
-        class="ios-nav-page"
-        classList={{
-          "ios-nav-page-pushed": pushPhase() === "open",
-        }}
-      >
-      {/* Body-level scroll — content is in normal flow inside
-          `.ios-nav-page`, no internal `overflow-y: auto`
-          wrapper. iOS 26 Safari's bottom URL bar collapses on
-          scroll only when the BODY scrolls (an inner scroll
-          container keeps the toolbar pinned at full size).
-          With this layout, scrolling the items list scrolls
-          the document, which triggers the native toolbar-
-          collapse behavior. */}
-      <div class="px-4 pt-6">
+      <Show when={showHeaderNavBar}>
+        <NavBar
+          title="Edit Items"
+          leading={<BackButton onClick={() => popSummary()} />}
+        />
+      </Show>
+      <div class="safe-px pt-6">
         <h1 class="text-ios-title-3 text-ios-label">Assign Items</h1>
         {/* `text-ios-subheadline` (15pt) matches iOS
             `.subheadline` — the font size `ItemsView.swift`
@@ -484,7 +588,7 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
           internal padding) plus `env(safe-area-inset-bottom)`
           for the gap between the bar's bottom edge and the
           absolute viewport bottom. */}
-      <div class="px-4 mt-6 pb-[calc(160px+env(safe-area-inset-bottom))] space-y-7">
+      <div class="safe-px mt-6 pb-[calc(160px+env(safe-area-inset-bottom))] space-y-7">
         <ReceiptInfoCard
           merchantName={store.snapshot.receipt.merchantName}
           receiptDate={store.snapshot.receipt.receiptDate}
@@ -508,141 +612,213 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
           items={store.snapshot.items}
         />
       </div>
-      </div>
+    </>
+  );
 
-      {/* Bottom chrome — contacts row + Continue. Now a SIBLING
-          of `.ios-nav-page` (not a child) so it can use
-          `position: fixed` against the viewport. Living inside
-          the page wrapper would have re-rooted the fixed
-          positioning against the transformed ancestor during
-          the push animation, dragging the bar offscreen with
-          the page scroll. As a sibling with the same pushed
-          class applied via classList, the bar stays viewport-
-          anchored at idle (so it survives body scroll + URL
-          bar collapse) and gets the same translate/dim
-          treatment in lockstep with the under-page during
-          a push. */}
+  /// JSX builder for the bottom bar (contacts row + Continue
+  /// button). The Continue action depends on which view is the
+  /// root: in items-first mode it pushes SavedReceiptView; in
+  /// summary-first mode (where ItemsView is the overlay) it
+  /// pops back to the SavedReceiptView base. Either way the
+  /// state-machine transition is the same shape (closed ↔
+  /// open), so we just wire onClick to whichever helper makes
+  /// sense for the active mode.
+  const bottomBar = () => (
+    <>
       <div
-        class="ios-nav-page-bottom"
-        classList={{
-          "ios-nav-page-pushed": pushPhase() === "open",
+        class="absolute inset-0 pointer-events-none"
+        style={{
+          // Fade from transparent (0%) → fully opaque
+          // (1.0 alpha at 24%), then solid the rest of the
+          // way down. The previous stop at `rgba(...,0.85)`
+          // left 15% of any content behind the bar bleeding
+          // through, which read as "the bar isn't quite
+          // covering what's underneath" — fine in portrait
+          // where the items list is usually scrolled clear
+          // of the bar by then, but obvious in landscape
+          // where the viewport is short enough that items
+          // sit directly behind the bar's lower band. Full
+          // opacity at the solid stop guarantees nothing
+          // leaks through; the soft top fade is preserved
+          // by the 0→100% alpha ramp over the first 24%.
+          background:
+            "linear-gradient(to bottom," +
+            " rgba(20,20,22,0) 8%," +
+            " rgb(20,20,22) 24%)",
         }}
-      >
-        <div
-          class="absolute inset-0 pointer-events-none"
-          style={{
-            // No `backdrop-filter` (no frosted glass). We use
-            // a plain linear-gradient instead, so the bar
-            // composites against whatever is behind it via
-            // standard alpha blending. Reason for not using
-            // the frosted material here: it looked too soft
-            // visually under the dark UI, and Safari's view-
-            // transition snapshot machinery can't preserve
-            // live `backdrop-filter` (it captures the element
-            // as a flat image), which broke the look during
-            // any animation that snapshotted the page.
-            //
-            // Gradient shape — most of the bar is solid
-            // dark, with just a soft fade at the very top
-            // edge so the items list doesn't terminate in
-            // a hard line. The contacts row sits roughly
-            // 30–60% down the bar, so the SOLID region
-            // needs to start by ~20% to give the contacts
-            // a properly dark backdrop for contrast.
-            //
-            // Distribution:
-            //   • 0%–8%    solid transparent (top edge soft band)
-            //   • 8%–24%   fade transparent → near-black
-            //   • 24%–100% solid near-black (~76% of bar height)
-            //
-            // Stops at 8% and 24% only — CSS extends the
-            // first/last colors to 0%/100% implicitly, so
-            // the solid bands at top and bottom come for
-            // free without explicit endpoint stops.
-            background:
-              "linear-gradient(to bottom," +
-              " rgba(20,20,22,0) 8%," +
-              " rgba(20,20,22,0.85) 24%)",
+        aria-hidden="true"
+      />
+      <div class="relative">
+        <ContactsRow
+          contacts={store.snapshot.contacts}
+          totalsByContact={totalsByContact()}
+          currencyCode={store.snapshot.receipt.currencyCode}
+          payerPhoneNumber={store.snapshot.receipt.payerPhoneNumber}
+          activeContactId={activeContactId()}
+          onSelectContact={(id) => {
+            if (liveStatus() !== "open") return;
+            setActiveContactId(id);
           }}
-          aria-hidden="true"
         />
-        <div class="relative">
-          <ContactsRow
-            contacts={store.snapshot.contacts}
-            totalsByContact={totalsByContact()}
-            currencyCode={store.snapshot.receipt.currencyCode}
-            payerPhoneNumber={store.snapshot.receipt.payerPhoneNumber}
-            activeContactId={activeContactId()}
-            onSelectContact={(id) => {
-              // Same liveStatus gate as `onToggleItem` — no
-              // point letting the user pick an active
-              // contact if their next tap (to assign) won't
-              // land. Switching the active contact alone
-              // doesn't send a mutation, but allowing it
-              // would paint an interactive state the user
-              // can't actually use yet.
-              if (liveStatus() !== "open") return;
-              // Plain state set — no View Transition wrap.
-              // The reorder is instantaneous; the active
-              // contact's size grow/shrink animates via
-              // plain CSS transitions inside `Avatar`.
-              // Going through View Transitions broke the
-              // bottom-bar scrim's `backdrop-filter` (the
-              // browser snapshots the page during the
-              // transition, and Safari's snapshot doesn't
-              // composite live blur effects).
-              setActiveContactId(id);
-            }}
-          />
-        </div>
-        <div class="relative px-4 pb-3 pt-1">
-          <button
-            type="button"
-            class="w-full h-12 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity"
-            onClick={() => pushSummary()}
-          >
-            Continue
-          </button>
-        </div>
       </div>
-
-      {/* Receipt viewer overlay — only mounted when toggled on,
-          so the base64 payload isn't decoded into a DOM element
-          (or fed to the PDF renderer) until the user actually
-          asks to see it. The component handles its own backdrop
-          / Esc / scroll-lock concerns. */}
-      <Show when={showingReceipt() && store.snapshot.receipt.receiptImageBase64}>
-        <ReceiptViewer
-          base64={store.snapshot.receipt.receiptImageBase64!}
-          mimeType={store.snapshot.receipt.receiptMimeType}
-          onClose={() => setShowingReceipt(false)}
-        />
-      </Show>
-
-      {/* Pushed view — `SavedReceiptView` slides in from the
-          right edge with the OnsenUI 400ms / cubic-bezier
-          (0.3, 0.4, 0, 0.9) curve. When `pushPhase` flips to
-          "closing" we keep the element mounted for the
-          animation duration and only unmount once the slide-
-          out completes (handled by the setTimeout in
-          `closeSummaryAnimated`). The drop-shadow on its
-          leading edge approximates UIKit's
-          `UINavigationBar._defaultShadowImage`. */}
-      <Show when={pushPhase() !== "closed"}>
-        <div
-          class="ios-nav-pushed"
-          classList={{
-            "ios-nav-pushed-in": pushPhase() === "open",
-            "ios-nav-pushed-out": pushPhase() === "closing",
+      <div class="relative safe-px pb-3 pt-1">
+        <button
+          type="button"
+          class="w-full h-12 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity"
+          onClick={() => {
+            // Medium-impact haptic on the primary submit
+            // action — distinguishes the "commit" feel from
+            // the lighter selection haptic on item taps.
+            triggerHaptic(HAPTIC_MEDIUM);
+            // In items-first: push to summary. In summary-
+            // first (where the editor IS the overlay): the
+            // summary is already underneath, so Continue
+            // means "I'm done editing" → pop back to it.
+            if (summaryFirst()) popSummary();
+            else pushSummary();
           }}
         >
-          <SavedReceiptView
-            snapshot={store.snapshot}
-            onBack={() => popSummary()}
+          {summaryFirst() ? "Done" : "Continue"}
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Connection-status pill — sibling of `.ios-nav-stack`
+          (NOT a child) so its `position: fixed` stays anchored
+          to the viewport even while the stack's children
+          have `transform` applied during the iOS-style push
+          animation. A transformed ancestor would otherwise
+          re-root the pill against the moving page. */}
+      <ConnectingPill state={pillState()} />
+      <div class="ios-nav-stack">
+        {/* Hold rendering until WebSocket replay catches up
+            and we can decide which mode to show. Without this
+            gate the JSX would render the items-first fallback
+            on the first paint (because `modeCaptured()` is
+            null and `summaryFirst()` returns false), then
+            flip to summary-first a few hundred ms later when
+            replay completes — visible flicker. The
+            `LoadingState` here is the same minimal centered
+            "Loading…" the route component shows while the
+            HTTP snapshot fetch is in flight. */}
+        <Show when={modeCaptured() !== null} fallback={<LoadingState />}>
+        <Show
+          when={summaryFirst()}
+          fallback={
+            // Items-first (original flow): ItemsView is the
+            // root in `.ios-nav-page` body flow; the bottom
+            // bar is a sibling pinned to the viewport;
+            // SavedReceiptView slides in as overlay when the
+            // user taps Continue.
+            <>
+              <div
+                class="ios-nav-page"
+                classList={{
+                  "ios-nav-page-pushed": pushPhase() === "open",
+                }}
+              >
+                {editorBody(false)}
+              </div>
+              <div
+                class="ios-nav-page-bottom"
+                classList={{
+                  "ios-nav-page-pushed": pushPhase() === "open",
+                }}
+              >
+                {bottomBar()}
+              </div>
+              <Show when={pushPhase() !== "closed"}>
+                <div
+                  class="ios-nav-pushed"
+                  classList={{
+                    "ios-nav-pushed-in": pushPhase() === "open",
+                    "ios-nav-pushed-out": pushPhase() === "closing",
+                  }}
+                >
+                  <SavedReceiptView
+                    snapshot={store.snapshot}
+                    onBack={() => popSummary()}
+                  />
+                </div>
+              </Show>
+            </>
+          }
+        >
+          {/* Summary-first: SavedReceiptView is the ROOT in
+              `.ios-nav-page` body flow with no back button —
+              nothing behind it on the navigation stack. The
+              pencil button on its trailing edge pushes the
+              ItemsView editor onto the stack as overlay. */}
+          <div
+            class="ios-nav-page"
+            classList={{
+              "ios-nav-page-pushed": pushPhase() === "open",
+            }}
+          >
+            <SavedReceiptView
+              snapshot={store.snapshot}
+              onEdit={() => pushSummary()}
+            />
+          </div>
+          <Show when={pushPhase() !== "closed"}>
+            <div
+              class="ios-nav-pushed"
+              classList={{
+                "ios-nav-pushed-in": pushPhase() === "open",
+                "ios-nav-pushed-out": pushPhase() === "closing",
+              }}
+            >
+              {/* Internal scroll container for the overlay's
+                  body content. `.ios-nav-pushed` itself is
+                  `position: fixed; top:0; bottom:0` (viewport-
+                  pinned) and not a scroller — without this
+                  inner wrapper the editor's content (NavBar,
+                  header, items list, BillSummary, the
+                  `pb-[calc(160px+env-inset)]`) would render
+                  past the overlay's bottom edge with no way
+                  to reach it. `absolute inset-0` fills the
+                  overlay; `overflow-y-auto` makes the body
+                  scroll within. The bottom bar below stays
+                  outside this scroller and remains pinned
+                  via its own `position: fixed` (anchored to
+                  `.ios-nav-pushed` because `will-change:
+                  transform` makes the overlay a containing
+                  block for fixed descendants). */}
+              <div class="absolute inset-0 overflow-y-auto">
+                {editorBody(true)}
+              </div>
+              {/* Bottom bar lives INSIDE the overlay so it
+                  slides in/out with the editor as one unit.
+                  `.ios-nav-pushed` has `will-change: transform`
+                  which creates a containing block for fixed-
+                  position descendants — so the bar's
+                  `position: fixed` resolves against the
+                  overlay's bounds, keeping it column-pinned
+                  alongside the editor body. */}
+              <div class="ios-nav-page-bottom">{bottomBar()}</div>
+            </div>
+          </Show>
+        </Show>
+        </Show>
+
+        {/* Receipt viewer overlay — only mounted when toggled on,
+            so the base64 payload isn't decoded into a DOM element
+            (or fed to the PDF renderer) until the user actually
+            asks to see it. The component handles its own backdrop
+            / Esc / scroll-lock concerns. */}
+        <Show when={showingReceipt() && store.snapshot.receipt.receiptImageBase64}>
+          <ReceiptViewer
+            base64={store.snapshot.receipt.receiptImageBase64!}
+            mimeType={store.snapshot.receipt.receiptMimeType}
+            merchantName={store.snapshot.receipt.merchantName}
+            receiptDateMs={store.snapshot.receipt.receiptDate}
+            onClose={() => setShowingReceipt(false)}
           />
-        </div>
-      </Show>
-    </div>
+        </Show>
+      </div>
     </>
   );
 }

@@ -2,7 +2,9 @@ import { createSignal, For, Show } from "solid-js";
 import type { ReceiptSnapshot } from "../types/snapshot";
 import { ContactBreakdownRow } from "../components/ContactBreakdownRow";
 import { BillSummary } from "../components/BillSummary";
+import { UnassignedItemsSection } from "../components/UnassignedItemsSection";
 import { BackButton } from "../components/BackButton";
+import { EditButton } from "../components/EditButton";
 import { NavBar } from "../components/NavBar";
 import { ReceiptViewer } from "../components/ReceiptViewer";
 import {
@@ -22,8 +24,18 @@ export interface SavedReceiptViewProps {
   snapshot: ReceiptSnapshot;
   /// Called when the user taps the back chevron in the nav
   /// bar. Parent owns the stack-pop animation and the
-  /// associated CSS state — see `ItemsView`.
-  onBack: () => void;
+  /// associated CSS state — see `ItemsView`. Optional: when
+  /// omitted, the nav bar renders no leading button (used in
+  /// "summary-first" mode where SavedReceiptView IS the root
+  /// of the navigation stack and there's nothing behind it
+  /// to go back to).
+  onBack?: () => void;
+  /// Optional pencil-tap handler. When provided, the nav bar
+  /// renders a trailing edit button (the SF Symbol pencil,
+  /// 44×44 circular). Used in the "summary-first" entry mode
+  /// where the breakdown is the root view and the pencil
+  /// pushes the items editor onto the stack.
+  onEdit?: () => void;
 }
 
 export function SavedReceiptView(props: SavedReceiptViewProps) {
@@ -63,6 +75,21 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         if (lhs.total !== rhs.total) return rhs.total - lhs.total;
         return lhs.breakdown.contactId.localeCompare(rhs.breakdown.contactId);
       });
+  };
+
+  /// Items with no contact assignment. Used to surface the
+  /// `UnassignedItemsSection` callout on the breakdown so the
+  /// reader sees that the displayed totals don't account for
+  /// these line items (matches iOS `SplitSummaryView`'s
+  /// `if !unassignedItems.isEmpty` gate). Driven off the same
+  /// `idsByItem()` map the breakdowns use, so a contact
+  /// assigned via WebSocket flips an item out of "unassigned"
+  /// reactively.
+  const unassignedItems = () => {
+    const byItem = idsByItem();
+    return props.snapshot.items.filter(
+      (item) => (byItem.get(item.id)?.length ?? 0) === 0,
+    );
   };
 
   /// Match payer by phone-number suffix — same heuristic
@@ -145,16 +172,32 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     // bleed-through doesn't engage here. We accept that to keep
     // the iOS-native push/pop feel.
     //
-    // `pt-[env(safe-area-inset-top)]` adds the device safe-area
-    // inset above the nav bar — relevant in PWA / standalone
-    // display mode on Dynamic Island devices.
-    <div class="h-full flex flex-col bg-ios-bg text-ios-label pt-[env(safe-area-inset-top)]">
-      <main class="flex-1 pt-2 pb-[calc(16px+env(safe-area-inset-bottom))] overflow-y-auto">
+    // No `pt-[env(safe-area-inset-top)]` here. We had it
+    // briefly to lift content out from under the Dynamic Island
+    // in PWA mode, but it was non-zero on some Android browser
+    // chromes too — pushing the NavBar visibly lower than the
+    // matching NavBar in `ItemsView` / `ReceiptViewer`, which
+    // don't have the same wrapper-level padding. For now the
+    // NavBar handles its own internal layout; if/when we ship
+    // a PWA build, we'll add `safe-area-inset-top` once at
+    // the body or `.ios-nav-stack` level so every surface
+    // (base, overlay, modal) gets the same inset uniformly.
+    <div class="h-full flex flex-col bg-ios-bg text-ios-label">
+      <main class="flex-1 pb-[calc(16px+env(safe-area-inset-bottom))] overflow-y-auto">
         <NavBar
           title={props.snapshot.receipt.merchantName ?? "Receipt"}
-          leading={<BackButton onClick={() => props.onBack()} />}
+          leading={
+            props.onBack ? (
+              <BackButton onClick={() => props.onBack!()} />
+            ) : undefined
+          }
+          trailing={
+            props.onEdit ? (
+              <EditButton onClick={() => props.onEdit!()} />
+            ) : undefined
+          }
         />
-        <div class="px-4 space-y-7">
+        <div class="safe-px pt-2 space-y-7">
         {/* Receipt image section — mirrors iOS
             `receiptImageSection(_:)` in
             `SavedReceiptDetailView.swift:310`:
@@ -268,6 +311,20 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           </section>
         </Show>
 
+        {/* Items missing any assignment. iOS surfaces these
+            with a yellow warning-triangle header and a
+            secondary-styled list so the reader knows the
+            breakdown above + summary below DO NOT account for
+            these line items. Hidden when nothing is
+            unassigned (matches iOS's `if !unassignedItems
+            .isEmpty` guard in `SplitSummaryView`). */}
+        <Show when={unassignedItems().length > 0}>
+          <UnassignedItemsSection
+            items={unassignedItems()}
+            currencyCode={props.snapshot.receipt.currencyCode}
+          />
+        </Show>
+
         {/* Same `BillSummary` shown on the previous screen,
             recomputed from the live snapshot — these stay in
             sync with WebSocket-driven mutations because the
@@ -313,6 +370,8 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         <ReceiptViewer
           base64={props.snapshot.receipt.receiptImageBase64!}
           mimeType={props.snapshot.receipt.receiptMimeType}
+          merchantName={props.snapshot.receipt.merchantName}
+          receiptDateMs={props.snapshot.receipt.receiptDate}
           onClose={() => setShowingReceipt(false)}
         />
       </Show>

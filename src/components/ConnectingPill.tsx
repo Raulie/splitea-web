@@ -1,4 +1,6 @@
-import { Show } from "solid-js";
+import { Match, Switch } from "solid-js";
+import { CheckmarkGlyph } from "./CheckmarkGlyph";
+import { WifiSlashGlyph } from "./WifiSlashGlyph";
 
 /// Status pill that surfaces the WebSocket connection state.
 /// Visible while connecting / reconnecting / offline; flashes a
@@ -94,12 +96,31 @@ export function ConnectingPill(props: ConnectingPillProps) {
               : "inset 0 0 0 1px rgba(255, 255, 255, 0.08)",
         }}
       >
-        <Show
-          when={isSuccess()}
-          fallback={<Spinner size={14} />}
-        >
-          <CheckGlyph size={14} />
-        </Show>
+        {/* Per-state glyph. The spinner is pure CSS (animated
+            ring) and only fires for in-flight states; the
+            terminal states get static SF-Symbol glyphs so the
+            user sees a clear "we've stopped trying" signal
+            instead of a misleading "still spinning". Tints
+            are inherited via `currentColor` from inline
+            `style.color` set on each branch. */}
+        <Switch fallback={<Spinner size={14} />}>
+          <Match when={isSuccess()}>
+            <span
+              class="inline-flex shrink-0"
+              style={{ color: "rgb(48, 209, 88)" }}
+            >
+              <CheckmarkGlyph size={14} />
+            </span>
+          </Match>
+          <Match when={isOffline()}>
+            <span
+              class="inline-flex shrink-0"
+              style={{ color: "rgb(255, 69, 58)" }}
+            >
+              <WifiSlashGlyph size={14} />
+            </span>
+          </Match>
+        </Switch>
         <span class="text-ios-footnote font-medium text-ios-label leading-none">
           {label()}
         </span>
@@ -128,27 +149,3 @@ function Spinner(props: { size: number }) {
   );
 }
 
-/// Confirmation checkmark for the brief "Connected" state.
-/// 14×14 to keep the pill width stable across spinner ↔
-/// check swaps (no visible reflow).
-function CheckGlyph(props: { size: number }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width={props.size}
-      height={props.size}
-      fill="none"
-      class="shrink-0"
-      style={{ color: "rgb(48, 209, 88)" }}
-      aria-hidden="true"
-    >
-      <path
-        d="M5 12.5l5 5 9-11"
-        stroke="currentColor"
-        stroke-width="3"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
-  );
-}

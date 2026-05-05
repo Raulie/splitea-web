@@ -110,16 +110,27 @@ interface ItemRowProps {
 }
 
 function ItemRow(props: ItemRowProps) {
-  /// "Everyone" indicator when the item is assigned to every
-  /// selected contact AND there's more than one. Matches the
-  /// iOS person.3.fill avatar variant for shared items.
+  /// Per-row assignment indicator — mirrors the iOS cascade
+  /// in `Components/ItemRow.swift::assignmentIndicator`:
+  ///
+  ///   • 0 assigned        → empty gray circle (no glyph).
+  ///   • 1 assigned        → that contact's avatar.
+  ///   • all assigned      → `person.3.fill` (everyone).
+  ///   • else (1 < N < all)→ count text ("2", "3", ...).
+  ///
+  /// The previous web implementation collapsed cases 3 and 4
+  /// into "show the first assignee's initials" — accurate
+  /// only when N === 1, misleading for partial multi-assigns
+  /// because the user couldn't tell a single-assignee row
+  /// apart from a 3-of-5 row. The count-text variant restores
+  /// the at-a-glance signal.
   const isEveryone = () =>
     props.totalContactCount > 1 &&
     props.assigned.length === props.totalContactCount;
-  /// First assignee for the avatar slot. Multi-assignee items
-  /// without "everyone" status also show one face — the iOS
-  /// behavior; multi-person feedback comes from the bottom
-  /// contacts row, not the per-item avatar.
+  const isPartial = () =>
+    props.assigned.length > 1 &&
+    props.assigned.length < props.totalContactCount;
+  /// First assignee for the single-assignee path.
   const primary = () => props.assigned[0] ?? null;
 
   /// Bouncy scale on assignment-count change, mirroring the
@@ -174,15 +185,29 @@ function ItemRow(props: ItemRowProps) {
               "transform 250ms cubic-bezier(0.5, 1.6, 0.5, 1)",
           }}
         >
+          {/* Cascade matches iOS — see `isEveryone` /
+              `isPartial` derivation above. Order of checks:
+              everyone → partial-count → single primary
+              (which itself renders empty when no assignee). */}
           <Show
             when={!isEveryone()}
             fallback={<Avatar size={40} variant="everyone" />}
           >
-            <Avatar
-              size={40}
-              fullName={primary()?.fullName ?? null}
-              emptyWhenUnnamed={!primary()}
-            />
+            <Show
+              when={!isPartial()}
+              fallback={
+                <Avatar
+                  size={40}
+                  displayText={String(props.assigned.length)}
+                />
+              }
+            >
+              <Avatar
+                size={40}
+                fullName={primary()?.fullName ?? null}
+                emptyWhenUnnamed={!primary()}
+              />
+            </Show>
           </Show>
         </span>
         {/* Item description, price, and tax % all match iOS

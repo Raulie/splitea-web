@@ -1,5 +1,11 @@
 import { onCleanup, onMount, Show } from "solid-js";
 import { CloseButton } from "./CloseButton";
+import { DownloadButton } from "./DownloadButton";
+import { NavBar } from "./NavBar";
+import {
+  receiptDownloadBasename,
+  receiptDownloadExtension,
+} from "../lib/format";
 
 /// Full-screen overlay that renders the captured receipt
 /// image or PDF. Mirrors iOS `ReceiptFullscreenView`:
@@ -24,12 +30,50 @@ export interface ReceiptViewerProps {
   /// we splice the prefix on here from `mimeType`.
   base64: string;
   mimeType: string;
+  /// Optional merchant name and receipt date — used by the
+  /// download button to build a `Splitea - <Merchant> - <yyyy-
+  /// MM-dd>.<ext>` filename matching iOS's
+  /// `ReceiptFullscreenView.downloadBaseName`. Either may be
+  /// nil; the helper falls back to `Splitea Receipt - <today>`
+  /// when no merchant is set, and to today's date when no
+  /// receipt date is set.
+  merchantName?: string | null;
+  receiptDateMs?: number | null;
   onClose: () => void;
 }
 
 export function ReceiptViewer(props: ReceiptViewerProps) {
   const dataURL = () => `data:${props.mimeType};base64,${props.base64}`;
   const isPDF = () => props.mimeType.toLowerCase().includes("pdf");
+
+  /// Triggers a download with the same filename pattern iOS
+  /// uses (`Splitea - <Merchant> - <yyyy-MM-dd>.<ext>`). The
+  /// usual `<a download>` + click trick — Safari and Chrome
+  /// both honor the `download` attribute on `data:` URLs for
+  /// images and PDFs, so we don't need to round-trip through a
+  /// blob. iOS Safari historically had quirks here but starting
+  /// with iOS 13+ the download attribute on `data:` URLs Just
+  /// Works for non-text/html mime types.
+  const handleDownload = () => {
+    const ext = receiptDownloadExtension(props.mimeType);
+    const basename = receiptDownloadBasename(
+      props.merchantName,
+      props.receiptDateMs,
+    );
+    const filename = `${basename}.${ext}`;
+    const a = document.createElement("a");
+    a.href = dataURL();
+    a.download = filename;
+    // The element doesn't need to be in the DOM for `.click()`
+    // to fire the download in Chrome/Edge/Firefox. Safari is
+    // pickier and historically required the element to be in
+    // the document tree — append briefly to be safe, then
+    // remove. No flicker because the element has no visible
+    // styling and is removed in the same tick.
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   // Dismiss on Esc — keyboard accessibility, and matches the
   // iOS sheet's swipe-down feel for users on hardware keyboards.
@@ -58,17 +102,25 @@ export function ReceiptViewer(props: ReceiptViewerProps) {
       aria-modal="true"
       aria-label="Receipt viewer"
     >
-      {/* Top chrome — Close button on the right, mirroring the
-          iOS toolbar's `.topBarTrailing` placement. We don't
-          render the iOS download / share-sheet button here yet
-          (`square.and.arrow.down`); browsers expose download
-          via the PDF viewer's own toolbar and image right-
-          click respectively, which is enough for read-only
-          web peers. */}
-      <div class="flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] pt-3 pb-3">
-        <span class="text-ios-headline text-ios-label">Receipt</span>
-        <CloseButton onClick={() => props.onClose()} />
-      </div>
+      {/* Top chrome — uses the shared `NavBar` component for
+          pixel-identical layout with the SavedReceiptView's
+          edit-pencil header and the items-overlay back-button
+          header (60pt body height, centered title, leading /
+          trailing 44×44 buttons, `safe-px` horizontal gutter
+          for landscape Dynamic Island clearance). The
+          previous custom header here had its own padding
+          stack (`px-4 pt-3 pb-3`) which produced a slightly
+          different vertical inset and left-aligned the title
+          — visibly inconsistent with the other two nav bars
+          when the user moved between them. iOS-side this
+          slot is the same `square.and.arrow.down` toolbar
+          we'll wire up in a follow-up; for now the close
+          button alone matches the read-only web feature set. */}
+      <NavBar
+        title="Receipt"
+        leading={<DownloadButton onClick={handleDownload} />}
+        trailing={<CloseButton onClick={() => props.onClose()} />}
+      />
 
       <div class="flex-1 min-h-0 relative">
         <Show

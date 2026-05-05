@@ -53,7 +53,7 @@ export function NavBar(props: NavBarProps) {
           leading/trailing slots. The leading/trailing
           wrappers are always rendered (even when empty)
           to keep the flex layout balanced. */}
-      <div class="absolute inset-0 px-4 flex items-center">
+      <div class="absolute inset-0 safe-px flex items-center">
         <div class="flex items-center">
           <Show when={props.leading}>{props.leading}</Show>
         </div>

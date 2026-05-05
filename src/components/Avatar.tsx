@@ -1,13 +1,18 @@
 import type { JSX } from "solid-js";
 import { initialsFor } from "../lib/format";
 
-/// Circular avatar. Three render paths in priority order:
+/// Circular avatar. Render paths in priority order:
 ///
 ///   1. `variant="everyone"` → `person.3.fill` SF Symbol —
 ///      indicates an item is assigned to every selected contact.
-///   2. `imageURL` present → photo.
-///   3. `fullName` non-empty → two-letter initials.
-///   4. Otherwise → `person.fill` silhouette fallback.
+///   2. `displayText` non-empty → render the literal text
+///      centered (e.g., a count like "2" for items assigned to
+///      a partial subset of contacts; matches iOS's
+///      `InitialsAvatar(text: "\(count)")` path).
+///   3. `imageURL` present → photo.
+///   4. `fullName` non-empty → two-letter initials.
+///   5. Otherwise → `person.fill` silhouette fallback (or an
+///      empty gray circle when `emptyWhenUnnamed` is set).
 ///
 /// Path data for the SF Symbol variants comes verbatim from
 /// Apple's CoreSVG export so the glyph matches the iOS app
@@ -23,6 +28,15 @@ export interface AvatarProps {
   /// person.3.fill SF Symbol on iOS; here we use the same
   /// glyph as an inline SVG.
   variant?: "everyone";
+  /// Literal text to render in the avatar (centered, same
+  /// typography as the initials path). Mirrors iOS's
+  /// `InitialsAvatar(text:)` constructor — used by ItemRow to
+  /// show an assignment count ("2", "3") when an item is
+  /// assigned to a partial subset of the selected contacts
+  /// (more than one, but fewer than all). Takes priority over
+  /// `imageURL` / `fullName` / fallbacks; only `variant`
+  /// overrides it.
+  displayText?: string | null;
   /// When true, an avatar with no image and no name renders as
   /// an EMPTY gray circle (no `person.fill` silhouette inside).
   /// iOS's ItemRow uses this for unassigned items — a flat
@@ -51,6 +65,10 @@ export function Avatar(props: AvatarProps) {
   const hasName = () => {
     const n = props.fullName?.trim();
     return !!n;
+  };
+  const hasDisplayText = () => {
+    const t = props.displayText?.trim();
+    return !!t;
   };
   return (
     <div
@@ -89,6 +107,14 @@ export function Avatar(props: AvatarProps) {
         // wider 1.82:1 aspect ratio is honored inside
         // PersonThreeFillGlyph itself (width derived from height).
         <PersonThreeFillGlyph size={Math.round(props.size * 0.4)} />
+      ) : hasDisplayText() ? (
+        // Literal text override (e.g. assignment count). Same
+        // typography as the initials path so the visual rhythm
+        // is consistent across rows that show a name vs ones
+        // that show "2" / "3". Renders BEFORE the image / name
+        // / fallback paths because the call-site is asserting
+        // it wants this exact text shown.
+        <span>{props.displayText!.trim()}</span>
       ) : props.imageURL ? (
         <img
           src={props.imageURL}

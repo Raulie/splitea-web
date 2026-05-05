@@ -144,3 +144,69 @@ export function initialsFor(fullName: string | null | undefined): string {
     .map((p) => p[0]!.toUpperCase());
   return letters.join("");
 }
+
+/// Builds the download filename basename (no extension) for a
+/// receipt export, mirroring iOS's `downloadBaseName` in
+/// `Splitea/Views/Receipt/Components/ReceiptFullscreenView.swift`
+/// verbatim:
+///
+///   • Date: `yyyy-MM-dd` (en-US-POSIX, ISO order, locale-
+///     independent so files sort the same on every device).
+///   • With merchant: `Splitea - <Merchant> - <yyyy-MM-dd>`
+///   • Without merchant: `Splitea Receipt - <yyyy-MM-dd>`
+///   • Strips `/:\?%*|"<>` (illegal in Files.app / Finder /
+///     iCloud Drive paths) by replacing each occurrence with
+///     a single space, then collapses edge whitespace.
+///   • Strips a leading `.` so the file isn't treated as a
+///     hidden file by Files.app / Finder.
+///
+/// Pure function — no side effects, safe to call from render.
+export function receiptDownloadBasename(
+  merchantName: string | null | undefined,
+  receiptDateMs: number | null | undefined,
+): string {
+  const date = receiptDateMs != null ? new Date(receiptDateMs) : new Date();
+  // Format as yyyy-MM-dd in the device's local timezone (matches
+  // iOS's `f.timeZone = .current`). Using `Intl` with en-US-POSIX
+  // gives a stable ISO-style format regardless of user locale.
+  const yyyy = String(date.getFullYear()).padStart(4, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const dateString = `${yyyy}-${mm}-${dd}`;
+
+  const raw = merchantName?.trim();
+  if (raw) {
+    // Replace each illegal character with a space, then trim.
+    // Matches the iOS `components(separatedBy:).joined(separator: " ")`
+    // pattern. The character class `[/:\\?%*|"<>]` covers every
+    // illegal char from the iOS list; escape `\` and `"` for the
+    // JS regex literal.
+    const cleaned = raw.replace(/[/:\\?%*|"<>]/g, " ").trim();
+    // Strip leading dots so the file isn't hidden in Files.app /
+    // Finder. iOS uses `drop(while: { $0 == "." })` — equivalent
+    // to a `^\.+` regex strip.
+    const safe = cleaned.replace(/^\.+/, "").trim();
+    if (safe) return `Splitea - ${safe} - ${dateString}`;
+  }
+  return `Splitea Receipt - ${dateString}`;
+}
+
+/// Returns the file extension (no leading dot) for a receipt
+/// `mimeType`. Mirrors iOS's "JPEG for image, PDF for PDF"
+/// rule:
+///   • `application/pdf` → `pdf`
+///   • anything starting with `image/` → image subtype (e.g.
+///     `jpeg` → `jpg`, `png` → `png`)
+///   • fallback → `bin`
+export function receiptDownloadExtension(mimeType: string): string {
+  const m = mimeType.toLowerCase();
+  if (m === "application/pdf" || m.endsWith("/pdf")) return "pdf";
+  if (m.startsWith("image/")) {
+    const sub = m.slice("image/".length);
+    // iOS's `image.jpegData(...)` writes `.jpg`, not `.jpeg` —
+    // match that for cross-platform consistency.
+    if (sub === "jpeg" || sub === "jpg") return "jpg";
+    return sub;
+  }
+  return "bin";
+}

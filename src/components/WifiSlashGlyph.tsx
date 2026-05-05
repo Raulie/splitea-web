@@ -1,0 +1,30 @@
+/// SF Symbol `wifi.slash` exported verbatim from Apple's
+/// CoreSVG (`Generator: Apple Native CoreSVG 326`). Composed
+/// of four sub-paths: the three wifi arcs (outer, middle, dot)
+/// plus the diagonal slash crossing them. Natural viewBox
+/// 19.7237 × 19.9443 — width derived from the natural ratio
+/// so the slash doesn't squish vertically.
+///
+/// `currentColor` tints all four sub-paths together so the
+/// parent's `text-…` class (or `style.color`) sets the whole
+/// glyph in one go. Apple's export uses `fill="white"
+/// fill-opacity="0.85"` for a secondary-style render; we drop
+/// that since callers pick the tint explicitly (system-red on
+/// the offline pill, etc.).
+export function WifiSlashGlyph(props: { size: number }) {
+  const width = () => (props.size * 19.7237) / 19.9443;
+  return (
+    <svg
+      viewBox="0 0 19.7237 19.9443"
+      width={width()}
+      height={props.size}
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M5.49344 6.41744C4.16208 6.97347 2.95596 7.81282 1.914 8.91647C1.73836 9.1034 1.47008 9.1049 1.28614 8.92627L0.124194 7.74473C-0.0348484 7.58038-0.0378366 7.36639 0.0963033 7.20884C0.961054 6.13645 2.15753 5.19604 3.55184 4.47646ZM19.2538 7.20884C19.388 7.36639 19.3918 7.58038 19.2259 7.74473L18.064 8.90817C17.8815 9.0868 17.6231 9.0951 17.4542 8.92627C15.4169 6.7493 12.7123 5.594 9.67507 5.594C9.59289 5.594 9.51095 5.59485 9.43202 5.60567L7.07368 3.24708C7.92065 3.07175 8.79465 2.97976 9.67507 2.97976C13.5401 2.97976 17.2613 4.74633 19.2538 7.20884Z" />
+      <path d="M9.55133 10.474C7.95455 10.5036 6.38927 11.2717 5.39934 12.3493C5.2139 12.5529 4.95691 12.5763 4.75487 12.384L3.45032 11.0974C3.29277 10.9346 3.27998 10.7416 3.42093 10.5758C4.29876 9.51416 5.67324 8.64847 7.28091 8.20433ZM15.9292 10.5758C16.0702 10.7416 16.0506 10.9482 15.8998 11.0974L15.4068 11.5811L12.0141 8.18798C13.6456 8.6284 15.0422 9.50183 15.9292 10.5758Z" />
+      <path d="M12.4673 14.0694C12.6029 14.2383 12.5682 14.4553 12.4228 14.5992L10.384 16.558C10.0513 16.8809 9.87711 16.9729 9.67656 16.9729C9.47751 16.9729 9.30336 16.8741 8.96917 16.558L6.93565 14.5992C6.78939 14.4597 6.74573 14.2819 6.84218 14.1327C7.41759 13.3612 8.47594 12.7378 9.67656 12.7378C10.847 12.7378 11.8934 13.3348 12.4673 14.0694Z" />
+      <path d="M16.6846 16.1639C16.9441 16.4219 17.3711 16.4189 17.6192 16.1639C17.8704 15.8991 17.8757 15.4887 17.6192 15.2337L3.60056 1.2165C3.34108 0.957023 2.9194 0.957023 2.65759 1.21352C2.4079 1.46171 2.4079 1.90829 2.65759 2.14818Z" />
+    </svg>
+  );
+}

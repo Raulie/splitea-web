@@ -33,6 +33,25 @@ body {
    smooth-scroll the rest. */
 html { scroll-behavior: smooth; }
 
+/* Horizontal padding utility that respects landscape-phone
+   safe-area insets. On a phone rotated to landscape, the
+   Dynamic Island / notch pokes into one side of the
+   viewport (~50pt of `env(safe-area-inset-left)` or
+   `-right`); without this guard, the chips, buttons, and
+   labels closest to that edge get visually clipped — see
+   the bottom-bar contacts row in the user's landscape
+   screenshot.
+   The `max(1rem, env(...))` form keeps the standard 16pt
+   gutter on every other surface (portrait phones,
+   desktop, etc.) where the env() returns 0, and only
+   widens the padding when the OS reports a non-zero
+   inset. Drop-in replacement for Tailwind `px-4` on
+   any container we want to be safe-area aware. */
+.safe-px {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
 /* Spinner used by the `ConnectingPill` (and any future
    inline progress indicators). Defined globally so any
    component can opt-in via `animation: ios-pill-spin ...`
@@ -62,12 +81,47 @@ html { scroll-behavior: smooth; }
 .ios-nav-stack {
   position: relative;
 }
+/* Mask the painted output of `.ios-nav-stack` to the 440px
+   centered column on desktop so the iOS-slide push/pop
+   animation's `translate3d(100%, 0, 0)` keyframe doesn't
+   leak the pushed view into the void surrounding the column.
+   `clip-path` is the right tool here — it clips painted
+   pixels (including descendants with `position: fixed`)
+   without touching containing-block resolution or scroll
+   anchoring, so the bottom bar still pins viewport-bottom
+   via `position: fixed` and the body still scrolls naturally.
+   `overflow: hidden` would not have been enough: it doesn't
+   clip fixed descendants unless the parent ALSO creates a
+   containing block (via `transform` or similar), and adding
+   that would re-root the bottom bar's `position: fixed`
+   relative to the stack — which scrolls with body — and
+   break URL-bar-collapse pinning.
+   On phones (viewport ≤ 440px) the column equals the
+   viewport, so the clip is a no-op and nothing is hidden. */
+@media (min-width: 431px) {
+  .ios-nav-stack {
+    clip-path: inset(0 calc(50% - 220px));
+  }
+}
+/* Phone-shaped column on desktop. Sized to the widest iPhone
+   currently shipping (iPhone 17 Pro Max, 440pt wide); on
+   wider viewports we center the UI in a 440px column so the
+   cards/contacts row don't stretch into a tablet-feeling
+   layout we never designed for.
+   Kept on `.ios-nav-page` (under-page in flow) and mirrored
+   onto the `.ios-nav-page-bottom` and `.ios-nav-pushed`
+   classes below so the fixed-positioned chrome and the slide-
+   in overlay also stay within the column. On phones this
+   resolves to viewport-width and is invisible. */
 .ios-nav-page {
   position: relative;
   /* `100dvh` minimum so the page is at least as tall as the
      viewport even when there's not much content (otherwise
      a short receipt would leave a black gap below). */
   min-height: 100dvh;
+  max-width: 440px;
+  margin-left: auto;
+  margin-right: auto;
   /* Match OnsenUI's leave-page animation curve. The transform
      and opacity transitions both run for the same 400ms over
      the same easing so the parallax + dim move in lockstep. */
@@ -92,7 +146,23 @@ html { scroll-behavior: smooth; }
    `<main overflow-y-auto>`). */
 .ios-nav-pushed {
   position: fixed;
-  inset: 0;
+  /* Pin top/bottom; horizontally constrain to the same 440px
+     column the under-page uses (see `.ios-nav-page` above).
+     `left/right: max(0px, calc(50% - 220px))` resolves to 0
+     on phones (viewport ≤ 440px → calc is negative → max
+     wins) and centers a 440px column on wider viewports. We
+     can't use `max-width: 440px; left:0; right:0` here
+     because `right` and `width` together aren't honored the
+     way you'd think on `position: fixed`; the explicit
+     `max(0px, ...)` on both sides is the unambiguous form.
+     The slide-in `translate3d(100%)` keyframe still works:
+     100% of element-width = 440px on desktop, full viewport
+     on phones — both produce a clean off-edge starting point
+     for the animation. */
+  top: 0;
+  bottom: 0;
+  left: max(0px, calc(50% - 220px));
+  right: max(0px, calc(50% - 220px));
   z-index: 50;
   background: var(--ios-bg, #000);
   /* Drop-shadow on the LEADING edge of the pushed page —
@@ -128,8 +198,10 @@ html { scroll-behavior: smooth; }
 .ios-nav-page-bottom {
   position: fixed;
   bottom: env(safe-area-inset-bottom);
-  left: 0;
-  right: 0;
+  /* Constrain to the 440px column on desktop; full viewport
+     on phones. See the matching note on `.ios-nav-pushed`. */
+  left: max(0px, calc(50% - 220px));
+  right: max(0px, calc(50% - 220px));
   z-index: 30;
   /* Same transition curve as `.ios-nav-page` so when both
      elements get the `.ios-nav-page-pushed` modifier they
@@ -142,6 +214,65 @@ html { scroll-behavior: smooth; }
   transform: translate3d(-25%, 0, 0);
   opacity: 0.9;
 }
+
+/* Drop the 440px column on landscape phones. The viewport's
+   WIDTH alone isn't enough to distinguish a desktop from a
+   landscape phone (a rotated iPhone 17 Pro Max is ~956×440),
+   so the original `@media (min-width: 431px)` clip-path /
+   max-width rules fire on landscape phones too — leaving the
+   UI as a 440px column with huge black voids on either side,
+   which reads bizarrely.
+   `max-height: 440px` is the dimension that actually
+   distinguishes them: landscape-phone height is ≤ ~440px (we
+   include current models up through the 17 Pro Max), while
+   desktop / tablet browsers always have height well above
+   440px in any practical window state. So this query catches
+   only the landscape-phone case and strips the column
+   constraint there, letting the UI fill the available
+   landscape viewport instead of cowering in the middle.
+   MUST come AFTER the original column-applying rules — same
+   specificity (one class), CSS source order breaks ties. */
+@media (max-height: 440px) {
+  .ios-nav-stack {
+    clip-path: none;
+  }
+  .ios-nav-page {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .ios-nav-pushed,
+  .ios-nav-page-bottom {
+    left: 0;
+    right: 0;
+  }
+  /* Extend the bar's background down to the absolute viewport
+     bottom in landscape so the items list behind it doesn't
+     leak through the `env(safe-area-inset-bottom)` gap above
+     the home indicator. We do this by:
+       1. Pinning the bar to `bottom: 0` (was env-inset).
+       2. Re-introducing the env-inset as INTERIOR padding so
+          the contacts row + Continue button still sit above
+          the home-indicator gutter — same visual position as
+          before, just the bar's frame is now bigger and the
+          gradient (which is `absolute inset: 0` and therefore
+          fills the bar's padding-box, including the new
+          padding-bottom region) covers the previously-leaking
+          strip. */
+  .ios-nav-page-bottom {
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* The OnsenUI parallax (-25% translate + opacity 0.9 dim on
+   the under-page during a push) works on desktop too now
+   that `.ios-nav-stack` has a `clip-path` masking everything
+   outside the 440px column. The shift previously had to be
+   disabled here because the under-page slid 107px left and
+   exposed its own content to the left of the pushed view's
+   column — the clip-path now hides that overflow, so the
+   parallax can run unmodified. */
 
 /* Hide the WebKit scrollbar for any horizontally-scrolling
    row that wants the iOS-native "no chrome" treatment. The
