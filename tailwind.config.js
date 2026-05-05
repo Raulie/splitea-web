@@ -13,6 +13,22 @@ export default {
         "ios-bg":              "#000000",
         "ios-card":            "#1c1c1e",
         "ios-card-hi":         "#2c2c2e",
+        // iOS `Color.gray.opacity(0.5)` — verbatim from
+        // `ContactAvatar.swift`'s
+        // `backgroundColor: Color.gray.opacity(0.5)`. The
+        // critical bit is the **alpha**: SwiftUI composites this
+        // fill over whatever's behind it (card bg, highlighted-
+        // row bg, the bottom-bar's translucent scrim, etc.), so
+        // the avatar takes on a slightly different gray
+        // depending on context. Solid `#47474A` would only
+        // match in the over-pure-black case and look wrong over
+        // the lighter row backgrounds.
+        //
+        // `rgba(142, 142, 147, 0.5)` is iOS systemGray (dark
+        // appearance, `#8E8E93`) at 0.5 alpha — the browser
+        // alpha-blends it over the parent the same way
+        // SwiftUI's compositor does.
+        "ios-gray-fill":       "rgba(142,142,147,0.5)",
         "ios-separator":       "rgba(84,84,88,0.65)",
         "ios-label":           "#ffffff",
         "ios-label-secondary": "rgba(235,235,245,0.6)",
@@ -38,7 +54,24 @@ export default {
         ],
       },
       borderRadius: {
-        "ios-card": "14px",
+        // iOS 26 / Liquid Glass — bumped from iOS 17/18's
+        // 14pt to 28pt for grouped-list cards, the
+        // most-aggressive token from community references
+        // (madebyluddy "Liquid Glass overview"). Pairs with
+        // the bumped 24/20 padding inside cards so the
+        // visual weight stays balanced.
+        //
+        // The concentric rule: inner_radius = parent_radius
+        // − padding. With a 28pt outer card and 20pt vertical
+        // padding (`py-5`), nested shapes want roughly 8pt;
+        // exposed below as `ios-card-inner`.
+        "ios-card":       "28px",
+        "ios-card-inner": "8px",
+        // Smaller "tag" pills (date / time chips inside the
+        // receipt-info card) — bumped from `rounded-lg`
+        // (8pt) to 12pt so they breathe alongside the
+        // larger card radius.
+        "ios-tag":        "12px",
       },
       fontSize: {
         "ios-large-title": ["34px", { lineHeight: "41px", fontWeight: "700" }],
@@ -51,6 +84,7 @@ export default {
         "ios-subheadline": ["15px", { lineHeight: "20px", fontWeight: "400" }],
         "ios-footnote":    ["13px", { lineHeight: "18px", fontWeight: "400" }],
         "ios-caption":     ["12px", { lineHeight: "16px", fontWeight: "400" }],
+        "ios-caption2":    ["11px", { lineHeight: "13px", fontWeight: "400" }],
       },
     },
   },

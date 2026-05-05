@@ -38,6 +38,100 @@ export function formatReceiptTime(epochMs: number, locale?: string): string {
   }).format(new Date(epochMs));
 }
 
+/// Combined "May 4, 2026 at 9:07 PM" — mirrors iOS Swift's
+/// `displayDate.formatted(date: .long, time: .shortened)`.
+/// `Intl.DateTimeFormat` with both date and time options
+/// emits the locale-appropriate connector ("at" in en-US,
+/// "à" in fr-FR, etc.) so we don't have to hardcode it.
+/// Used in `SavedReceiptView`'s receipt-image section
+/// caption — same format the iOS `receiptImageSection`
+/// renders below the thumbnail.
+export function formatReceiptDateTime(
+  epochMs: number,
+  options?: { includeTime?: boolean; locale?: string },
+): string {
+  const includeTime = options?.includeTime ?? true;
+  return new Intl.DateTimeFormat(options?.locale, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    ...(includeTime
+      ? {
+          hour: "numeric",
+          minute: "2-digit",
+        }
+      : {}),
+  }).format(new Date(epochMs));
+}
+
+/// Formats a phone number for display. Mirrors iOS
+/// `SpliteaContact.formattedPhoneNumber` which delegates to
+/// `PhoneFormatter.shared.format()` — a libphonenumber-style
+/// formatter backed by Google's metadata JSON. We don't
+/// replicate that whole machinery on the web (the iOS-bundle
+/// JSON is ~70KB and our SPA is ~22KB gzipped today), so this
+/// covers the common cases:
+///
+///   • 10 digits, no country code → `(NNN) NNN-NNNN` (NANP /
+///     US / Canada / Caribbean format used by ~all Splitea
+///     test contacts so far)
+///   • 11 digits starting with 1 → `+1 (NNN) NNN-NNNN`
+///   • Other `+CC` prefixed → `+CC NNN NNN NNNN` (best-effort
+///     space grouping by threes, since we don't have the
+///     per-territory pattern metadata)
+///   • Anything else → passthrough
+///
+/// TODO: bundle `libphonenumber-js/min` (~70KB) if non-NANP
+/// numbers become a quality bar. The iOS formatter handles
+/// every territory; the web side only handles +1 well today.
+export function formatPhoneNumber(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return trimmed;
+
+  // 10-digit NANP without country code → `(XXX) XXX-XXXX`.
+  if (!hasPlus && digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  // 11-digit starting with 1 (US/CA/etc) → `+1 (XXX) XXX-XXXX`.
+  if (digits.length === 11 && digits.startsWith("1")) {
+    const rest = digits.slice(1);
+    return `+1 (${rest.slice(0, 3)}) ${rest.slice(3, 6)}-${rest.slice(6)}`;
+  }
+  // Explicit `+CC` international — best-effort space grouping.
+  if (hasPlus) {
+    // Country codes are 1-3 digits; we don't carry the lookup
+    // table on the web. Treat the first 1-3 digits as the
+    // country code by checking common ones; otherwise default
+    // to a two-digit guess.
+    let cc: string;
+    if (digits.startsWith("1")) cc = "1";
+    else if (/^(7|2[0-9]|3[0-9]|4[0-9]|5[0-9]|6[0-9]|8[0-9]|9[0-9])/.test(digits)) {
+      cc = digits.slice(0, 2);
+    } else {
+      cc = digits.slice(0, 3);
+    }
+    const rest = digits.slice(cc.length);
+    if (rest.length === 0) return `+${cc}`;
+    // Split rest into groups of 3, last group taking the
+    // remainder. e.g. `7875550001` → `787 555 0001`.
+    const groups: string[] = [];
+    let i = 0;
+    while (i < rest.length) {
+      const remaining = rest.length - i;
+      const take = remaining <= 4 ? remaining : 3;
+      groups.push(rest.slice(i, i + take));
+      i += take;
+    }
+    return `+${cc} ${groups.join(" ")}`;
+  }
+  // Unknown shape — passthrough so we don't mangle.
+  return trimmed;
+}
+
 /// Returns the first letters of each name component capped at
 /// two — used as the avatar placeholder when no photo is
 /// available. e.g. "Camila Rivera" → "CR", "Liu" → "L".

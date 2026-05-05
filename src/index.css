@@ -2,13 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* App-wide chrome. Pinned to dark mode for now — Splitea iOS is
-   dark-mode-only, and the web client is meant to feel like the
-   same app, not a separate web product. Light-mode support can
-   come later if there's demand. */
-:root {
-  color-scheme: dark;
-}
+/* App-wide chrome. Splitea iOS is dark-mode-only and the web
+   client is styled to match.
+   We deliberately DO NOT declare `color-scheme: dark` here —
+   when set, iOS 26 Safari interprets it as "this page is
+   dark-themed, render the bottom toolbar as a flat dark
+   material and skip the content-sampling pass". That kills
+   the bleed-through effect even when the body is the root
+   scroller and viewport-fit=cover is set. We rely on explicit
+   `bg-ios-bg` / `text-ios-label` Tailwind utilities to set
+   our dark palette instead. */
 
 html, body, #root {
   background: #000;
@@ -29,3 +32,124 @@ body {
 /* iOS-style scrolling: bounce on overscroll where supported,
    smooth-scroll the rest. */
 html { scroll-behavior: smooth; }
+
+/* Spinner used by the `ConnectingPill` (and any future
+   inline progress indicators). Defined globally so any
+   component can opt-in via `animation: ios-pill-spin ...`
+   without repeating the keyframe. */
+@keyframes ios-pill-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* iOS-style navigation stack push / pop animation. Values
+   ported verbatim from OnsenUI's `IOSSlideNavigatorAnimator`
+   (onsenui/esm/elements/ons-navigator/ios-slide-animator.js)
+   — they reverse-engineered UIKit's stock UINavigationController
+   slide and have shipped this curve on millions of devices:
+
+     • Duration:  400ms  (OnsenUI: `duration = 0.4`)
+     • Easing:    cubic-bezier(0.3, 0.4, 0, 0.9)  (OnsenUI: `timing`)
+     • Outgoing:  translateX(-25%) + opacity 0.9
+     • Incoming:  translateX(100%) → translateX(0)
+
+   Layout: the under-page (`.ios-nav-page`) and the pushed
+   page (`.ios-nav-pushed`) are siblings inside `.ios-nav-stack`.
+   The under-page lives in body flow (so it can scroll
+   naturally and the body's URL bar collapse still works);
+   the pushed page is `position: fixed; inset: 0` so it can
+   horizontally slide against the viewport regardless of body
+   scroll position. */
+.ios-nav-stack {
+  position: relative;
+}
+.ios-nav-page {
+  position: relative;
+  /* `100dvh` minimum so the page is at least as tall as the
+     viewport even when there's not much content (otherwise
+     a short receipt would leave a black gap below). */
+  min-height: 100dvh;
+  /* Match OnsenUI's leave-page animation curve. The transform
+     and opacity transitions both run for the same 400ms over
+     the same easing so the parallax + dim move in lockstep. */
+  transition:
+    transform 400ms cubic-bezier(0.3, 0.4, 0, 0.9),
+    opacity 400ms cubic-bezier(0.3, 0.4, 0, 0.9);
+}
+.ios-nav-page-pushed {
+  /* Verbatim OnsenUI: leavePage default → translate3d(-25%)
+     with opacity 0.9. The reduced opacity over the black
+     background produces the subtle dim effect UIKit shows
+     during the transition, no separate overlay layer needed. */
+  transform: translate3d(-25%, 0, 0);
+  opacity: 0.9;
+}
+
+/* The pushed page (e.g. SavedReceiptView during the slide-
+   in/out). `position: fixed; inset: 0` so it covers the
+   viewport during animation regardless of where the under-
+   page has been scrolled to. Internal scroll happens inside
+   the pushed view itself (e.g. SavedReceiptView's own
+   `<main overflow-y-auto>`). */
+.ios-nav-pushed {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--ios-bg, #000);
+  /* Drop-shadow on the LEADING edge of the pushed page —
+     mirrors UIKit's `_defaultShadowImage` during transitions.
+     Visible whenever the page isn't 100% on-screen. */
+  box-shadow: -2px 0 16px rgba(0, 0, 0, 0.45);
+  will-change: transform;
+}
+.ios-nav-pushed-in {
+  animation: ios-nav-push-in 400ms cubic-bezier(0.3, 0.4, 0, 0.9) forwards;
+}
+.ios-nav-pushed-out {
+  animation: ios-nav-push-out 400ms cubic-bezier(0.3, 0.4, 0, 0.9) forwards;
+}
+@keyframes ios-nav-push-in {
+  from { transform: translate3d(100%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+@keyframes ios-nav-push-out {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(100%, 0, 0); }
+}
+
+/* Pinned page chrome on ItemsView — contacts row + Continue
+   button. `position: fixed` so it stays viewport-anchored as
+   the body scrolls and iOS Safari's URL bar collapses. The
+   bar is a SIBLING of `.ios-nav-page` (not a child) so it can
+   anchor to the viewport regardless of any transform applied
+   to the under-page during the push animation. The pushed
+   class is mirrored onto this element from JSX so the bar
+   parallaxes in lockstep with the under-page during the push
+   transition. */
+.ios-nav-page-bottom {
+  position: fixed;
+  bottom: env(safe-area-inset-bottom);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  /* Same transition curve as `.ios-nav-page` so when both
+     elements get the `.ios-nav-page-pushed` modifier they
+     animate in perfect lockstep. */
+  transition:
+    transform 400ms cubic-bezier(0.3, 0.4, 0, 0.9),
+    opacity 400ms cubic-bezier(0.3, 0.4, 0, 0.9);
+}
+.ios-nav-page-bottom.ios-nav-page-pushed {
+  transform: translate3d(-25%, 0, 0);
+  opacity: 0.9;
+}
+
+/* Hide the WebKit scrollbar for any horizontally-scrolling
+   row that wants the iOS-native "no chrome" treatment. The
+   inline `scrollbar-width: none` on the element covers
+   Firefox; this covers Safari/Chrome. Targeted by the
+   inline-style attribute presence so we don't have to add
+   a class to every horizontal scroller. */
+[style*="scrollbar-width: none"]::-webkit-scrollbar {
+  display: none;
+}
+
