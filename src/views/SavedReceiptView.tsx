@@ -291,7 +291,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
       <main
         class="flex-1 overflow-y-auto"
         classList={{
-          "pb-[calc(88px+env(safe-area-inset-bottom))]":
+          "pb-[calc(108px+env(safe-area-inset-bottom))]":
             senderIsPayer() && senderProviders().length > 0,
           "pb-[calc(16px+env(safe-area-inset-bottom))]": !(
             senderIsPayer() && senderProviders().length > 0
