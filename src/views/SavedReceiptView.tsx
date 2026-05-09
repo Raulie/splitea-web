@@ -262,24 +262,27 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     // bar collapses/expands.
     <div class="h-dvh flex flex-col bg-ios-bg text-ios-label relative">
       {/*
-        Bottom-padding clears ONLY the bar's solid region so
-        the last breakdown card scrolls right up to the
-        button's top edge — the gradient region above the
-        button (the bar's top ~64px) is intentional fade-behind
-        territory and content scrolls INTO it.
+        Bottom-padding clears the entire Pay bar (button + the
+        full 64px gradient region above) so the last content
+        sits comfortably above the bar's top fade with
+        breathing room. Anatomy:
 
-          48px button height
+          64px gradient region (the fade-behind zone)
+          + 48px button height
           + 12px button bottom interior padding
           + env(safe-area-inset-bottom)
-          ≈ 60px + env(safe-area-inset-bottom)
+          ≈ 124px + env(safe-area-inset-bottom)
 
-        Previously we reserved 72px which double-counted the
-        button's TOP interior padding and left an empty
-        12px gap below the last card before the button.
-        With the trim, last card's bottom edge aligns with
-        the button's top edge — content visibly continues
-        behind the gradient, no dead space, matches iOS 26's
-        Wallet/Music/Maps scroll-behind pattern.
+        Previously we tried 60px (clears only the solid button
+        region) and 72px (clears solid region + 12px slack);
+        both made the last content row read as crammed against
+        the button. 124px+safe-area reserves the FULL bar
+        footprint so the last card has at least the gradient
+        zone of breathing room above the button — content can
+        still scroll INTO the gradient when the user actively
+        scrolls down (the 64px fade-behind is preserved as a
+        mid-scroll affordance), but at-rest the last item has
+        comfortable air above the chrome.
 
         When the Pay bar isn't rendered (visitor isn't the
         payer / no providers configured), the standard 16px
@@ -288,7 +291,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
       <main
         class="flex-1 overflow-y-auto"
         classList={{
-          "pb-[calc(60px+env(safe-area-inset-bottom))]":
+          "pb-[calc(124px+env(safe-area-inset-bottom))]":
             senderIsPayer() && senderProviders().length > 0,
           "pb-[calc(16px+env(safe-area-inset-bottom))]": !(
             senderIsPayer() && senderProviders().length > 0
