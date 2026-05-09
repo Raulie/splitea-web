@@ -69,6 +69,22 @@ export default {
         // want roughly 10pt; exposed below as `ios-card-inner`.
         "ios-card":       "22px",
         "ios-card-inner": "10px",
+        // iOS 26 Liquid Glass sheets — `UISheetPresentationController`
+        // and the equivalent SwiftUI `.sheet(...)` use a 36pt
+        // top corner radius by default in iOS 26 (confirmed via
+        // the SwiftUI forum thread on adaptive container corner
+        // radii where Apple's reference is `RoundedRectangle
+        // (cornerRadius: 36)` for sheet container shapes). The
+        // sheet surface is intentionally MORE rounded than
+        // inline cards (22pt) because it reads as a separate
+        // floating layer detached from the underlying content
+        // — bigger curve = more "lifted" feel in the new
+        // Liquid Glass language. Apply via `rounded-t-ios-sheet`
+        // for partial-detent presentations (the only mode
+        // splitea-web exposes; full-screen detents on iOS
+        // square off the bottom corners as the sheet attaches
+        // to the screen edges).
+        "ios-sheet":      "36px",
         // Smaller "tag" pills (date / time chips inside the
         // receipt-info card) — bumped from `rounded-lg`
         // (8pt) to 12pt so they breathe alongside the

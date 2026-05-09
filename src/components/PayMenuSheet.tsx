@@ -250,7 +250,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
         aria-hidden="true"
       />
       <div
-        class="fixed inset-x-0 bottom-0 z-50 bg-ios-card text-ios-label rounded-t-ios-card squircle pb-[env(safe-area-inset-bottom)] shadow-2xl pay-sheet"
+        class="fixed inset-x-0 bottom-0 z-50 bg-ios-card text-ios-label rounded-t-ios-sheet squircle pb-[env(safe-area-inset-bottom)] shadow-2xl pay-sheet"
         classList={{ "pay-sheet-presented": presented() }}
         role="dialog"
         aria-modal="true"
