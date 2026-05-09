@@ -328,10 +328,22 @@ function IdentityStage(props: IdentityStageProps) {
                   imageURL={c.avatarUrl}
                   size={36}
                 />
-                <span class="flex-1 text-left text-ios-body text-ios-label truncate">
+                {/*
+                  Typography matches `ContactBreakdownRow`'s
+                  disclosure summary: `.subheadline.semibold`
+                  on both name AND amount, primary label color
+                  on both. Was `.body` regular + secondary on
+                  the amount, which read as a different visual
+                  weight than the matching breakdown rows on
+                  the underlying SavedReceiptView and made the
+                  identity-picker feel like a different
+                  surface. Tabular nums kept on the amount so
+                  multi-row dollar figures align right-edge.
+                */}
+                <span class="flex-1 text-left text-ios-subheadline font-semibold text-ios-label truncate">
                   {c.displayName}
                 </span>
-                <span class="text-ios-body text-ios-label-secondary tabular-nums">
+                <span class="text-ios-subheadline font-semibold text-ios-label tabular-nums">
                   {formatCurrency(c.amount, props.currencyCode)}
                 </span>
                 <ChevronGlyph
