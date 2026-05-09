@@ -59,6 +59,15 @@ export interface PayMenuSheetProps {
   /// Receipt's merchant name — feeds the "Your share at
   /// <merchant>…" payment-note string.
   merchantName: string | null;
+  /// When set, treated as the visitor's identity with priority
+  /// over both the localStorage cache and the
+  /// single-candidate fallback. Used by the "Request payment"
+  /// flow — the sender's URL carries `?for=<contactId>`, so
+  /// the recipient lands straight on the providers stage
+  /// without seeing the "which one are you?" picker. Stale
+  /// values (contact missing from `candidates`) silently fall
+  /// through to the regular initial-identity logic.
+  forcedContactId?: string | null;
   /// Called once the slide-down exit animation completes.
   onClose: () => void;
 }
@@ -94,17 +103,26 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
   const providerEntries = () =>
     configuredPayProviders(props.paymentUsernames);
 
-  /// Initial identity. Three sources, in priority order:
+  /// Initial identity. Four sources, in priority order:
   ///
-  ///   1. localStorage cache from a prior visit. Validated
+  ///   1. `forcedContactId` from the parent (Request-link
+  ///      flow). Validated against the candidate list so a
+  ///      stale URL drops to the next source. Bypasses the
+  ///      cache entirely — the sender's intent is
+  ///      authoritative when explicit.
+  ///   2. localStorage cache from a prior visit. Validated
   ///      against the current candidate list so a stale ID
   ///      (contact removed from the snapshot since the
   ///      cache was written) drops us back to the picker.
-  ///   2. Single-candidate auto-select. When there's exactly
+  ///   3. Single-candidate auto-select. When there's exactly
   ///      one non-payer contact, there's no ambiguity — skip
   ///      the picker and go straight to providers.
-  ///   3. `null`, which surfaces the picker.
+  ///   4. `null`, which surfaces the picker.
   const initialIdentity = (): string | null => {
+    const forced = props.forcedContactId;
+    if (forced && props.candidates.some((c) => c.contactId === forced)) {
+      return forced;
+    }
     try {
       const raw = localStorage.getItem(identityCacheKey(props.receiptID));
       if (raw && props.candidates.some((c) => c.contactId === raw)) {

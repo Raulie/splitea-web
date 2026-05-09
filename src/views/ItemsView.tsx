@@ -1,4 +1,4 @@
-import { useParams } from "@solidjs/router";
+import { useParams, useSearchParams } from "@solidjs/router";
 import {
   createMemo,
   createResource,
@@ -52,10 +52,21 @@ import {
 ///      `assignment.remove` ops and applies optimistically.
 export function ItemsView() {
   const params = useParams<{ shareID: string }>();
+  const [searchParams] = useSearchParams<{ for?: string }>();
   const [snapshot] = createResource(
     () => params.shareID,
     (id) => fetchSnapshot(id),
   );
+
+  // Recipient-targeted "request" link — sender's iOS Request
+  // button mints `splitea.app/r/<id>?for=<contactId>` and ships
+  // it via Messages / share-sheet. When the param is set, the
+  // visitor is read-only: the SPA skips the WebSocket (no live
+  // edits in / out), preselects that contact as the visitor's
+  // identity for the Pay flow, and forces summary-first mode
+  // so the recipient lands on their breakdown immediately
+  // rather than ItemsView's editor.
+  const forContactId = (): string | null => searchParams.for ?? null;
 
   return (
     // Loading/error states need a viewport-sized container too,
@@ -76,7 +87,11 @@ export function ItemsView() {
         </Match>
         <Match when={snapshot()}>
           {(snap) => (
-            <Loaded snapshot={snap()} shareID={params.shareID} />
+            <Loaded
+              snapshot={snap()}
+              shareID={params.shareID}
+              forContactId={forContactId()}
+            />
           )}
         </Match>
       </Switch>
@@ -84,7 +99,17 @@ export function ItemsView() {
   );
 }
 
-function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
+function Loaded(props: {
+  snapshot: ReceiptSnapshot;
+  shareID: string;
+  /// When non-null, this is a "Request payment" link: the
+  /// recipient is read-only, the WebSocket stays closed, and
+  /// the SPA jumps straight to the breakdown view with this
+  /// contact preselected as the visitor's identity. Comes from
+  /// `?for=<contactId>` on the URL.
+  forContactId: string | null;
+}) {
+  const isReadOnly = () => props.forContactId !== null;
   // The store owns the live snapshot. After this point we
   // never read `props.snapshot` again — only `store.snapshot`,
   // which mutates as WebSocket frames arrive and as the user
@@ -98,7 +123,20 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
   // pre-select the iOS-owner's `isUserContact` here — that
   // flag identifies the share owner, not the web viewer; see
   // the `ContactsRow` doc comment about web SIWA.
-  const initialActive = props.snapshot.contacts[0]?.id ?? null;
+  // Read-only Request link — preselect the recipient's
+  // contact so their row highlights and the breakdown opens to
+  // their share. Falls back to the first contact when the
+  // `?for=<id>` value doesn't match any snapshot contact (stale
+  // link, recipient was removed since the share was minted).
+  const initialActive = (() => {
+    if (props.forContactId) {
+      const match = props.snapshot.contacts.find(
+        (c) => c.id === props.forContactId,
+      );
+      if (match) return match.id;
+    }
+    return props.snapshot.contacts[0]?.id ?? null;
+  })();
   const [activeContactId, setActiveContactId] = createSignal<string | null>(
     initialActive,
   );
@@ -169,6 +207,13 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
   let helloLatestSeq: number | null = null;
   const captureMode = () => {
     if (modeCaptured() !== null) return;
+    // Request links (read-only): always summary-first. The
+    // recipient came here to see their breakdown — the items
+    // editor is editor-only and irrelevant to them.
+    if (isReadOnly()) {
+      setModeCaptured(true);
+      return;
+    }
     const items = store.snapshot.items;
     const all =
       items.length > 0 &&
@@ -272,6 +317,13 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
   };
   onMount(() => {
     window.addEventListener("popstate", onPopState);
+    // Read-only Request link — capture mode immediately
+    // (summary-first) so we don't wait on a WebSocket that
+    // never opens. Without this the modeCaptured signal would
+    // sit at null until the 3-second fallback ticks.
+    if (isReadOnly()) {
+      captureMode();
+    }
     // Safety net: if the WebSocket hasn't connected and
     // replayed within 3 seconds (slow network, blocked socket,
     // etc.), capture mode from whatever state we have so the
@@ -397,7 +449,21 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
       }
     },
   });
-  session.open();
+  // Read-only Request links don't need a live channel — the
+  // recipient just sees the snapshot + their breakdown + Pay
+  // button. Skipping `session.open()` keeps the relay's peer
+  // count clean (we'd otherwise show up as a ghost peer for
+  // every Request-link visitor) AND prevents the recipient
+  // from accidentally landing edits via item taps (the relay
+  // happily forwards mutations from any peer with the
+  // shareID; not opening the socket sidesteps that). The
+  // ConnectingPill stays hidden via the explicit
+  // `pillState=hidden` set below.
+  if (!isReadOnly()) {
+    session.open();
+  } else {
+    setPillState("hidden");
+  }
   onCleanup(() => {
     clearTimers();
     session.close();
@@ -741,6 +807,7 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
                   <SavedReceiptView
                     snapshot={store.snapshot}
                     onBack={() => popSummary()}
+                    forContactId={props.forContactId}
                   />
                 </div>
               </Show>
@@ -760,7 +827,14 @@ function Loaded(props: { snapshot: ReceiptSnapshot; shareID: string }) {
           >
             <SavedReceiptView
               snapshot={store.snapshot}
-              onEdit={() => pushSummary()}
+              // Hide the pencil-edit affordance when the
+              // visitor is on a read-only Request link — they
+              // can't push to the items editor either way
+              // (no live channel, no mutation path), and the
+              // button would just lead to a static editor
+              // they can't use.
+              onEdit={isReadOnly() ? undefined : () => pushSummary()}
+              forContactId={props.forContactId}
             />
           </div>
           <Show when={pushPhase() !== "closed"}>

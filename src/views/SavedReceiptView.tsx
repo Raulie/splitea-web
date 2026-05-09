@@ -38,6 +38,11 @@ export interface SavedReceiptViewProps {
   /// where the breakdown is the root view and the pencil
   /// pushes the items editor onto the stack.
   onEdit?: () => void;
+  /// Recipient-targeted Request link — when set, PayMenuSheet
+  /// uses this contactId as the visitor's preselected
+  /// identity (skipping the "which one are you?" picker) and
+  /// the breakdown UI auto-expands the matching row.
+  forContactId?: string | null;
 }
 
 export function SavedReceiptView(props: SavedReceiptViewProps) {
@@ -496,6 +501,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           candidates={payCandidates()}
           currencyCode={props.snapshot.receipt.currencyCode}
           merchantName={props.snapshot.receipt.merchantName}
+          forcedContactId={props.forContactId ?? null}
           onClose={() => setShowingPayMenu(false)}
         />
       </Show>
