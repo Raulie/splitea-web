@@ -54,30 +54,21 @@ export function BillSummary(props: BillSummaryProps) {
   return (
     // Card chrome + concentric padding:
     //
-    //   • `rounded-[36px]` matches the breakdown cards
-    //     above so the whole stack reads as one consistent
-    //     surface rather than mixed curvature.
+    //   • `rounded-ios-card` (22pt) matches every other card
+    //     on this view — breakdown rows, ReceiptInfoCard,
+    //     ItemsList — so the stack reads as one consistent
+    //     surface. iOS app uses `cornerRadius: 22` on its
+    //     equivalent prominent cards, so the web matches.
     //   • `squircle` swaps the default circle-quadrant
     //     corner curve for the iOS continuous superellipse.
-    //   • Padding of 18px on every side from the card's
-    //     edge to the row content. Derived per Apple's
-    //     ConcentricRectangle rule (`inner_radius =
-    //     container_radius − spacing`) and the article's
-    //     2:1 example (24pt container with 12pt padding).
-    //     For our 36pt card, half is 18pt — the spacing
-    //     that lets a non-rounded inner content area sit
-    //     concentric with the corner curve.
-    //
-    // The 18pt spacing is split: the section contributes
-    // `pt-[6px] pb-[6px]` and each row contributes its
-    // own `py-3` (12px) — totaling 18px above the first
-    // row's text and below the last row's text. Rows
-    // contribute the full 18px horizontal via `px-[18px]`
-    // (see Row / TotalRow). Middle rows (Tax, Tip) keep
-    // their tighter `py-3` between hairlines because the
-    // 18pt-from-card-edge rule applies to the
-    // content/card boundary, not to row-to-row spacing.
-    <section class="bg-ios-card rounded-[36px] squircle ios-list-divide overflow-hidden pt-[6px] pb-[6px]">
+    //   • Vertical padding 6+12=18px above the first row's
+    //     text and below the last row's text. The horizontal
+    //     padding (rows' `px-[18px]`) is unchanged from the
+    //     previous design because it doesn't depend on the
+    //     card radius — it's just visually pleasant gutter.
+    //     Middle rows (Tax, Tip) keep their tighter `py-3`
+    //     between hairlines.
+    <section class="bg-ios-card rounded-ios-card squircle ios-list-divide overflow-hidden pt-[6px] pb-[6px]">
       <Row label="Subtotal" value={formatCurrency(subtotal(), currency())} />
       <Show when={!props.receipt.taxInclusive}>
         <Row label={taxLabel()} value={formatCurrency(tax(), currency())} />

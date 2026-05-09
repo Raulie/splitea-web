@@ -54,19 +54,21 @@ export default {
         ],
       },
       borderRadius: {
-        // iOS 26 / Liquid Glass — bumped from iOS 17/18's
-        // 14pt to 28pt for grouped-list cards, the
-        // most-aggressive token from community references
-        // (madebyluddy "Liquid Glass overview"). Pairs with
-        // the bumped 24/20 padding inside cards so the
-        // visual weight stays balanced.
+        // iOS 26 — 22pt for prominent grouped-list cards.
+        // Matches the iOS app's actual usage (`cornerRadius: 22,
+        // style: .continuous` on every prominent card surface:
+        // ContactBreakdownRow, OnboardingProfilePageView,
+        // ProfileSetupPageView, ItemsView grouped lists).
+        // Earlier passes of this file experimented with 28pt and
+        // 36pt — both diverged from what iOS actually renders,
+        // making the web feel inflated next to the native app.
         //
-        // The concentric rule: inner_radius = parent_radius
-        // − padding. With a 28pt outer card and 20pt vertical
-        // padding (`py-5`), nested shapes want roughly 8pt;
-        // exposed below as `ios-card-inner`.
-        "ios-card":       "28px",
-        "ios-card-inner": "8px",
+        // Concentric rule: inner_radius = parent_radius
+        // − padding. With a 22pt outer card and ~12pt padding
+        // (`px-3 py-3` inside PayMenuSheet rows), nested shapes
+        // want roughly 10pt; exposed below as `ios-card-inner`.
+        "ios-card":       "22px",
+        "ios-card-inner": "10px",
         // Smaller "tag" pills (date / time chips inside the
         // receipt-info card) — bumped from `rounded-lg`
         // (8pt) to 12pt so they breathe alongside the

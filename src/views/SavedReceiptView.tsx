@@ -374,22 +374,22 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                     row.contact !== undefined &&
                     senderContact()?.id === row.contact.id;
                   return (
-                    <div class="bg-ios-card rounded-[36px] squircle overflow-hidden">
-                      {/* Card corner radius is 36px on
-                          every breakdown card. The radius
-                          is the SwiftUI concentric rule
-                          (`outer = inner + spacing`)
-                          applied on the payer's card —
-                          its inner Pay capsule has
-                          effective radius `height/2 =
-                          24px` plus 12px of side / bottom
-                          padding gives 36px. Other
-                          breakdown cards have no concentric
-                          inner anchor of their own, but
-                          they share the same 36px so the
-                          row of cards reads as a uniform
-                          stack rather than mismatched
-                          curvature card-by-card. */}
+                    <div class="bg-ios-card rounded-ios-card squircle overflow-hidden">
+                      {/* Card corner radius unified to
+                          `rounded-ios-card` (22pt) so every
+                          card on this view reads as one
+                          consistent stack — matches the
+                          iOS app's `cornerRadius: 22, style:
+                          .continuous` on its prominent
+                          card surfaces. The payer card's
+                          inner Pay capsule still has its
+                          own concentric padding logic
+                          below; tightening the outer
+                          radius doesn't break that
+                          relationship since the capsule
+                          sits inside its own inner card,
+                          not directly against this outer
+                          frame. */}
                       <ContactBreakdownRow
                         contact={row.contact!}
                         amount={row.total}
