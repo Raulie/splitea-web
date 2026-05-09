@@ -49,10 +49,26 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
     <DisclosureGroup
       open={props.open}
       onOpenChange={props.onOpenChange}
-      summaryClass="px-4 py-3"
+      // 18px summary padding (vs the previous 16h/12v) so
+      // the 36px-radius avatar (size 36, r = 18) sits
+      // concentric with the 36px card corner. Math:
+      // avatar's center lands at (18 + 18, 18 + 18) =
+      // (36, 36) from the card's top-left, which IS the
+      // card's corner-curve center, so the gap from the
+      // avatar's edge to the card's curve is a uniform
+      // 18px around the visible arc — same SwiftUI
+      // `ConcentricRectangle` rule (`outer = inner +
+      // spacing`) applied to a circle inside a rounded
+      // rect rather than a rounded rect inside a rounded
+      // rect.
+      summaryClass="p-[18px]"
       summary={(isOpen) => (
         <div class="flex items-center gap-3">
-          <Avatar size={36} fullName={props.contact.fullName} />
+          <Avatar
+            size={36}
+            fullName={props.contact.fullName}
+            imageURL={props.contact.avatarUrl}
+          />
           <div class="flex-1 min-w-0">
             {/* iOS `ContactBreakdownRow.swift:78-79`:
                   Text(displayName)

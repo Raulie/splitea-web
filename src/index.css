@@ -55,6 +55,96 @@ html { scroll-behavior: smooth; }
   transform: translate3d(0, 0, 0);
 }
 
+/* Provider-picker sheet animation. The sheet renders bottom-
+   anchored (translateY(100%) = off-screen below) and its
+   backdrop renders at opacity 0; on the next frame the
+   `*-presented` modifiers transition them to their resting
+   states. Use the same iOS-coverVertical curve as
+   `.ios-nav-cover` for shape parity, with a touch more
+   duration (380ms) so the longer-from-far-below entrance
+   feels weighted, not snappy.
+
+   Backdrop carries `backdrop-filter: blur` for the iOS-26
+   "frosted glass under sheet" effect — defocuses the
+   receipt content beneath the sheet without dimming it
+   into uselessness. The 4px blur is subtle enough to keep
+   the underlying breakdown legible if the user drags the
+   sheet partway down (future feature) but obvious enough
+   to read as "modal context active."
+
+   Keep `PAY_SHEET_ANIMATION_MS` in `PayMenuSheet.tsx` in
+   sync with the duration here — the JS component delays
+   unmount by that much after triggering exit so the
+   slide-down completes before the parent's `<Show>` rips
+   the DOM out. */
+.pay-backdrop {
+  opacity: 0;
+  transition: opacity 280ms cubic-bezier(0.32, 0.72, 0, 1);
+  -webkit-backdrop-filter: blur(0px);
+  backdrop-filter: blur(0px);
+  will-change: opacity, backdrop-filter;
+}
+.pay-backdrop.pay-backdrop-presented {
+  opacity: 1;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.pay-sheet {
+  transform: translate3d(0, 100%, 0);
+  transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+.pay-sheet.pay-sheet-presented {
+  transform: translate3d(0, 0, 0);
+}
+
+/* Apple-style continuous (squircle) corners. Replaces the
+   default circle-quadrant border-radius curve with a
+   superellipse — the smoother, G2-continuous curve Apple
+   uses on iOS app icons, cards, sheets, and buttons.
+   `superellipse(3)` is a close visual approximation of
+   SwiftUI's `RoundedRectangle(style: .continuous)`.
+
+   Pairs with `border-radius` (Tailwind `rounded-*`); the
+   radius value is still set the usual way, this just
+   changes the curve shape applied at the corners.
+
+   Browser support is partial — it ships in Safari (the
+   primary target since most recipients tap share links
+   from Messages on iOS) and lands in other browsers as
+   the spec stabilizes. Browsers without `corner-shape`
+   support silently fall back to standard rounded
+   corners; visual difference is subtle at the radii we
+   use, so degradation is graceful. */
+.squircle {
+  corner-shape: superellipse(3);
+}
+
+/* iOS-style inset list separator. The hairline between rows
+   of `InsetGroupedListStyle` doesn't extend to the leading
+   edge of the card — it starts where the row's CONTENT
+   starts, so the separator visually groups the text column
+   rather than slicing the whole card in half.
+   Apply `.ios-list-divide` to a parent whose direct children
+   are the rows; each row except the last gets a 1px hairline
+   along its bottom edge via an `::after` pseudo-element,
+   inset 16px from the left. 16px = the standard `px-4` row
+   padding the rest of the layout uses, so the separator
+   aligns with the text column. */
+.ios-list-divide > *:not(:last-child) {
+  position: relative;
+}
+.ios-list-divide > *:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  border-top: 1px solid rgba(84, 84, 88, 0.65);
+  pointer-events: none;
+}
+
 /* Horizontal padding utility that respects landscape-phone
    safe-area insets. On a phone rotated to landscape, the
    Dynamic Island / notch pokes into one side of the

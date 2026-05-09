@@ -54,7 +54,7 @@ export function ItemsList(props: ItemsListProps) {
           Items
         </h2>
       </div>
-      <ul class="bg-ios-card rounded-ios-card divide-y divide-ios-separator overflow-hidden">
+      <ul class="bg-ios-card rounded-ios-card ios-list-divide overflow-hidden">
         <For each={props.items}>
           {(item) => {
             const assigned = () =>
@@ -205,6 +205,7 @@ function ItemRow(props: ItemRowProps) {
               <Avatar
                 size={40}
                 fullName={primary()?.fullName ?? null}
+                imageURL={primary()?.avatarUrl ?? null}
                 emptyWhenUnnamed={!primary()}
               />
             </Show>

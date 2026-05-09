@@ -297,7 +297,11 @@ export function ContactsRow(props: ContactsRowProps) {
                     "width 450ms cubic-bezier(0.32, 0.72, 0, 1), height 450ms cubic-bezier(0.32, 0.72, 0, 1)",
                 }}
               >
-                <Avatar size={size()} fullName={contact.fullName} />
+                <Avatar
+                  size={size()}
+                  fullName={contact.fullName}
+                  imageURL={contact.avatarUrl}
+                />
               </span>
               <Show when={isActive()}>
                 <div class="flex flex-col leading-tight items-start">

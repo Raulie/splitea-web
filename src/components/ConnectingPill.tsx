@@ -115,20 +115,24 @@ export function ConnectingPill(props: ConnectingPillProps) {
         style={{
           "backdrop-filter": "blur(24px) saturate(180%)",
           "-webkit-backdrop-filter": "blur(24px) saturate(180%)",
-          background: isSuccess()
-            ? "rgba(48, 209, 88, 0.18)"
-            : isOffline()
-              ? "rgba(255, 69, 58, 0.18)"
-              : "rgba(20, 20, 22, 0.7)",
+          // Single neutral-glass surface across every state.
+          // Earlier iterations tinted the bg + border green
+          // when connected and red when offline, but that read
+          // as a state-of-the-pill change rather than a state-
+          // of-the-connection one — and visually fought with
+          // the icon swap that already communicates the same
+          // information. Keeping the surface constant means
+          // only the ICON tint shifts (green check / red wifi-
+          // slash / neutral spinner), which is the same pattern
+          // iOS 26 system pills use (Maps "Updating Location"
+          // stays neutral whether the lock is in progress or
+          // just succeeded — only the inline glyph changes).
+          background: "rgba(20, 20, 22, 0.7)",
           // Hairline border via inset shadow (so it stays
           // pixel-perfect over the rounded capsule corners
           // without subpixel issues a real `border` would
           // introduce on retina displays).
-          "box-shadow": isSuccess()
-            ? "inset 0 0 0 1px rgba(48, 209, 88, 0.35)"
-            : isOffline()
-              ? "inset 0 0 0 1px rgba(255, 69, 58, 0.35)"
-              : "inset 0 0 0 1px rgba(255, 255, 255, 0.08)",
+          "box-shadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.08)",
         }}
       >
         {/* Per-state glyph. The spinner is pure CSS (animated

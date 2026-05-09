@@ -23,7 +23,7 @@ export interface ReceiptInfoCardProps {
 
 export function ReceiptInfoCard(props: ReceiptInfoCardProps) {
   return (
-    <section class="bg-ios-card rounded-ios-card overflow-hidden">
+    <section class="bg-ios-card rounded-ios-card ios-list-divide overflow-hidden">
       {/* iOS 26 padding: 24h / 20v — bumped from 16/16 to
           balance the larger 28pt corner radius. Inner pills
           use the `ios-tag` token (12pt) so they nest cleanly
@@ -49,7 +49,6 @@ export function ReceiptInfoCard(props: ReceiptInfoCardProps) {
           </button>
         </Show>
       </div>
-      <div class="border-t border-ios-separator" />
       <div class="px-4 py-3 flex items-center gap-2">
         <span class="text-ios-label text-ios-body">Date</span>
         {/* Always render the date pills. When `receiptDate` is

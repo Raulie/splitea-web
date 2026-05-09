@@ -1,0 +1,465 @@
+import { createMemo, createResource, createSignal, For, onMount, Show } from "solid-js";
+import { ChevronGlyph } from "./ChevronGlyph";
+import { Avatar } from "./Avatar";
+import {
+  configuredPayProviders,
+  extractAthmToken,
+  spliteaShareURL,
+  type PayProvider,
+} from "../lib/payProviders";
+import { injectAmountIntoAthmToken } from "../lib/athmCrypt";
+import { formatCurrency } from "../lib/format";
+
+/// "Pay <Sender>" provider-picker sheet shown when the
+/// recipient taps the Pay button on `SavedReceiptView`.
+///
+/// Two stages:
+///
+///   1. **Identity picker.** Shown the first time the
+///      recipient opens this share's modal. Lists every
+///      non-payer contact ("which one of these is you?")
+///      so we can match them to a specific breakdown
+///      amount. Selection is persisted to localStorage,
+///      keyed by receiptID — subsequent opens of the same
+///      share skip straight to stage 2.
+///
+///   2. **Provider picker.** Same list of providers as
+///      before, but now with the recipient's identity
+///      known the destination URL gets built via
+///      `paymentURL(amount, currency, note)` instead of
+///      `profileURL(username)` — so PayPal, Revolut, Cash
+///      App, etc. open with the right amount prefilled.
+///
+/// A small "Not <name>?" affordance in stage 2's header
+/// flips back to stage 1 and clears the cached identity.
+///
+/// Visual: bottom-anchored sheet, frosted-glass backdrop,
+/// iOS-26 spring slide-up animation, hairline-separated
+/// rows. The two stages share the same sheet container —
+/// no inter-stage transition for now (just swap content);
+/// the slide-up is the only motion the user sees.
+export interface PayMenuSheetProps {
+  /// Display name of the share's payer (sender). Shown in
+  /// the sheet header.
+  payerDisplayName: string;
+  /// Sender's payment-username dict from
+  /// `ContactPayload.paymentUsernames` — keyed by
+  /// `PaymentProvider.rawValue`.
+  paymentUsernames: Record<string, string> | null | undefined;
+  /// Receipt UUID. Used as the localStorage key suffix
+  /// for the cached identity choice — different receipts
+  /// stay independent.
+  receiptID: string;
+  /// Non-payer candidates. Each entry is one contact who
+  /// could be the visitor, with their share total
+  /// pre-computed by the parent's breakdown calculator.
+  candidates: PayCandidate[];
+  /// ISO 4217 currency for amount formatting in the UI
+  /// AND for the destination URL builders that take a
+  /// currency code.
+  currencyCode: string;
+  /// Receipt's merchant name — feeds the "Your share at
+  /// <merchant>…" payment-note string.
+  merchantName: string | null;
+  /// Called once the slide-down exit animation completes.
+  onClose: () => void;
+}
+
+export interface PayCandidate {
+  contactId: string;
+  /// Pre-formatted display name. Falls back to "Someone"
+  /// if the snapshot has no full name for this contact.
+  displayName: string;
+  /// Total this contact owes (subtotal + tax + tip),
+  /// in major units of `currencyCode`.
+  amount: number;
+  /// Public splitea-id avatar URL (with `?v=` cache-buster).
+  /// Optional — null when this candidate's snapshot row has
+  /// no directory match. Avatar component falls back to
+  /// initials when omitted.
+  avatarUrl?: string | null;
+}
+
+/// Keep in sync with `.pay-sheet` transition duration in
+/// `index.css`.
+const PAY_SHEET_ANIMATION_MS = 380;
+
+/// Returns the localStorage key used to persist the
+/// identity choice for a given receipt. One choice per
+/// receipt ID — switching browsers / clearing storage
+/// resets the picker, which is fine.
+function identityCacheKey(receiptID: string): string {
+  return `splitea:pay-identity:${receiptID}`;
+}
+
+export function PayMenuSheet(props: PayMenuSheetProps) {
+  const providerEntries = () =>
+    configuredPayProviders(props.paymentUsernames);
+
+  /// Initial identity. Three sources, in priority order:
+  ///
+  ///   1. localStorage cache from a prior visit. Validated
+  ///      against the current candidate list so a stale ID
+  ///      (contact removed from the snapshot since the
+  ///      cache was written) drops us back to the picker.
+  ///   2. Single-candidate auto-select. When there's exactly
+  ///      one non-payer contact, there's no ambiguity — skip
+  ///      the picker and go straight to providers.
+  ///   3. `null`, which surfaces the picker.
+  const initialIdentity = (): string | null => {
+    try {
+      const raw = localStorage.getItem(identityCacheKey(props.receiptID));
+      if (raw && props.candidates.some((c) => c.contactId === raw)) {
+        return raw;
+      }
+    } catch {
+      // Storage disabled (Safari private mode pre-iOS 16,
+      // sandboxed iframes). Fall through to the
+      // single-candidate / picker paths.
+    }
+    if (props.candidates.length === 1) {
+      return props.candidates[0]!.contactId;
+    }
+    return null;
+  };
+
+  const [selectedContactId, setSelectedContactId] = createSignal<string | null>(
+    initialIdentity(),
+  );
+
+  const selectedCandidate = createMemo(() => {
+    const id = selectedContactId();
+    if (!id) return null;
+    return props.candidates.find((c) => c.contactId === id) ?? null;
+  });
+
+  /// Stage is derived: identity picker until a candidate
+  /// is selected, providers thereafter.
+  const stage = (): "identity" | "providers" =>
+    selectedCandidate() === null ? "identity" : "providers";
+
+  /// Mount-time animation flags — same two-frame pattern as
+  /// `ReceiptViewer` so the browser actually transitions
+  /// from off-screen to presented instead of jumping.
+  const [presented, setPresented] = createSignal(false);
+  const [dismissing, setDismissing] = createSignal(false);
+
+  onMount(() => {
+    requestAnimationFrame(() => setPresented(true));
+  });
+
+  function handleDismiss() {
+    if (dismissing()) return;
+    setDismissing(true);
+    setPresented(false);
+    setTimeout(() => props.onClose(), PAY_SHEET_ANIMATION_MS);
+  }
+
+  function chooseIdentity(contactId: string) {
+    setSelectedContactId(contactId);
+    try {
+      localStorage.setItem(identityCacheKey(props.receiptID), contactId);
+    } catch {
+      // Ignore storage failures — the in-memory selection
+      // still works for the rest of this modal session.
+    }
+  }
+
+  function clearIdentity() {
+    setSelectedContactId(null);
+    try {
+      localStorage.removeItem(identityCacheKey(props.receiptID));
+    } catch {
+      /* noop */
+    }
+  }
+
+  /// ATHM amount-injection pre-computation. The ATHM
+  /// universal link doesn't accept amount as a separate
+  /// query param — its parser AES-decrypts everything
+  /// after the `?` and reads only `type=` + `value=`. To
+  /// smuggle amount through, we re-encrypt the user's
+  /// stored token with a modified plaintext
+  /// (`type=USER&amount=<X>&value=<id>`) and put THAT new
+  /// hex in the URL. The legacy ATHM parser still
+  /// extracts a clean recipient (because `value=` stays
+  /// last), and a newer ATHM client that reads `amount=`
+  /// gets the prefilled value.
+  ///
+  /// Encryption is async (SubtleCrypto), so we compute it
+  /// reactively on candidate / username change. Until the
+  /// resource resolves, ATHM's anchor falls back to the
+  /// no-amount URL produced by `provider.paymentURL`. The
+  /// SubtleCrypto round trip on a typical device finishes
+  /// in single-digit milliseconds, well before the user
+  /// can tap, so the fallback is essentially never seen.
+  const [athmInjectedURL] = createResource(
+    () => {
+      const candidate = selectedCandidate();
+      if (!candidate) return null;
+      const athmEntry = providerEntries().find(
+        (e) => e.provider.rawValue === "athMovil",
+      );
+      if (!athmEntry) return null;
+      const token = extractAthmToken(athmEntry.username);
+      if (!token) return null;
+      return { token, amount: candidate.amount };
+    },
+    async (params) => {
+      if (!params) return null;
+      const newToken = await injectAmountIntoAthmToken(
+        params.token,
+        params.amount,
+      );
+      if (!newToken) return null;
+      const dest = `https://athm-ulink-prod-static-website.s3.amazonaws.com/qr-code?content=${newToken}`;
+      return spliteaShareURL("athmovil", dest);
+    },
+  );
+
+  function urlForProvider(provider: PayProvider, username: string): string {
+    const candidate = selectedCandidate();
+
+    // ATHM special case: prefer the amount-injected
+    // URL once SubtleCrypto resolves it. Fall through to
+    // the standard `paymentURL` (no amount) otherwise —
+    // the user still ends up on ATHM's pay screen for
+    // their handle, just without the prefill.
+    if (provider.rawValue === "athMovil") {
+      const injected = athmInjectedURL();
+      if (injected) return injected;
+    }
+
+    // Identity-resolved branch: amount-aware URL.
+    if (candidate) {
+      const dest = provider.paymentURL({
+        username,
+        amount: candidate.amount,
+        currencyCode: props.currencyCode,
+        merchantName: props.merchantName,
+      });
+      return spliteaShareURL(provider.slug, dest);
+    }
+    // Defensive: if we somehow got here without a
+    // candidate (shouldn't happen — the providers stage
+    // is gated on selectedCandidate being non-null), fall
+    // back to the no-amount profile URL so the user still
+    // gets SOMEWHERE.
+    const dest = provider.profileURL(username);
+    return spliteaShareURL(provider.slug, dest);
+  }
+
+  // No JS-driven navigation; provider rows are real `<a
+  // target="_blank">` anchors so the browser handles the
+  // tap as a user-initiated link click. Two things this
+  // gets us over `window.location.assign` / `window.open`:
+  //
+  //   1. iOS routes user-clicked anchors via Universal
+  //      Links to the installed provider app (Revolut,
+  //      Cash App, Monzo) when the destination's AASA
+  //      claims the path. Programmatic navigations are
+  //      gated to in-Safari behaviour, which for several
+  //      providers means the prefilled amount is silently
+  //      dropped.
+  //   2. The Splitea page (and the modal on it) stays
+  //      mounted in the original tab — recipient can come
+  //      back, pick a different provider, or scroll the
+  //      breakdown without losing context.
+
+  return (
+    <Show when={providerEntries().length > 0}>
+      <div
+        class="fixed inset-0 z-40 bg-black/40 pay-backdrop"
+        classList={{ "pay-backdrop-presented": presented() }}
+        onClick={handleDismiss}
+        aria-hidden="true"
+      />
+      <div
+        class="fixed inset-x-0 bottom-0 z-50 bg-ios-card text-ios-label rounded-t-ios-card squircle pb-[env(safe-area-inset-bottom)] shadow-2xl pay-sheet"
+        classList={{ "pay-sheet-presented": presented() }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Pay ${props.payerDisplayName}`}
+      >
+        {/* Drag-affordance bar — decorative; matches the
+            iOS sheet idiom. */}
+        <div class="flex justify-center pt-3 pb-1">
+          <div class="h-1 w-9 rounded-full bg-ios-label-tertiary" />
+        </div>
+
+        <Show when={stage() === "identity"}>
+          <IdentityStage
+            payerDisplayName={props.payerDisplayName}
+            candidates={props.candidates}
+            currencyCode={props.currencyCode}
+            onPick={chooseIdentity}
+          />
+        </Show>
+
+        <Show when={stage() === "providers"}>
+          <ProvidersStage
+            candidate={selectedCandidate()!}
+            currencyCode={props.currencyCode}
+            entries={providerEntries()}
+            buildURL={urlForProvider}
+            // Only offer the "Not me, switch identity" link
+            // when there's actually somebody else to switch
+            // to. With a single candidate we landed here by
+            // auto-select, and re-picking would just re-
+            // select the same contact.
+            onChangeIdentity={
+              props.candidates.length > 1 ? clearIdentity : undefined
+            }
+          />
+        </Show>
+      </div>
+    </Show>
+  );
+}
+
+interface IdentityStageProps {
+  payerDisplayName: string;
+  candidates: PayCandidate[];
+  currencyCode: string;
+  onPick: (contactId: string) => void;
+}
+
+/// Stage 1: "Which contact are you?" with the candidate
+/// list. Each row shows an Avatar, display name, and
+/// the amount that contact owes — so the visitor has a
+/// double cue (their name + their expected total) for
+/// picking the right row without second-guessing.
+function IdentityStage(props: IdentityStageProps) {
+  return (
+    <>
+      <div class="px-5 pt-2 pb-1 text-center">
+        <h3 class="text-ios-headline text-ios-label">Who are you?</h3>
+        <p class="text-ios-footnote text-ios-label-secondary mt-1">
+          Pick yourself so we can prefill the amount you owe{" "}
+          {props.payerDisplayName}.
+        </p>
+      </div>
+      <ul class="px-2 pt-2 pb-3">
+        <For each={props.candidates}>
+          {(c, i) => (
+            <li>
+              <button
+                type="button"
+                class="w-full flex items-center gap-3 px-3 py-3 rounded-ios-card-inner active:bg-ios-card-hi transition-colors"
+                onClick={() => props.onPick(c.contactId)}
+              >
+                <Avatar
+                  fullName={c.displayName}
+                  imageURL={c.avatarUrl}
+                  size={36}
+                />
+                <span class="flex-1 text-left text-ios-body text-ios-label truncate">
+                  {c.displayName}
+                </span>
+                <span class="text-ios-body text-ios-label-secondary tabular-nums">
+                  {formatCurrency(c.amount, props.currencyCode)}
+                </span>
+                <ChevronGlyph
+                  size={13}
+                  rotation={180}
+                  class="text-ios-label-tertiary shrink-0"
+                />
+              </button>
+              <Show when={i() < props.candidates.length - 1}>
+                <div class="h-px bg-ios-separator mx-3" />
+              </Show>
+            </li>
+          )}
+        </For>
+      </ul>
+    </>
+  );
+}
+
+interface ProvidersStageProps {
+  candidate: PayCandidate;
+  currencyCode: string;
+  entries: { provider: PayProvider; username: string }[];
+  /// Builds the splitea.app/p/<slug>/<b64u> URL for the
+  /// given provider + username — closure over the
+  /// currently-selected candidate's amount so each row's
+  /// `<a href>` resolves to the right amount-prefilled
+  /// destination.
+  buildURL: (provider: PayProvider, username: string) => string;
+  /// Optional. When undefined, the "Not <name>?" link is
+  /// hidden — used in the single-candidate case where
+  /// switching identity is meaningless.
+  onChangeIdentity?: () => void;
+}
+
+/// Stage 2: provider list with the recipient's amount in
+/// the header. The "Not <name>?" link in the sub-row flips
+/// back to stage 1 in case they tapped the wrong identity
+/// (or they're sharing the device with another household
+/// member splitting the same bill).
+function ProvidersStage(props: ProvidersStageProps) {
+  return (
+    <>
+      <div class="px-5 pt-2 pb-1 text-center">
+        <h3 class="text-ios-headline text-ios-label">
+          Pay {formatCurrency(props.candidate.amount, props.currencyCode)}
+        </h3>
+        <Show when={props.onChangeIdentity}>
+          <button
+            type="button"
+            class="text-ios-footnote text-ios-blue mt-1 active:opacity-60 transition-opacity"
+            onClick={() => props.onChangeIdentity?.()}
+          >
+            Not {props.candidate.displayName}?
+          </button>
+        </Show>
+      </div>
+      <ul class="px-2 pt-2 pb-3">
+        <For each={props.entries}>
+          {(entry, i) => (
+            <li>
+              {/* Provider rows are real anchors with
+                  `target="_blank"` — opens the destination
+                  in a new tab, leaves the Splitea page (and
+                  this modal) mounted in the original tab,
+                  and (importantly) registers as a
+                  user-initiated click so iOS Universal
+                  Links can route the splitea.app/p/... URL
+                  through the worker's auto-redirect into
+                  the destination provider's app with the
+                  amount prefilled. `rel="noopener
+                  noreferrer"` is the standard target=_blank
+                  hardening — the destination tab can't
+                  reach back into our window.opener. */}
+              <a
+                href={props.buildURL(entry.provider, entry.username)}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="w-full flex items-center gap-3 px-3 py-3 rounded-ios-card-inner active:bg-ios-card-hi transition-colors"
+              >
+                <img
+                  src={`/p/${entry.provider.slug}/icon.png`}
+                  alt=""
+                  width={36}
+                  height={36}
+                  class="rounded-[8px] shrink-0"
+                />
+                <span class="flex-1 text-left text-ios-body text-ios-label">
+                  {entry.provider.displayName}
+                </span>
+                <ChevronGlyph
+                  size={13}
+                  rotation={180}
+                  class="text-ios-label-tertiary shrink-0"
+                />
+              </a>
+              <Show when={i() < props.entries.length - 1}>
+                <div class="h-px bg-ios-separator mx-3" />
+              </Show>
+            </li>
+          )}
+        </For>
+      </ul>
+    </>
+  );
+}

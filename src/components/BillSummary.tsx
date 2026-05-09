@@ -52,14 +52,32 @@ export function BillSummary(props: BillSummaryProps) {
   };
 
   return (
-    // iOS pads the first row's TOP and the last row's BOTTOM
-    // a bit beyond the standard `py-3` middle-row spacing —
-    // the card breathes a little around its outer edges so the
-    // Subtotal label doesn't kiss the rounded top corner and
-    // Total doesn't kiss the bottom corner. The middle rows
-    // (Tax, Tip) keep their tighter inset because they're
-    // separated by hairlines, not card edges.
-    <section class="bg-ios-card rounded-ios-card divide-y divide-ios-separator overflow-hidden pt-1 pb-1">
+    // Card chrome + concentric padding:
+    //
+    //   • `rounded-[36px]` matches the breakdown cards
+    //     above so the whole stack reads as one consistent
+    //     surface rather than mixed curvature.
+    //   • `squircle` swaps the default circle-quadrant
+    //     corner curve for the iOS continuous superellipse.
+    //   • Padding of 18px on every side from the card's
+    //     edge to the row content. Derived per Apple's
+    //     ConcentricRectangle rule (`inner_radius =
+    //     container_radius − spacing`) and the article's
+    //     2:1 example (24pt container with 12pt padding).
+    //     For our 36pt card, half is 18pt — the spacing
+    //     that lets a non-rounded inner content area sit
+    //     concentric with the corner curve.
+    //
+    // The 18pt spacing is split: the section contributes
+    // `pt-[6px] pb-[6px]` and each row contributes its
+    // own `py-3` (12px) — totaling 18px above the first
+    // row's text and below the last row's text. Rows
+    // contribute the full 18px horizontal via `px-[18px]`
+    // (see Row / TotalRow). Middle rows (Tax, Tip) keep
+    // their tighter `py-3` between hairlines because the
+    // 18pt-from-card-edge rule applies to the
+    // content/card boundary, not to row-to-row spacing.
+    <section class="bg-ios-card rounded-[36px] squircle ios-list-divide overflow-hidden pt-[6px] pb-[6px]">
       <Row label="Subtotal" value={formatCurrency(subtotal(), currency())} />
       <Show when={!props.receipt.taxInclusive}>
         <Row label={taxLabel()} value={formatCurrency(tax(), currency())} />
@@ -80,10 +98,13 @@ function Row(props: RowProps) {
   // `Splitea/Views/BillSplit/ItemsView.swift:459-470`:
   //   Label:  .subheadline (15pt)  .secondary
   //   Value:  .subheadline (15pt)  .medium  .primary
-  // The previous `text-ios-body` (17pt) read one tier
-  // larger than iOS.
+  // Horizontal padding bumped from `px-4` (16px) to
+  // `px-[18px]` to keep the row content at a uniform
+  // 18px concentric inset from the 36px card corners
+  // (see the section comment in `BillSummary` for the
+  // ConcentricRectangle math).
   return (
-    <div class="px-4 py-3 flex items-center">
+    <div class="px-[18px] py-3 flex items-center">
       <span class="text-ios-subheadline text-ios-label-secondary">
         {props.label}
       </span>
@@ -98,8 +119,11 @@ function TotalRow(props: { value: string }) {
   // iOS Total row from `ItemsView.swift:446-455`:
   //   Label:  .subheadline (15pt)  .bold      .primary
   //   Value:  .title3      (20pt)  .bold      .primary
+  // Same `px-[18px]` concentric horizontal inset as
+  // `Row` — keeps the value column right-aligned to a
+  // uniform 18px from the card's right edge.
   return (
-    <div class="px-4 py-3 flex items-center">
+    <div class="px-[18px] py-3 flex items-center">
       <span class="text-ios-subheadline font-bold text-ios-label">
         Total
       </span>

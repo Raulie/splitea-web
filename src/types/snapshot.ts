@@ -60,6 +60,22 @@ export interface ContactPayload {
   contactIdentifier: string | null;
   fullName: string | null;
   isUserContact: boolean;
+  /// Payment-provider usernames the contact has configured,
+  /// keyed by `PaymentProvider.rawValue` from the iOS enum
+  /// (`venmo`, `cashApp`, `paypal`, `revolut`, `monzo`,
+  /// `googlePayUPI`, `athMovil`). Only populated for the
+  /// snapshot author's own contact (`isUserContact: true`).
+  /// Optional — snapshots from iOS builds before this field
+  /// existed simply omit it.
+  paymentUsernames?: Record<string, string> | null;
+  /// Public splitea-id avatar URL (with `?v=` cache-buster) for
+  /// this participant. The snapshot author's iOS app stamps it
+  /// in for any participant whose phone hashed into the
+  /// directory at share-create time. Web fetches it directly
+  /// from `avatars.splitea.app` (no auth required) and falls
+  /// back to initials when null. Optional — older snapshots
+  /// without the field decode unchanged.
+  avatarUrl?: string | null;
 }
 
 export interface AssignmentPayload {

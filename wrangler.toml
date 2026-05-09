@@ -3,12 +3,12 @@
 # Worker serves those files with SPA-routing fallback (any path
 # the assets bundle doesn't match returns `index.html`).
 #
-# Pairs with the existing splitea-live worker:
-#  - splitea-live owns: /r/<id>, /live/*, /.well-known/*, favicons
+# Pairs with the existing splitea-shares worker:
+#  - splitea-shares owns: /r/<id>, /live/*, /.well-known/*, favicons
 #  - splitea-web owns:  everything else under splitea.app
 #
 # Cloudflare's route-precedence model means specific worker
-# routes win — the splitea-live routes keep working unchanged
+# routes win — the splitea-shares routes keep working unchanged
 # even when this worker is bound to splitea.app/*.
 #
 # Deploy:    `npx wrangler deploy`

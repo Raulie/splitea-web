@@ -162,9 +162,94 @@ function applyOp(snap: ReceiptSnapshot, op: MutationOp): void {
       }
       return;
     }
+    case "profile.update":
+      applyProfileUpdate(snap, op.payload as ProfileUpdatePayload);
+      return;
     default:
       // Forward-compat: ignore unknown ops. iOS does the same.
       return;
+  }
+}
+
+interface ProfileUpdatePayload {
+  profilePhoneE164?: string;
+  profileFirstName?: string;
+  profileLastName?: string;
+  /// JSON-encoded `Record<string, string>` keyed by
+  /// `PaymentProvider.rawValue`. Empty string clears all.
+  profilePaymentUsernamesJson?: string;
+  /// Empty string clears the avatar (renderer falls back to
+  /// initials).
+  profileAvatarUrl?: string;
+}
+
+/// Applies a peer's `profile.update` mutation to the snapshot.
+/// Correlates by `profilePhoneE164` against `contact.phoneNumber`
+/// (suffix-match on digits to handle country-code variance).
+/// Updates fullName, avatarUrl, and (for the contact's own row)
+/// paymentUsernames in place — Solid's reactive store sees the
+/// mutation and re-renders every component reading those fields.
+function applyProfileUpdate(
+  snap: ReceiptSnapshot,
+  payload: ProfileUpdatePayload,
+): void {
+  const phoneE164 = payload.profilePhoneE164;
+  if (!phoneE164) return;
+  const needleDigits = phoneE164.replace(/\D/g, "");
+  if (!needleDigits) return;
+
+  const contact = snap.contacts.find((c) => {
+    const d = c.phoneNumber.replace(/\D/g, "");
+    if (!d) return false;
+    const n = Math.min(d.length, needleDigits.length, 10);
+    return d.slice(-n) === needleDigits.slice(-n);
+  });
+  if (!contact) return;
+
+  // Name update — both fields present means "set"; either being
+  // an empty string clears that segment. iOS encodes the same
+  // sentinel.
+  if (
+    payload.profileFirstName !== undefined ||
+    payload.profileLastName !== undefined
+  ) {
+    const first = (payload.profileFirstName ?? "").trim();
+    const last = (payload.profileLastName ?? "").trim();
+    const combined = `${first} ${last}`.trim();
+    contact.fullName = combined.length > 0 ? combined : null;
+  }
+
+  // Avatar update — empty string clears.
+  if (payload.profileAvatarUrl !== undefined) {
+    contact.avatarUrl = payload.profileAvatarUrl.length > 0
+      ? payload.profileAvatarUrl
+      : null;
+  }
+
+  // Payment usernames — only meaningful for the contact's own
+  // row (`isUserContact: true`). For non-user rows we don't
+  // surface payment-username UI on web today (the Pay button
+  // only renders for the snapshot author's own contact), so
+  // applying the field for everyone is harmless and keeps the
+  // store self-consistent if/when web grows recipient-side
+  // payment UX.
+  if (payload.profilePaymentUsernamesJson !== undefined) {
+    if (payload.profilePaymentUsernamesJson.length === 0) {
+      contact.paymentUsernames = null;
+    } else {
+      try {
+        const parsed = JSON.parse(payload.profilePaymentUsernamesJson) as
+          | Record<string, string>
+          | null;
+        contact.paymentUsernames = parsed && typeof parsed === "object"
+          ? parsed
+          : null;
+      } catch {
+        // Malformed JSON — leave the existing value intact
+        // rather than wiping. iOS encodes via JSONEncoder so
+        // this should never trip in practice.
+      }
+    }
   }
 }
 

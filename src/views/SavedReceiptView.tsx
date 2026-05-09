@@ -7,10 +7,12 @@ import { BackButton } from "../components/BackButton";
 import { EditButton } from "../components/EditButton";
 import { NavBar } from "../components/NavBar";
 import { ReceiptViewer } from "../components/ReceiptViewer";
+import { PayMenuSheet } from "../components/PayMenuSheet";
 import {
   calculateContactBreakdowns,
 } from "../lib/moneyMath";
 import { formatReceiptDateTime } from "../lib/format";
+import { configuredPayProviders } from "../lib/payProviders";
 
 /// Web port of iOS `SavedReceiptDetailView`. Day-3 scope is
 /// the read-only summary surface: per-contact breakdown rows
@@ -158,6 +160,64 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   /// (same component the merchant-row icon button uses on
   /// `ItemsView`).
   const [showingReceipt, setShowingReceipt] = createSignal(false);
+  const [showingPayMenu, setShowingPayMenu] = createSignal(false);
+
+  /// The contact who AUTHORED the snapshot — i.e. the person
+  /// who created the share link. Mirrors iOS's encode-time
+  /// `isUserContact: true` flag (the iOS materialise step
+  /// force-clears that flag on import to local SwiftData,
+  /// but the web reads the JSON directly so the original
+  /// authoring contact is identifiable here).
+  const senderContact = () =>
+    props.snapshot.contacts.find((c) => c.isUserContact);
+
+  /// `senderIsPayer` gates the bottom Pay button. The button
+  /// only makes sense when the person who shared the link is
+  /// also the person who fronted the bill — that's when a
+  /// recipient might want to pay them back. Other cases
+  /// (different sender / payer, or no payer set) hide it.
+  const senderIsPayer = () => {
+    const sender = senderContact();
+    if (!sender) return false;
+    return isPayer(sender.phoneNumber);
+  };
+
+  /// Provider rows that will populate the modal. Computed up
+  /// here so the Pay button can also key off it — no point
+  /// rendering the button if the sender / payer hasn't
+  /// configured any payment providers (older iOS builds that
+  /// pre-date the `paymentUsernames` field would land here
+  /// too, so the button gracefully hides).
+  const senderProviders = () =>
+    configuredPayProviders(senderContact()?.paymentUsernames);
+
+  const senderDisplayName = () =>
+    senderContact()?.fullName?.trim() || "the sender";
+
+  /// Non-payer contacts the visitor might be — the modal's
+  /// identity-picker first stage offers these as choices.
+  /// Each entry carries the contact's pre-computed share
+  /// total so the amount-prefilled payment URL can be built
+  /// without re-running breakdown math inside the sheet.
+  ///
+  /// Excludes the payer (who isn't paying themselves) and
+  /// any zero-share contacts (assignment-less guests who
+  /// owe nothing — no point listing someone with $0 in the
+  /// "who are you" picker since paying $0 isn't a workflow).
+  const payCandidates = () =>
+    breakdowns()
+      .filter(
+        (row) =>
+          row.contact !== undefined &&
+          !isPayer(row.contact.phoneNumber) &&
+          row.total > 0,
+      )
+      .map((row) => ({
+        contactId: row.breakdown.contactId,
+        displayName: row.contact!.fullName?.trim() || "Someone",
+        amount: row.total,
+        avatarUrl: row.contact!.avatarUrl ?? null,
+      }));
 
   return (
     // Layout: a flex column that fills its parent
@@ -183,7 +243,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     // the body or `.ios-nav-stack` level so every surface
     // (base, overlay, modal) gets the same inset uniformly.
     <div class="h-full flex flex-col bg-ios-bg text-ios-label">
-      <main class="flex-1 pb-[calc(16px+env(safe-area-inset-bottom))] overflow-y-auto">
+      <main class="flex-1 overflow-y-auto pb-[calc(16px+env(safe-area-inset-bottom))]">
         <NavBar
           title={props.snapshot.receipt.merchantName ?? "Receipt"}
           leading={
@@ -218,7 +278,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
             below carries the date in its own layout. */}
         <Show when={props.snapshot.receipt.receiptImageBase64}>
           {(b64) => (
-            <section class="flex flex-col items-center gap-2 py-3">
+            <section class="flex flex-col items-center gap-2 pb-3">
               <button
                 type="button"
                 class="block max-w-full active:opacity-80 transition-opacity"
@@ -288,24 +348,94 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                 deserves real breathing room. */}
             <div class="space-y-5">
               <For each={breakdowns()}>
-                {(row) => (
-                  <div class="bg-ios-card rounded-ios-card overflow-hidden">
-                    <ContactBreakdownRow
-                      contact={row.contact!}
-                      amount={row.total}
-                      isPayer={isPayer(row.contact!.phoneNumber)}
-                      currencyCode={props.snapshot.receipt.currencyCode}
-                      items={row.breakdown.items}
-                      subtotal={row.breakdown.subtotal}
-                      tax={row.breakdown.tax}
-                      tip={row.breakdown.tip}
-                      open={isRowExpanded(row.breakdown.contactId)}
-                      onOpenChange={(next) =>
-                        setRowExpanded(row.breakdown.contactId, next)
-                      }
-                    />
-                  </div>
-                )}
+                {(row) => {
+                  /// Show the Pay button as a card-footer
+                  /// inside the payer's breakdown card —
+                  /// only when the share's author IS the
+                  /// payer (the gating story we already
+                  /// have for the global Pay surface) AND
+                  /// they have at least one configured
+                  /// payment provider.
+                  ///
+                  /// `senderContact()` is identified by
+                  /// `isUserContact: true` in the snapshot
+                  /// (encode-time author flag preserved on
+                  /// the wire); we match by contactId so a
+                  /// stale phone-number comparison can't
+                  /// pin the footer to the wrong row.
+                  const isPayerCard = () =>
+                    senderIsPayer() &&
+                    senderProviders().length > 0 &&
+                    row.contact !== undefined &&
+                    senderContact()?.id === row.contact.id;
+                  return (
+                    <div class="bg-ios-card rounded-[36px] squircle overflow-hidden">
+                      {/* Card corner radius is 36px on
+                          every breakdown card. The radius
+                          is the SwiftUI concentric rule
+                          (`outer = inner + spacing`)
+                          applied on the payer's card —
+                          its inner Pay capsule has
+                          effective radius `height/2 =
+                          24px` plus 12px of side / bottom
+                          padding gives 36px. Other
+                          breakdown cards have no concentric
+                          inner anchor of their own, but
+                          they share the same 36px so the
+                          row of cards reads as a uniform
+                          stack rather than mismatched
+                          curvature card-by-card. */}
+                      <ContactBreakdownRow
+                        contact={row.contact!}
+                        amount={row.total}
+                        isPayer={isPayer(row.contact!.phoneNumber)}
+                        currencyCode={props.snapshot.receipt.currencyCode}
+                        items={row.breakdown.items}
+                        subtotal={row.breakdown.subtotal}
+                        tax={row.breakdown.tax}
+                        tip={row.breakdown.tip}
+                        open={isRowExpanded(row.breakdown.contactId)}
+                        onOpenChange={(next) =>
+                          setRowExpanded(row.breakdown.contactId, next)
+                        }
+                      />
+                      <Show when={isPayerCard()}>
+                        {/* Pay-button footer for the
+                            payer's card. The button is a
+                            capsule (height/2 corner
+                            radius), inset with 12px of
+                            padding on the sides + bottom
+                            of the card. NO top padding —
+                            the button sits flush against
+                            the disclosure content above
+                            so it reads as the natural
+                            footer of the row, not a
+                            floating element with extra
+                            breathing room.
+
+                            Concentricity story: capsule
+                            inner radius = 48 ÷ 2 = 24px,
+                            outer card radius (sides +
+                            bottom) = 24 + 12 = 36px. The
+                            curve gap between capsule and
+                            card stays constant at 12px
+                            the whole way around the
+                            bottom corners — same SwiftUI
+                            `ConcentricRectangle` derives
+                            from `outer = inner + spacing`. */}
+                        <div class="px-3 pb-3">
+                          <button
+                            type="button"
+                            class="block w-full h-12 rounded-full squircle bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity"
+                            onClick={() => setShowingPayMenu(true)}
+                          >
+                            Pay
+                          </button>
+                        </div>
+                      </Show>
+                    </div>
+                  );
+                }}
               </For>
             </div>
           </section>
@@ -353,6 +483,22 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         </Show>
         </div>
       </main>
+
+      {/* Provider-picker sheet. Mounted only while open — its
+          backdrop scrim and slide-in animation cost something
+          to keep alive idly, and we have nothing to remember
+          across opens. */}
+      <Show when={showingPayMenu()}>
+        <PayMenuSheet
+          payerDisplayName={senderDisplayName()}
+          paymentUsernames={senderContact()?.paymentUsernames}
+          receiptID={props.snapshot.receipt.id}
+          candidates={payCandidates()}
+          currencyCode={props.snapshot.receipt.currencyCode}
+          merchantName={props.snapshot.receipt.merchantName}
+          onClose={() => setShowingPayMenu(false)}
+        />
+      </Show>
 
       {/* Receipt-image fullscreen overlay — only mounted when
           toggled on, to keep the base64 payload from being
