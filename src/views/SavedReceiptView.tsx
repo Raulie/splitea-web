@@ -543,36 +543,44 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
             // button + button row + safe-area inset. The
             // gradient region overlaps the scroll content
             // intentionally — content scrolling up FADES
-            // behind the bar (clear→frosted gradient) rather
-            // than abruptly stopping at a hard edge. iOS 26's
-            // tab bar / toolbar patterns rely on this overlap
-            // to make the chrome feel materially layered.
+            // behind the bar rather than abruptly stopping
+            // at a hard edge.
             "padding-top": "64px",
             "padding-bottom": "calc(env(safe-area-inset-bottom) + 12px)",
-            // "Clear to frosted black" gradient — fully
-            // transparent at the very top so content fades
-            // gracefully behind the bar, opaque black at the
-            // bottom so the button always has solid contrast.
-            // Bigger ramp than the previous solid fill: the
-            // 0%/30%/100% stops give a softer transition that
-            // reads as iOS-26-natural rather than a hard
-            // edge.
-            background:
-              "linear-gradient(to bottom," +
-              " rgba(0,0,0,0) 0%," +
-              " rgba(0,0,0,0.55) 35%," +
-              " rgba(0,0,0,0.92) 100%)",
-            // Backdrop blur is uniform across the entire
-            // frame (CSS backdrop-filter doesn't accept a
-            // gradient), but combined with the gradient
-            // fill on top, the perceived blur intensity
-            // matches the gradient — clear at top, frosted
-            // at bottom — because at the top the gradient is
-            // transparent so the blur isn't "tinted dark,"
-            // and at the bottom the dark fill obscures most
-            // of the blurred content.
+            // Solid dark fill — `rgba(0,0,0,0.92)`. The
+            // smooth fade-in is handled by `mask-image`
+            // below, NOT by gradient-ing the background
+            // itself. Why: the bar applies
+            // `backdrop-filter: blur(20px)` uniformly, and
+            // `backdrop-filter` can't take a gradient. So
+            // even a transparent-at-top color gradient still
+            // had a hard blur boundary at the bar's top
+            // edge — the blur snapped on at 100% strength
+            // even where the color was fully transparent.
+            // mask-image fades the ENTIRE element including
+            // the backdrop-filtered region, so blur AND color
+            // ramp in together with no abrupt edge.
+            background: "rgba(0,0,0,0.92)",
             "backdrop-filter": "blur(20px) saturate(180%)",
             "-webkit-backdrop-filter": "blur(20px) saturate(180%)",
+            // Mask: the bar's top is fully transparent
+            // (revealing content through), ramping linearly
+            // to fully opaque by 55% down. Beyond 55% the
+            // bar is fully visible (button area + safe-area
+            // gutter). The CSS gradient is on the alpha
+            // channel since `transparent → black` is the
+            // mask's default mode — black pixels keep the
+            // element visible, transparent pixels hide it.
+            "mask-image":
+              "linear-gradient(to bottom," +
+              " transparent 0%," +
+              " rgba(0,0,0,0.4) 30%," +
+              " black 55%)",
+            "-webkit-mask-image":
+              "linear-gradient(to bottom," +
+              " transparent 0%," +
+              " rgba(0,0,0,0.4) 30%," +
+              " black 55%)",
           }}
         >
           <button
