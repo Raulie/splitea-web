@@ -373,26 +373,28 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                     senderProviders().length > 0 &&
                     row.contact !== undefined &&
                     senderContact()?.id === row.contact.id;
-                  // Disclosure-driven background swap: when
-                  // ContactBreakdownRow's inner button is
-                  // `aria-expanded="true"`, the wrapper fades
-                  // from `bg-ios-card` (#1c1c1e) to
-                  // `bg-ios-card-hi` (#2c2c2e). Mirrors the
-                  // iOS behavior visible in the BillSplit
-                  // breakdown screen — the expanded card
-                  // lifts visually a tier above its peers.
-                  // Tailwind's `has-[...]` selector lets the
-                  // parent respond to the descendant's ARIA
-                  // state without plumbing the open signal
-                  // up explicitly. The 280ms ease matches
-                  // DisclosureGroup's `grid-template-rows`
-                  // transition so height + bg cross-fade in
-                  // lockstep. Card corner radius is
-                  // `rounded-ios-card` (22pt) — matches the
-                  // iOS app's `cornerRadius: 22, style:
-                  // .continuous` on every prominent card.
+                  // Press-feedback background swap: while the
+                  // user is actively touching / clicking the
+                  // disclosure's summary button, the wrapper
+                  // fades from `bg-ios-card` (#1c1c1e) to
+                  // `bg-ios-card-hi` (#2c2c2e); on release the
+                  // bg fades back. Mirrors UIKit's standard
+                  // touch-down highlight on a grouped-list
+                  // cell. Tailwind's `has-[button:active]:`
+                  // selector reads the descendant button's
+                  // `:active` pseudo-class so the parent
+                  // responds without any JS plumbing.
+                  // 200ms / cubic-bezier(0.32,0.72,0,1) is
+                  // close enough to UIKit's
+                  // `tertiarySystemFill` press transition;
+                  // shorter than the disclosure's height
+                  // animation since press feedback should
+                  // feel snappier than a layout change.
+                  // Card corner radius is `rounded-ios-card`
+                  // (22pt) — matches the iOS app's
+                  // `cornerRadius: 22, style: .continuous`.
                   return (
-                    <div class="bg-ios-card has-[button[aria-expanded=true]]:bg-ios-card-hi transition-colors duration-[280ms] ease-[cubic-bezier(0.32,0.72,0,1)] rounded-ios-card squircle overflow-hidden">
+                    <div class="bg-ios-card has-[button:active]:bg-ios-card-hi transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] rounded-ios-card squircle overflow-hidden">
                       <ContactBreakdownRow
                         contact={row.contact!}
                         amount={row.total}

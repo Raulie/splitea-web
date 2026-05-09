@@ -72,9 +72,14 @@ export function DisclosureGroup(props: DisclosureGroupProps) {
     <div>
       <button
         type="button"
-        class={`w-full text-left active:opacity-80 transition-opacity ${
-          props.summaryClass ?? ""
-        }`}
+        // No `active:opacity-*` here — press feedback is
+        // owned by the parent wrapper via Tailwind's
+        // `has-[button:active]:` selector (see
+        // `SavedReceiptView`'s breakdown-card div). Dimming
+        // the button on top of a wrapper bg-fade looked
+        // muddy; UIKit's grouped-list cell highlight is bg-
+        // only, not opacity-driven.
+        class={`w-full text-left ${props.summaryClass ?? ""}`}
         aria-expanded={isOpen()}
         onClick={toggle}
       >
