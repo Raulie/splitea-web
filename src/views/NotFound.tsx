@@ -11,7 +11,7 @@ export function NotFound() {
       </p>
       <a
         class="mt-4 px-6 py-3 rounded-full bg-ios-blue text-white font-semibold no-underline"
-        href="https://apps.apple.com/app/splitea/id0"
+        href="https://apps.apple.com/app/splitea/id6760237781"
       >
         Get Splitea
       </a>
