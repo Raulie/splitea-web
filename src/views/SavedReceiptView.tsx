@@ -373,23 +373,26 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                     senderProviders().length > 0 &&
                     row.contact !== undefined &&
                     senderContact()?.id === row.contact.id;
+                  // Disclosure-driven background swap: when
+                  // ContactBreakdownRow's inner button is
+                  // `aria-expanded="true"`, the wrapper fades
+                  // from `bg-ios-card` (#1c1c1e) to
+                  // `bg-ios-card-hi` (#2c2c2e). Mirrors the
+                  // iOS behavior visible in the BillSplit
+                  // breakdown screen — the expanded card
+                  // lifts visually a tier above its peers.
+                  // Tailwind's `has-[...]` selector lets the
+                  // parent respond to the descendant's ARIA
+                  // state without plumbing the open signal
+                  // up explicitly. The 280ms ease matches
+                  // DisclosureGroup's `grid-template-rows`
+                  // transition so height + bg cross-fade in
+                  // lockstep. Card corner radius is
+                  // `rounded-ios-card` (22pt) — matches the
+                  // iOS app's `cornerRadius: 22, style:
+                  // .continuous` on every prominent card.
                   return (
-                    <div class="bg-ios-card rounded-ios-card squircle overflow-hidden">
-                      {/* Card corner radius unified to
-                          `rounded-ios-card` (22pt) so every
-                          card on this view reads as one
-                          consistent stack — matches the
-                          iOS app's `cornerRadius: 22, style:
-                          .continuous` on its prominent
-                          card surfaces. The payer card's
-                          inner Pay capsule still has its
-                          own concentric padding logic
-                          below; tightening the outer
-                          radius doesn't break that
-                          relationship since the capsule
-                          sits inside its own inner card,
-                          not directly against this outer
-                          frame. */}
+                    <div class="bg-ios-card has-[button[aria-expanded=true]]:bg-ios-card-hi transition-colors duration-[280ms] ease-[cubic-bezier(0.32,0.72,0,1)] rounded-ios-card squircle overflow-hidden">
                       <ContactBreakdownRow
                         contact={row.contact!}
                         amount={row.total}
