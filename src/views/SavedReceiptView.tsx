@@ -262,29 +262,33 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     // bar collapses/expands.
     <div class="h-dvh flex flex-col bg-ios-bg text-ios-label relative">
       {/*
-        Bottom-padding clears the Pay bar's solid region so the
-        last breakdown card can scroll fully into view above
-        the button — the gradient region (the top ~64px of the
-        bar) is intentional fade-behind territory and content
-        IS allowed to scroll into it. We compute the cleared
-        zone from the button's vertical footprint:
+        Bottom-padding clears ONLY the bar's solid region so
+        the last breakdown card scrolls right up to the
+        button's top edge — the gradient region above the
+        button (the bar's top ~64px) is intentional fade-behind
+        territory and content scrolls INTO it.
 
-          12px button-top + 48px button height
-          + 12px button-bottom + safe-area-inset-bottom
-          ≈ 72px + env(safe-area-inset-bottom)
+          48px button height
+          + 12px button bottom interior padding
+          + env(safe-area-inset-bottom)
+          ≈ 60px + env(safe-area-inset-bottom)
 
-        Anything above that fades through the gradient (clear
-        at top → frosted black at bottom), which is the iOS 26
-        tab/toolbar behavior — content visibly continues
-        behind the bar's translucent region. When the Pay bar
-        isn't rendered (visitor isn't the payer / no providers
-        configured), the standard 16px + safe-area baseline
-        applies.
+        Previously we reserved 72px which double-counted the
+        button's TOP interior padding and left an empty
+        12px gap below the last card before the button.
+        With the trim, last card's bottom edge aligns with
+        the button's top edge — content visibly continues
+        behind the gradient, no dead space, matches iOS 26's
+        Wallet/Music/Maps scroll-behind pattern.
+
+        When the Pay bar isn't rendered (visitor isn't the
+        payer / no providers configured), the standard 16px
+        + safe-area baseline applies.
       */}
       <main
         class="flex-1 overflow-y-auto"
         classList={{
-          "pb-[calc(72px+env(safe-area-inset-bottom))]":
+          "pb-[calc(60px+env(safe-area-inset-bottom))]":
             senderIsPayer() && senderProviders().length > 0,
           "pb-[calc(16px+env(safe-area-inset-bottom))]": !(
             senderIsPayer() && senderProviders().length > 0
