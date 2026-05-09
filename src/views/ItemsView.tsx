@@ -646,15 +646,20 @@ function Loaded(props: {
         </p>
       </div>
 
-      {/* Bottom padding clears the fixed bottom bar so the
-          BillSummary's last row (Total) is reachable by
-          scrolling instead of being permanently pinned
-          beneath the bar. Padding accounts for ~160px of bar
-          height (contacts row + Continue button + their
-          internal padding) plus `env(safe-area-inset-bottom)`
-          for the gap between the bar's bottom edge and the
-          absolute viewport bottom. */}
-      <div class="safe-px mt-6 pb-[calc(160px+env(safe-area-inset-bottom))] space-y-7">
+      {/* Bottom padding clears the fixed bottom bar's SOLID
+          region so the BillSummary's last row (Total) sits
+          comfortably above the chrome at rest. Same approach
+          as SavedReceiptView's Pay bar: the top 64px of the
+          bar is intentional fade-behind territory, and content
+          may scroll into the gradient on user-driven scroll —
+          but at rest the last row should have breathing room
+          above the solid region.
+
+          Math: ContactsRow (~80) + Continue container (~64) +
+          ~36px slack + env(safe-area-inset-bottom). The 64px
+          gradient zone is NOT included — it's intentionally
+          fade-behind territory on scroll. */}
+      <div class="safe-px mt-6 pb-[calc(180px+env(safe-area-inset-bottom))] space-y-7">
         <ReceiptInfoCard
           merchantName={store.snapshot.receipt.merchantName}
           receiptDate={store.snapshot.receipt.receiptDate}
@@ -690,27 +695,45 @@ function Loaded(props: {
   /// open), so we just wire onClick to whichever helper makes
   /// sense for the active mode.
   const bottomBar = () => (
-    <>
+    // iOS 26 Liquid Glass bottom bar — same approach as
+    // SavedReceiptView's Pay bar:
+    //
+    //   • 64px `pt-[64px]` reserves a fade-in zone ABOVE the
+    //     content (ContactsRow + Continue button) so scrolled
+    //     items pass behind the chrome with a smooth
+    //     transparent → frosted-black ramp instead of cutting
+    //     off at a hard edge.
+    //   • Solid `rgba(0,0,0,0.92)` background +
+    //     `backdrop-filter: blur(20px) saturate(180%)` for the
+    //     iOS 26 frost.
+    //   • `mask-image: linear-gradient(transparent → black)`
+    //     fades the ENTIRE element including the
+    //     backdrop-filtered region. CSS `backdrop-filter`
+    //     can't accept a gradient on its own, so a plain
+    //     transparent-at-top color gradient still left a hard
+    //     blur boundary; the mask handles both color and blur
+    //     in one stroke.
+    //   • Mask uses pixel stops (transparent 0px → 0.4 alpha
+    //     32px → black 64px) so the fade zone is exactly the
+    //     same 64px regardless of how tall the bar's content
+    //     pushes the wrapper.
+    <div class="relative pt-[64px]">
       <div
         class="absolute inset-0 pointer-events-none"
         style={{
-          // Fade from transparent (0%) → fully opaque
-          // (1.0 alpha at 24%), then solid the rest of the
-          // way down. The previous stop at `rgba(...,0.85)`
-          // left 15% of any content behind the bar bleeding
-          // through, which read as "the bar isn't quite
-          // covering what's underneath" — fine in portrait
-          // where the items list is usually scrolled clear
-          // of the bar by then, but obvious in landscape
-          // where the viewport is short enough that items
-          // sit directly behind the bar's lower band. Full
-          // opacity at the solid stop guarantees nothing
-          // leaks through; the soft top fade is preserved
-          // by the 0→100% alpha ramp over the first 24%.
-          background:
+          background: "rgba(0,0,0,0.92)",
+          "backdrop-filter": "blur(20px) saturate(180%)",
+          "-webkit-backdrop-filter": "blur(20px) saturate(180%)",
+          "mask-image":
             "linear-gradient(to bottom," +
-            " rgba(20,20,22,0) 8%," +
-            " rgb(20,20,22) 24%)",
+            " transparent 0px," +
+            " rgba(0,0,0,0.4) 32px," +
+            " black 64px)",
+          "-webkit-mask-image":
+            "linear-gradient(to bottom," +
+            " transparent 0px," +
+            " rgba(0,0,0,0.4) 32px," +
+            " black 64px)",
         }}
         aria-hidden="true"
       />
@@ -747,7 +770,7 @@ function Loaded(props: {
           {summaryFirst() ? "Done" : "Continue"}
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
