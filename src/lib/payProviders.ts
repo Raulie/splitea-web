@@ -132,14 +132,6 @@ function paymentNote(merchantName: string | null | undefined): string {
   return asciiFold(raw);
 }
 
-/// Form-urlencode (`%20` → `+`) a single value. Used by
-/// Venmo's note encoding because Venmo rejects
-/// `%20`-encoded note values; the documented examples use
-/// `+` for spaces, so we replace post-encoding.
-function formURLEncodeValue(s: string): string {
-  return encodeURIComponent(s).replace(/%20/g, "+");
-}
-
 /// `extractToken` parity for ATHM: the stored username may be
 /// either the raw 32-byte hex ciphertext OR a full ATHM URL
 /// (legacy save format). Pull out the hex either way.
@@ -211,7 +203,16 @@ export const PAY_PROVIDERS: PayProvider[] = [
     // visitor actually initiated.
     paymentURL: ({ username, amount, merchantName }) => {
       const user = encodeURIComponent(stripVenmoAt(username));
-      const note = formURLEncodeValue(paymentNote(merchantName));
+      // Use standard `encodeURIComponent` (produces `%20` for
+      // spaces) — NOT the legacy `formURLEncodeValue` which
+      // converted spaces to `+`. Earlier comments here
+      // claimed Venmo rejected `%20` in the note and required
+      // form-urlencoded `+` instead. That's no longer true:
+      // Venmo's current URL parser displays `+` LITERALLY in
+      // the note field, so the iMessage preview shows
+      // `My+share+at+La+Malcriada+-+sent+via+Splitea` when
+      // tapped through. `%20` decodes to space correctly.
+      const note = encodeURIComponent(paymentNote(merchantName));
       return `https://venmo.com/${user}?txn=pay&amount=${formatAmount(amount)}&note=${note}`;
     },
   },
