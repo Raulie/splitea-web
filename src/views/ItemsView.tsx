@@ -932,7 +932,7 @@ function ExpiredState() {
   return (
     <div class="h-dvh flex flex-col items-center justify-center px-6 text-center gap-4">
       {/* Splitea app icon — same `/apple-touch-icon.png` the
-          splitea-live worker serves at the apex (used by
+          splitea-shares worker serves at the apex (used by
           iMessage rich previews and the iOS home-screen Web
           Clip). Sized to 96pt and rounded to iOS 26's
           22.37%-of-side "squircle" radius (Apple's published
@@ -947,8 +947,33 @@ function ExpiredState() {
       />
       <h1 class="text-ios-title-2">This link has expired</h1>
       <p class="text-ios-body text-ios-label-secondary max-w-xs">
-        Splitea share links expire after 7 days. Ask your friend to send a new one.
+        Splitea share links expire after 7 days. Ask your friend to send a new one — or get Splitea to create your own.
       </p>
+      {/*
+        App Store CTA on the expired state. Earlier this was
+        intentionally suppressed ("don't push App Store for a
+        dead link they can't act on anyway"), but the dead-
+        link case is exactly when the conversion ask makes
+        sense — the recipient is here, they care about the
+        receipt, and the message body told them to "open the
+        receipt to pay" but the link's gone. Asking them to
+        get Splitea so the next link works is a reasonable
+        nudge rather than a misdirection.
+
+        Same visual as `NotFound`'s button so the two
+        states feel consistent. Real Apple ID
+        (`id6760237781`) — once Splitea ships publicly,
+        tapping this lands on the live App Store page. While
+        it's TestFlight-only, the page may show "App not
+        available", which is acceptable: the user clearly
+        sees what they tapped and that the app exists.
+      */}
+      <a
+        class="mt-4 px-6 py-3 rounded-full bg-ios-blue text-white font-semibold no-underline"
+        href="https://apps.apple.com/app/splitea/id6760237781"
+      >
+        Get Splitea
+      </a>
     </div>
   );
 }
