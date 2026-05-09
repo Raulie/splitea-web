@@ -247,7 +247,20 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     // a PWA build, we'll add `safe-area-inset-top` once at
     // the body or `.ios-nav-stack` level so every surface
     // (base, overlay, modal) gets the same inset uniformly.
-    <div class="h-full flex flex-col bg-ios-bg text-ios-label relative">
+    // `h-dvh` (NOT `h-full`) — locks the wrapper to exactly
+    // 100dvh of the viewport. Without this, in summary-first
+    // mode the parent `.ios-nav-page` is `min-height: 100dvh`
+    // and grows with content, so `h-full` resolved to that
+    // grown height; the absolute-positioned Pay bar's `bottom:
+    // 0` then anchored to the bottom of the long page rather
+    // than the visible viewport. Locking the wrapper to dvh
+    // forces the internal `<main flex-1 overflow-y-auto>` to
+    // own all scrolling, and `bottom: 0` of the wrapper now
+    // IS the visible bottom edge regardless of how much
+    // content is inside. dvh tracks iOS Safari's URL-bar
+    // visibility automatically — bar moves smoothly as the
+    // bar collapses/expands.
+    <div class="h-dvh flex flex-col bg-ios-bg text-ios-label relative">
       {/*
         Bottom-padding clears the Pay bar's solid region so the
         last breakdown card can scroll fully into view above
