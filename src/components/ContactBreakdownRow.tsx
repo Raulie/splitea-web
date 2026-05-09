@@ -126,7 +126,18 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
         </div>
       )}
     >
-      <div class="px-4 pb-4">
+      {/*
+        Body padding matches the summary's `p-[18px]` so the
+        expanded items / subtotal / tax / tip rows align
+        horizontally with the header's avatar + name column,
+        and the bottom edge has the same 18px gutter as the
+        header. Was `px-4 pb-4` (16px) which read as a tighter
+        inset than the header — the eye picks up the 2px
+        mismatch as visible misalignment between the header's
+        right-edge total and the body's right-edge values.
+        Mirrors the iOS app's uniform 18px concentric gutter.
+      */}
+      <div class="px-[18px] pb-[18px]">
         {/* Solid divider between the header and the items
             list — iOS `Divider()` with vertical padding 4. */}
         <div class="border-t border-ios-separator mt-1 mb-3" />
