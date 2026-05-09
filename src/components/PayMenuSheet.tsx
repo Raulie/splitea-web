@@ -1,13 +1,11 @@
-import { createMemo, createResource, createSignal, For, onMount, Show } from "solid-js";
+import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { ChevronGlyph } from "./ChevronGlyph";
 import { Avatar } from "./Avatar";
 import {
   configuredPayProviders,
-  extractAthmToken,
   spliteaShareURL,
   type PayProvider,
 } from "../lib/payProviders";
-import { injectAmountIntoAthmToken } from "../lib/athmCrypt";
 import { formatCurrency } from "../lib/format";
 
 /// "Pay <Sender>" provider-picker sheet shown when the
@@ -174,61 +172,20 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
     }
   }
 
-  /// ATHM amount-injection pre-computation. The ATHM
-  /// universal link doesn't accept amount as a separate
-  /// query param — its parser AES-decrypts everything
-  /// after the `?` and reads only `type=` + `value=`. To
-  /// smuggle amount through, we re-encrypt the user's
-  /// stored token with a modified plaintext
-  /// (`type=USER&amount=<X>&value=<id>`) and put THAT new
-  /// hex in the URL. The legacy ATHM parser still
-  /// extracts a clean recipient (because `value=` stays
-  /// last), and a newer ATHM client that reads `amount=`
-  /// gets the prefilled value.
-  ///
-  /// Encryption is async (SubtleCrypto), so we compute it
-  /// reactively on candidate / username change. Until the
-  /// resource resolves, ATHM's anchor falls back to the
-  /// no-amount URL produced by `provider.paymentURL`. The
-  /// SubtleCrypto round trip on a typical device finishes
-  /// in single-digit milliseconds, well before the user
-  /// can tap, so the fallback is essentially never seen.
-  const [athmInjectedURL] = createResource(
-    () => {
-      const candidate = selectedCandidate();
-      if (!candidate) return null;
-      const athmEntry = providerEntries().find(
-        (e) => e.provider.rawValue === "athMovil",
-      );
-      if (!athmEntry) return null;
-      const token = extractAthmToken(athmEntry.username);
-      if (!token) return null;
-      return { token, amount: candidate.amount };
-    },
-    async (params) => {
-      if (!params) return null;
-      const newToken = await injectAmountIntoAthmToken(
-        params.token,
-        params.amount,
-      );
-      if (!newToken) return null;
-      const dest = `https://athm-ulink-prod-static-website.s3.amazonaws.com/qr-code?content=${newToken}`;
-      return spliteaShareURL("athmovil", dest);
-    },
-  );
-
   function urlForProvider(provider: PayProvider, username: string): string {
     const candidate = selectedCandidate();
 
-    // ATHM special case: prefer the amount-injected
-    // URL once SubtleCrypto resolves it. Fall through to
-    // the standard `paymentURL` (no amount) otherwise —
-    // the user still ends up on ATHM's pay screen for
-    // their handle, just without the prefill.
-    if (provider.rawValue === "athMovil") {
-      const injected = athmInjectedURL();
-      if (injected) return injected;
-    }
+    // ATH Móvil's universal link doesn't accept amount —
+    // we previously re-encrypted the stored token with an
+    // injected `amount=` field hoping ATHM's newer client
+    // would read it, but the parser silently drops the
+    // injected field AND in some configurations rejects
+    // the modified ciphertext as malformed. So we fall
+    // through to `provider.paymentURL` which is the
+    // no-amount form for athMovil — recipient pays the
+    // handle, types the amount manually. The amount stays
+    // in the iMessage caption / Splitea share preview, so
+    // it's still communicated, just not prefilled.
 
     // Identity-resolved branch: amount-aware URL.
     if (candidate) {
