@@ -249,20 +249,29 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     // (base, overlay, modal) gets the same inset uniformly.
     <div class="h-full flex flex-col bg-ios-bg text-ios-label relative">
       {/*
-        Bottom-padding for the scroll container has to clear the
-        Pay bar (when visible) plus the home-indicator gutter, so
-        the last breakdown card doesn't hide beneath the bar.
-        ~92px = the bar's intrinsic height (12 top + 48 button +
-        16 bottom interior padding ≈ 76 + a bit of breathing
-        room) + safe-area-inset-bottom. When the Pay bar isn't
-        rendered (e.g. visitor isn't the payer / no providers
-        configured), the existing 16px + safe-area baseline
+        Bottom-padding clears the Pay bar's solid region so the
+        last breakdown card can scroll fully into view above
+        the button — the gradient region (the top ~64px of the
+        bar) is intentional fade-behind territory and content
+        IS allowed to scroll into it. We compute the cleared
+        zone from the button's vertical footprint:
+
+          12px button-top + 48px button height
+          + 12px button-bottom + safe-area-inset-bottom
+          ≈ 72px + env(safe-area-inset-bottom)
+
+        Anything above that fades through the gradient (clear
+        at top → frosted black at bottom), which is the iOS 26
+        tab/toolbar behavior — content visibly continues
+        behind the bar's translucent region. When the Pay bar
+        isn't rendered (visitor isn't the payer / no providers
+        configured), the standard 16px + safe-area baseline
         applies.
       */}
       <main
         class="flex-1 overflow-y-auto"
         classList={{
-          "pb-[calc(92px+env(safe-area-inset-bottom))]":
+          "pb-[calc(72px+env(safe-area-inset-bottom))]":
             senderIsPayer() && senderProviders().length > 0,
           "pb-[calc(16px+env(safe-area-inset-bottom))]": !(
             senderIsPayer() && senderProviders().length > 0
@@ -473,62 +482,88 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         iOS 26 Liquid Glass bottom bar — Pay action.
 
         Visible only when the share author is the payer AND has
-        at least one configured payment provider, mirroring the
-        condition that previously gated the in-card Pay button.
-        Lifting it out of the payer's card simplifies layout (no
-        more concentric-corner math between an inner capsule
-        and an outer 36pt card) and aligns with iOS 26's
-        floating-bottom-bar pattern in apps like Wallet, Maps,
-        and Music.
+        at least one configured payment provider. The bar
+        ALWAYS sits at the visible bottom regardless of scroll
+        position because it's a sibling of `<main>` (the only
+        scrolling element) inside the `h-full flex flex-col`
+        container — the layout flex pins it to the bottom edge
+        while `<main flex-1 overflow-y-auto>` consumes the
+        remaining space and handles its own internal scrolling.
 
-        Material specifics:
-          • `backdrop-filter: blur(20px) saturate(180%)` — the
-            iOS 26 standard for floating chrome. Saturation
-            boost compensates for the blur's color desaturation
-            so the underlying content's hue still reads through.
-          • Semi-transparent fill `rgba(28,28,30,0.72)` —
-            `bg-ios-card` at ~72% alpha, the iOS 26 reference
-            for "translucent over dark base." Not pure black so
-            content underneath bleeds through enough to feel
-            material; not too transparent so the button's
-            contrast holds against any background.
-          • No border — Liquid Glass uses the blur edge as the
-            visual separator, not a hairline. (Pre-iOS-26
-            bottom bars used a `1px` separator border which
-            looked dated next to the rest of the iOS 26 chrome.)
-          • `position: absolute; bottom: 0` — positioned within
-            the parent `.h-full` flex column rather than fixed
-            to the viewport. The parent IS the viewport-pinned
-            `.ios-nav-pushed` overlay (or `.ios-nav-page` root
-            in summary-first mode), so the bar effectively
-            stays at the visible bottom while still respecting
-            the OnsenUI push/pop transform applied to the
-            parent during navigation.
+        Two stacked layers compose the iOS 26 Liquid Glass look:
 
-        Padding:
-          • 12px top + bottom interior, accommodating
-            `env(safe-area-inset-bottom)` for the home indicator.
-          • 16px horizontal — matches the safe-px baseline
-            elsewhere on the view.
+        Layer 1 — `taller frame` with backdrop-filter blur. The
+          frame extends ~64px ABOVE the button, with a
+          transparent-to-black vertical gradient as its
+          background. Top edge is fully transparent so content
+          peeking through reads as "fading behind the bar";
+          bottom edge is opaque so the button has solid
+          contrast. The whole frame applies
+          `backdrop-filter: blur(20px) saturate(180%)` so any
+          content sitting behind it gets the iOS-26-standard
+          frost. With the gradient fill on top, the visual
+          effect is "clear at the top, frosted black at the
+          bottom" — same as iOS 26's tab bar / toolbar
+          pattern.
+
+        Layer 2 — the actual button capsule, positioned in
+          the bottom region of the frame above the home-
+          indicator gutter.
+
+        We don't use a uniform-opacity fill (the previous
+        version was `rgba(28,28,30,0.72)` everywhere, which
+        made the bar's top edge a hard line and content
+        appeared to "cut off" abruptly rather than fade behind
+        it).
       */}
       <Show
         when={senderIsPayer() && senderProviders().length > 0}
       >
         <div
-          class="absolute inset-x-0 bottom-0 px-4 pt-3 pointer-events-none"
+          class="absolute inset-x-0 bottom-0 px-4 pointer-events-none"
           style={{
+            // Frame height: ~64px gradient fade above the
+            // button + button row + safe-area inset. The
+            // gradient region overlaps the scroll content
+            // intentionally — content scrolling up FADES
+            // behind the bar (clear→frosted gradient) rather
+            // than abruptly stopping at a hard edge. iOS 26's
+            // tab bar / toolbar patterns rely on this overlap
+            // to make the chrome feel materially layered.
+            "padding-top": "64px",
             "padding-bottom": "calc(env(safe-area-inset-bottom) + 12px)",
-            background: "rgba(28,28,30,0.72)",
+            // "Clear to frosted black" gradient — fully
+            // transparent at the very top so content fades
+            // gracefully behind the bar, opaque black at the
+            // bottom so the button always has solid contrast.
+            // Bigger ramp than the previous solid fill: the
+            // 0%/30%/100% stops give a softer transition that
+            // reads as iOS-26-natural rather than a hard
+            // edge.
+            background:
+              "linear-gradient(to bottom," +
+              " rgba(0,0,0,0) 0%," +
+              " rgba(0,0,0,0.55) 35%," +
+              " rgba(0,0,0,0.92) 100%)",
+            // Backdrop blur is uniform across the entire
+            // frame (CSS backdrop-filter doesn't accept a
+            // gradient), but combined with the gradient
+            // fill on top, the perceived blur intensity
+            // matches the gradient — clear at top, frosted
+            // at bottom — because at the top the gradient is
+            // transparent so the blur isn't "tinted dark,"
+            // and at the bottom the dark fill obscures most
+            // of the blurred content.
             "backdrop-filter": "blur(20px) saturate(180%)",
             "-webkit-backdrop-filter": "blur(20px) saturate(180%)",
           }}
         >
           <button
             type="button"
-            class="block w-full h-12 rounded-full squircle bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity pointer-events-auto"
+            class="block w-full h-12 rounded-full squircle bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity pointer-events-auto truncate"
             onClick={() => setShowingPayMenu(true)}
           >
-            Pay
+            Pay {senderDisplayName()}
           </button>
         </div>
       </Show>
