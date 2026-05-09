@@ -947,7 +947,7 @@ function ExpiredState() {
       />
       <h1 class="text-ios-title-2">This link has expired</h1>
       <p class="text-ios-body text-ios-label-secondary max-w-xs">
-        Splitea share links expire after 7 days. Ask your friend to send a new one — or get Splitea to create your own.
+        Splitea share links expire after 7 days. Ask your friend to send a new one, or get Splitea to create your own.
       </p>
       {/*
         App Store CTA on the expired state. Earlier this was
