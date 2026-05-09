@@ -247,8 +247,28 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     // a PWA build, we'll add `safe-area-inset-top` once at
     // the body or `.ios-nav-stack` level so every surface
     // (base, overlay, modal) gets the same inset uniformly.
-    <div class="h-full flex flex-col bg-ios-bg text-ios-label">
-      <main class="flex-1 overflow-y-auto pb-[calc(16px+env(safe-area-inset-bottom))]">
+    <div class="h-full flex flex-col bg-ios-bg text-ios-label relative">
+      {/*
+        Bottom-padding for the scroll container has to clear the
+        Pay bar (when visible) plus the home-indicator gutter, so
+        the last breakdown card doesn't hide beneath the bar.
+        ~92px = the bar's intrinsic height (12 top + 48 button +
+        16 bottom interior padding ≈ 76 + a bit of breathing
+        room) + safe-area-inset-bottom. When the Pay bar isn't
+        rendered (e.g. visitor isn't the payer / no providers
+        configured), the existing 16px + safe-area baseline
+        applies.
+      */}
+      <main
+        class="flex-1 overflow-y-auto"
+        classList={{
+          "pb-[calc(92px+env(safe-area-inset-bottom))]":
+            senderIsPayer() && senderProviders().length > 0,
+          "pb-[calc(16px+env(safe-area-inset-bottom))]": !(
+            senderIsPayer() && senderProviders().length > 0
+          ),
+        }}
+      >
         <NavBar
           title={props.snapshot.receipt.merchantName ?? "Receipt"}
           leading={
@@ -362,17 +382,6 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                   /// they have at least one configured
                   /// payment provider.
                   ///
-                  /// `senderContact()` is identified by
-                  /// `isUserContact: true` in the snapshot
-                  /// (encode-time author flag preserved on
-                  /// the wire); we match by contactId so a
-                  /// stale phone-number comparison can't
-                  /// pin the footer to the wrong row.
-                  const isPayerCard = () =>
-                    senderIsPayer() &&
-                    senderProviders().length > 0 &&
-                    row.contact !== undefined &&
-                    senderContact()?.id === row.contact.id;
                   // Press-feedback background swap: while the
                   // user is actively touching / clicking the
                   // disclosure's summary button, the wrapper
@@ -409,40 +418,6 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                           setRowExpanded(row.breakdown.contactId, next)
                         }
                       />
-                      <Show when={isPayerCard()}>
-                        {/* Pay-button footer for the
-                            payer's card. The button is a
-                            capsule (height/2 corner
-                            radius), inset with 12px of
-                            padding on the sides + bottom
-                            of the card. NO top padding —
-                            the button sits flush against
-                            the disclosure content above
-                            so it reads as the natural
-                            footer of the row, not a
-                            floating element with extra
-                            breathing room.
-
-                            Concentricity story: capsule
-                            inner radius = 48 ÷ 2 = 24px,
-                            outer card radius (sides +
-                            bottom) = 24 + 12 = 36px. The
-                            curve gap between capsule and
-                            card stays constant at 12px
-                            the whole way around the
-                            bottom corners — same SwiftUI
-                            `ConcentricRectangle` derives
-                            from `outer = inner + spacing`. */}
-                        <div class="px-3 pb-3">
-                          <button
-                            type="button"
-                            class="block w-full h-12 rounded-full squircle bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity"
-                            onClick={() => setShowingPayMenu(true)}
-                          >
-                            Pay
-                          </button>
-                        </div>
-                      </Show>
                     </div>
                   );
                 }}
@@ -493,6 +468,70 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         </Show>
         </div>
       </main>
+
+      {/*
+        iOS 26 Liquid Glass bottom bar — Pay action.
+
+        Visible only when the share author is the payer AND has
+        at least one configured payment provider, mirroring the
+        condition that previously gated the in-card Pay button.
+        Lifting it out of the payer's card simplifies layout (no
+        more concentric-corner math between an inner capsule
+        and an outer 36pt card) and aligns with iOS 26's
+        floating-bottom-bar pattern in apps like Wallet, Maps,
+        and Music.
+
+        Material specifics:
+          • `backdrop-filter: blur(20px) saturate(180%)` — the
+            iOS 26 standard for floating chrome. Saturation
+            boost compensates for the blur's color desaturation
+            so the underlying content's hue still reads through.
+          • Semi-transparent fill `rgba(28,28,30,0.72)` —
+            `bg-ios-card` at ~72% alpha, the iOS 26 reference
+            for "translucent over dark base." Not pure black so
+            content underneath bleeds through enough to feel
+            material; not too transparent so the button's
+            contrast holds against any background.
+          • No border — Liquid Glass uses the blur edge as the
+            visual separator, not a hairline. (Pre-iOS-26
+            bottom bars used a `1px` separator border which
+            looked dated next to the rest of the iOS 26 chrome.)
+          • `position: absolute; bottom: 0` — positioned within
+            the parent `.h-full` flex column rather than fixed
+            to the viewport. The parent IS the viewport-pinned
+            `.ios-nav-pushed` overlay (or `.ios-nav-page` root
+            in summary-first mode), so the bar effectively
+            stays at the visible bottom while still respecting
+            the OnsenUI push/pop transform applied to the
+            parent during navigation.
+
+        Padding:
+          • 12px top + bottom interior, accommodating
+            `env(safe-area-inset-bottom)` for the home indicator.
+          • 16px horizontal — matches the safe-px baseline
+            elsewhere on the view.
+      */}
+      <Show
+        when={senderIsPayer() && senderProviders().length > 0}
+      >
+        <div
+          class="absolute inset-x-0 bottom-0 px-4 pt-3 pointer-events-none"
+          style={{
+            "padding-bottom": "calc(env(safe-area-inset-bottom) + 12px)",
+            background: "rgba(28,28,30,0.72)",
+            "backdrop-filter": "blur(20px) saturate(180%)",
+            "-webkit-backdrop-filter": "blur(20px) saturate(180%)",
+          }}
+        >
+          <button
+            type="button"
+            class="block w-full h-12 rounded-full squircle bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity pointer-events-auto"
+            onClick={() => setShowingPayMenu(true)}
+          >
+            Pay
+          </button>
+        </div>
+      </Show>
 
       {/* Provider-picker sheet. Mounted only while open — its
           backdrop scrim and slide-in animation cost something
