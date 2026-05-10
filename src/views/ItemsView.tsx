@@ -649,14 +649,14 @@ function Loaded(props: {
       {/* Bottom padding clears the fixed bottom bar's SOLID
           region so the BillSummary's last row (Total) sits
           comfortably above the chrome at rest. Same approach
-          as SavedReceiptView's Pay bar: the top 64px of the
+          as SavedReceiptView's Pay bar: the top 40px of the
           bar is intentional fade-behind territory, and content
           may scroll into the gradient on user-driven scroll —
           but at rest the last row should have breathing room
           above the solid region.
 
           Math: ContactsRow (~80) + Continue container (~64) +
-          ~36px slack + env(safe-area-inset-bottom). The 64px
+          ~36px slack + env(safe-area-inset-bottom). The 40px
           gradient zone is NOT included — it's intentionally
           fade-behind territory on scroll. */}
       <div class="safe-px mt-6 pb-[calc(180px+env(safe-area-inset-bottom))] space-y-7">
@@ -698,7 +698,7 @@ function Loaded(props: {
     // iOS 26 Liquid Glass bottom bar — same approach as
     // SavedReceiptView's Pay bar:
     //
-    //   • 64px `pt-[64px]` reserves a fade-in zone ABOVE the
+    //   • 40px `pt-[40px]` reserves a fade-in zone ABOVE the
     //     content (ContactsRow + Continue button) so scrolled
     //     items pass behind the chrome with a smooth
     //     transparent → frosted-black ramp instead of cutting
@@ -713,11 +713,16 @@ function Loaded(props: {
     //     transparent-at-top color gradient still left a hard
     //     blur boundary; the mask handles both color and blur
     //     in one stroke.
-    //   • Mask uses pixel stops (transparent 0px → 0.4 alpha
-    //     32px → black 64px) so the fade zone is exactly the
-    //     same 64px regardless of how tall the bar's content
-    //     pushes the wrapper.
-    <div class="relative pt-[64px]">
+    //   • Mask: transparent at the top, ramping to fully
+    //     opaque by 50% of the bar height. The fade ends
+    //     near the middle of ContactsRow, so the row's top
+    //     edge has some item-show-through (gives a sense of
+    //     depth — items scrolling underneath the chrome) and
+    //     the bottom half / Continue button sit on solid
+    //     frosted-black backing for legibility. Gradient is
+    //     on the top 50%; the bottom 50% is implicit black
+    //     (opaque).
+    <div class="relative pt-[40px]">
       <div
         class="absolute inset-0 pointer-events-none"
         style={{
@@ -725,15 +730,9 @@ function Loaded(props: {
           "backdrop-filter": "blur(20px) saturate(180%)",
           "-webkit-backdrop-filter": "blur(20px) saturate(180%)",
           "mask-image":
-            "linear-gradient(to bottom," +
-            " transparent 0px," +
-            " rgba(0,0,0,0.4) 32px," +
-            " black 64px)",
+            "linear-gradient(to bottom, transparent 0%, black 50%)",
           "-webkit-mask-image":
-            "linear-gradient(to bottom," +
-            " transparent 0px," +
-            " rgba(0,0,0,0.4) 32px," +
-            " black 64px)",
+            "linear-gradient(to bottom, transparent 0%, black 50%)",
         }}
         aria-hidden="true"
       />

@@ -130,7 +130,15 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   /// Now: every row is always controlled. Single-row taps
   /// add / remove that one ID; the header "Expand / Collapse"
   /// button fills or clears the set.
-  const [expanded, setExpanded] = createSignal(new Set<string>());
+  ///
+  /// Seeded with `forContactId` when present — a recipient
+  /// landing via a Request link (`?for=<contactId>`) wants
+  /// to see THEIR breakdown straight away, not have to hunt
+  /// for it and tap to expand. Matches the iOS deep-link
+  /// behavior.
+  const [expanded, setExpanded] = createSignal(
+    new Set<string>(props.forContactId ? [props.forContactId] : []),
+  );
 
   const isRowExpanded = (contactId: string) => expanded().has(contactId);
   const setRowExpanded = (contactId: string, next: boolean) => {

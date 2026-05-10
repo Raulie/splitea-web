@@ -221,16 +221,13 @@ export function ContactsRow(props: ContactsRowProps) {
   return (
     <div
       ref={(el) => (scrollEl = el)}
-      // Extra top padding (`pt-6` = 24pt vs the previous
-      // `py-3` 12pt) so the contact avatars sit comfortably
-      // inside the gradient's solid-black region. The bar's
-      // gradient fades from transparent at 4% to solid
-      // near-black at 20% — pushing the contacts down by a
-      // few extra points keeps them firmly in the dark band
-      // for proper contrast against the items list above.
-      // Bottom padding stays at `pb-3` (12pt) since the
-      // Continue button below provides its own spacing.
-      class="safe-px pt-6 pb-3 flex items-center gap-3 overflow-x-auto"
+      // No top padding — the parent ItemsView's bottom-bar
+      // wrapper already reserves a 40px gradient fade zone
+      // above this row (`pt-[40px]` on the bar's outer div),
+      // so the avatars sit naturally just below the fade.
+      // Bottom padding stays at `pb-3` (12pt) — the Continue
+      // button below provides its own spacing.
+      class="safe-px pb-3 flex items-center gap-3 overflow-x-auto"
       style={{
         // Hide the scrollbar — iOS doesn't show one on
         // horizontal contact rows. The pseudo-element rule
@@ -301,6 +298,20 @@ export function ContactsRow(props: ContactsRowProps) {
                   size={size()}
                   fullName={contact.fullName}
                   imageURL={contact.avatarUrl}
+                  // Pre-composited gray-fill: Avatar's default
+                  // bg is `rgba(142,142,147,0.5)` (the iOS gray-
+                  // fill token, semi-transparent so it picks up
+                  // whatever's behind). In ContactsRow the bar's
+                  // mask gradient renders the area behind the
+                  // avatar partly transparent, which would let
+                  // the items list bleed into the avatar's
+                  // backing too. Override with the same color
+                  // pre-composited over black: 0.5×(142,142,147)
+                  // + 0.5×(0,0,0) = rgb(71,71,74) — visually
+                  // identical to the original-on-black, but
+                  // FULLY OPAQUE so it stays solid regardless
+                  // of what the bar mask does.
+                  style={{ "background-color": "rgb(71, 71, 74)" }}
                 />
               </span>
               <Show when={isActive()}>
@@ -362,7 +373,14 @@ function EveryonePill(props: EveryonePillProps) {
             "width 450ms cubic-bezier(0.32, 0.72, 0, 1), height 450ms cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
-        <Avatar size={size()} variant="everyone" />
+        <Avatar
+          size={size()}
+          variant="everyone"
+          // Same pre-composited opaque gray-fill as the per-
+          // contact avatars above — keeps the "Everyone" pill
+          // visually flush with them on the masked bar.
+          style={{ "background-color": "rgb(71, 71, 74)" }}
+        />
       </span>
       <Show when={props.active}>
         <div class="flex flex-col leading-tight items-start">
