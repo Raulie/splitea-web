@@ -175,37 +175,38 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   const [showingReceipt, setShowingReceipt] = createSignal(false);
   const [showingPayMenu, setShowingPayMenu] = createSignal(false);
 
-  /// The contact who AUTHORED the snapshot — i.e. the person
-  /// who created the share link. Mirrors iOS's encode-time
-  /// `isUserContact: true` flag (the iOS materialise step
-  /// force-clears that flag on import to local SwiftData,
-  /// but the web reads the JSON directly so the original
-  /// authoring contact is identifiable here).
-  const senderContact = () =>
-    props.snapshot.contacts.find((c) => c.isUserContact);
+  /// The contact who fronted the bill. Recipients pay them
+  /// back regardless of who actually sent the share link —
+  /// "Send" flow lets a non-payer forward a Splitea link, and
+  /// the Pay bar still has to point at the person who's owed
+  /// money (the payer), not the messenger.
+  const payerContact = () =>
+    props.snapshot.contacts.find(
+      (c) =>
+        c.phoneNumber === props.snapshot.receipt.payerPhoneNumber,
+    );
 
-  /// `senderIsPayer` gates the bottom Pay button. The button
-  /// only makes sense when the person who shared the link is
-  /// also the person who fronted the bill — that's when a
-  /// recipient might want to pay them back. Other cases
-  /// (different sender / payer, or no payer set) hide it.
-  const senderIsPayer = () => {
-    const sender = senderContact();
-    if (!sender) return false;
-    return isPayer(sender.phoneNumber);
-  };
+  /// Provider rows that will populate the Pay modal. The Pay
+  /// bar gates on a non-empty list — the iOS author broadcasts
+  /// the payer's `paymentUsernames` in the snapshot precisely
+  /// so this works for non-Splitea-user payers (the author's
+  /// device looked them up via local CNSocialProfile entries
+  /// or the splitea-id directory). Older snapshots from before
+  /// that change land here with `paymentUsernames: undefined`
+  /// for non-self payers — the bar then hides gracefully.
+  const payerProviders = () =>
+    configuredPayProviders(payerContact()?.paymentUsernames);
 
-  /// Provider rows that will populate the modal. Computed up
-  /// here so the Pay button can also key off it — no point
-  /// rendering the button if the sender / payer hasn't
-  /// configured any payment providers (older iOS builds that
-  /// pre-date the `paymentUsernames` field would land here
-  /// too, so the button gracefully hides).
-  const senderProviders = () =>
-    configuredPayProviders(senderContact()?.paymentUsernames);
+  const payerDisplayName = () =>
+    payerContact()?.fullName?.trim() || "the payer";
 
-  const senderDisplayName = () =>
-    senderContact()?.fullName?.trim() || "the sender";
+  /// Compatibility alias — many existing call sites use
+  /// `senderDisplayName` for the Pay button label ("Pay
+  /// {Name}"), but the recipient is actually paying the
+  /// payer. Re-routing here keeps every Pay-bar copy
+  /// pointing at the right person without fanning out
+  /// renames across the file.
+  const senderDisplayName = () => payerDisplayName();
 
   /// Non-payer contacts the visitor might be — the modal's
   /// identity-picker first stage offers these as choices.
@@ -300,9 +301,9 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         class="flex-1 overflow-y-auto"
         classList={{
           "pb-[calc(108px+env(safe-area-inset-bottom))]":
-            senderIsPayer() && senderProviders().length > 0,
+            payerProviders().length > 0,
           "pb-[calc(16px+env(safe-area-inset-bottom))]": !(
-            senderIsPayer() && senderProviders().length > 0
+            payerProviders().length > 0
           ),
         }}
       >
@@ -545,7 +546,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         it).
       */}
       <Show
-        when={senderIsPayer() && senderProviders().length > 0}
+        when={payerProviders().length > 0}
       >
         <div
           class="absolute inset-x-0 bottom-0 px-4 pointer-events-none"
@@ -611,7 +612,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
       <Show when={showingPayMenu()}>
         <PayMenuSheet
           payerDisplayName={senderDisplayName()}
-          paymentUsernames={senderContact()?.paymentUsernames}
+          paymentUsernames={payerContact()?.paymentUsernames}
           receiptID={props.snapshot.receipt.id}
           candidates={payCandidates()}
           currencyCode={props.snapshot.receipt.currencyCode}
