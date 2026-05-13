@@ -1,0 +1,13 @@
+# Cloudflare Workers Static Assets headers.
+#
+# CORS on /assets/* so the splitea-shares worker — which serves
+# the public share-link landing page at `/r/<id>` — can load
+# the SPA cross-origin from a different host (e.g. the dev
+# environment at splitea-shares-dev.raulmoracolon.workers.dev).
+# `<script type="module">` cross-origin loads require an
+# Access-Control-Allow-Origin response header, otherwise Safari
+# silently blocks the module and #root stays empty (black
+# screen on the recipient's device).
+/assets/*
+  Access-Control-Allow-Origin: *
+  Cross-Origin-Resource-Policy: cross-origin
