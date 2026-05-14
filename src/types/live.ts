@@ -13,7 +13,8 @@ export type ServerMessage =
   | ServerMutationMessage
   | ServerPresenceMessage
   | ServerPongMessage
-  | ServerRateLimitedMessage;
+  | ServerRateLimitedMessage
+  | ServerLockStatusChangedMessage;
 
 export interface ServerHelloMessage {
   type: "hello";
@@ -28,6 +29,14 @@ export interface ServerHelloMessage {
   /// seq we requested — we missed mutations and must refetch
   /// the snapshot before applying any further deltas.
   resumeGap?: boolean;
+  /// Initial edit-lock state. When true, only the owner can
+  /// mutate; peers' mutations are dropped server-side.
+  editLocked?: boolean;
+}
+
+export interface ServerLockStatusChangedMessage {
+  type: "lockStatusChanged";
+  editLocked: boolean;
 }
 
 export interface ServerMutationMessage {

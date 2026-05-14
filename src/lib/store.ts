@@ -38,6 +38,10 @@ export interface SnapshotStore {
   /// Highest `seq` we've applied. Persisted across
   /// reconnects via the LiveSession's `initialResumeSeq`.
   lastSeenSeq: number;
+  /// Mirrors the relay's edit-lock state. When true, peers
+  /// can't mutate; UI should suppress edit affordances and
+  /// taps should no-op locally.
+  editLocked: boolean;
 }
 
 /// Legacy localStorage key — we used to persist the cursor
@@ -64,6 +68,7 @@ export function createSnapshotStore(initial: ReceiptSnapshot, shareID: string) {
     snapshot: initial,
     selfUserId: null,
     lastSeenSeq: 0,
+    editLocked: false,
   });
 
   /// Apply a server-broadcast mutation to the store. Runs
@@ -96,11 +101,16 @@ export function createSnapshotStore(initial: ReceiptSnapshot, shareID: string) {
     setStore("selfUserId", id);
   }
 
+  function setEditLocked(locked: boolean) {
+    setStore("editLocked", locked);
+  }
+
   return {
     store,
     applyMutation,
     applyOptimistic,
     setSelfUserId,
+    setEditLocked,
   };
 }
 

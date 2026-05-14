@@ -114,7 +114,7 @@ function Loaded(props: {
   // never read `props.snapshot` again — only `store.snapshot`,
   // which mutates as WebSocket frames arrive and as the user
   // taps to (un)assign items locally.
-  const { store, applyMutation, applyOptimistic, setSelfUserId } =
+  const { store, applyMutation, applyOptimistic, setSelfUserId, setEditLocked } =
     createSnapshotStore(props.snapshot, props.shareID);
 
   // Active contact — the "tap a contact, then tap their items"
@@ -381,6 +381,7 @@ function Loaded(props: {
     initialResumeSeq: store.lastSeenSeq,
     onHello: (msg) => {
       setSelfUserId(msg.yourUserId);
+      setEditLocked(msg.editLocked === true);
       if (msg.resumeGap) {
         // Seq cursor was outside the relay's retained window.
         // Cleanest recovery is a hard reload — the next mount
@@ -416,6 +417,9 @@ function Loaded(props: {
       // Presence display isn't on the page yet — Day 3 is
       // tap-to-assign only. Hook up later when we want to
       // show "Camila is also editing" tags.
+    },
+    onLockStatusChanged: (locked) => {
+      setEditLocked(locked);
     },
     onStatus: (next) => {
       setLiveStatus(next);
@@ -545,6 +549,11 @@ function Loaded(props: {
     // resolve cleanly. Hard-no-op until we're live; the
     // `ConnectingPill` already tells the user why.
     if (liveStatus() !== "open") return;
+    // Gate on the owner's edit lock — same reasoning. Without
+    // this, the optimistic update flashes but the server drops
+    // the broadcast (relay enforces `editLocked`), so the edit
+    // visually succeeds and then vanishes on reload.
+    if (store.editLocked) return;
     const active = activeContactId();
     if (!active) return;
     // Selection-style haptic on item tap — matches iOS's

@@ -44,6 +44,9 @@ export interface LiveSessionOptions {
   /// Emitted on any state transition for status-bar display.
   /// One of: "connecting" | "open" | "closed" | "reconnecting".
   onStatus?: (status: LiveStatus) => void;
+  /// Fired when the owner toggles edit-lock from another client.
+  /// Initial value also arrives via `onHello`'s `editLocked`.
+  onLockStatusChanged?: (editLocked: boolean) => void;
 }
 
 export type LiveStatus = "connecting" | "open" | "reconnecting" | "closed";
@@ -78,6 +81,11 @@ export class LiveSession {
   /// duplicate reconnect storms on every visibility change.
   private visibilityHandler: (() => void) | null = null;
   private onlineHandler: (() => void) | null = null;
+  /// Mirrors the server's `editLocked` flag. When true,
+  /// `sendMutation` short-circuits — the server would silently
+  /// drop peer ops anyway, but gating client-side keeps us
+  /// from emitting frames the relay throws away.
+  private editLocked = false;
 
   constructor(opts: LiveSessionOptions) {
     this.opts = opts;
@@ -216,11 +224,20 @@ export class LiveSession {
     }
   }
 
+  /// `true` when peers are allowed to send mutations. Callers
+  /// should gate optimistic local applies on this too — when
+  /// the share is locked, taps shouldn't even flash visually.
+  get canEdit(): boolean {
+    return !this.editLocked;
+  }
+
   /// Send a mutation op. Returns the mutation id so the
   /// caller can correlate optimistic local state with the
   /// server's eventual broadcast (or, for non-bulk ops where
   /// the server doesn't echo, just so the caller has it).
-  sendMutation(op: MutationOp): string {
+  /// Returns null when the share is edit-locked (no-op).
+  sendMutation(op: MutationOp): string | null {
+    if (this.editLocked) return null;
     const id = newMutationId();
     this.send({ type: "mutation", id, op });
     return id;
@@ -320,6 +337,7 @@ export class LiveSession {
     }
     switch (msg.type) {
       case "hello":
+        this.editLocked = msg.editLocked === true;
         this.opts.onHello?.(msg);
         // Snap the seq cursor to whatever the server says is
         // current — the replayed mutations that follow will
@@ -339,6 +357,10 @@ export class LiveSession {
         return;
       case "presence":
         this.opts.onPresence?.((msg as ServerPresenceMessage).peers);
+        return;
+      case "lockStatusChanged":
+        this.editLocked = msg.editLocked === true;
+        this.opts.onLockStatusChanged?.(this.editLocked);
         return;
       case "rate_limited":
         // We don't currently auto-retry rate-limited ops —
