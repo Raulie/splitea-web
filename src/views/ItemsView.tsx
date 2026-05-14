@@ -109,7 +109,7 @@ function Loaded(props: {
   /// `?for=<contactId>` on the URL.
   forContactId: string | null;
 }) {
-  const isReadOnly = () => props.forContactId !== null;
+  const isReadOnly = () => props.forContactId !== null || store.editLocked;
   // The store owns the live snapshot. After this point we
   // never read `props.snapshot` again — only `store.snapshot`,
   // which mutates as WebSocket frames arrive and as the user
