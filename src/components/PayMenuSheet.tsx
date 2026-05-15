@@ -251,9 +251,9 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
         onClick={handleDismiss}
         aria-hidden="true"
       />
-      <div class="fixed inset-x-0 bottom-0 sm:bottom-6 z-50 flex justify-center pointer-events-none">
+      <div class="fixed inset-x-0 bottom-0 z-50 flex justify-center pointer-events-none">
       <div
-        class="pointer-events-auto w-full sm:max-w-md bg-ios-card text-ios-label rounded-t-ios-sheet sm:rounded-ios-sheet squircle pb-[env(safe-area-inset-bottom)] sm:pb-2 shadow-2xl pay-sheet"
+        class="pointer-events-auto w-full sm:max-w-md bg-ios-card text-ios-label rounded-t-ios-sheet squircle pb-[env(safe-area-inset-bottom)] shadow-2xl pay-sheet"
         classList={{ "pay-sheet-presented": presented() }}
         role="dialog"
         aria-modal="true"
