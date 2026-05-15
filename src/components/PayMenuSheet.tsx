@@ -1,4 +1,5 @@
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
+import { Portal } from "solid-js/web";
 import { ChevronGlyph } from "./ChevronGlyph";
 import { Avatar } from "./Avatar";
 import {
@@ -243,6 +244,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
 
   return (
     <Show when={providerEntries().length > 0}>
+      <Portal>
       <div
         class="fixed inset-0 z-40 bg-black/40 pay-backdrop"
         classList={{ "pay-backdrop-presented": presented() }}
@@ -290,6 +292,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
         </Show>
       </div>
       </div>
+      </Portal>
     </Show>
   );
 }
