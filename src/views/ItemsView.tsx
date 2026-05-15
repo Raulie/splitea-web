@@ -930,7 +930,7 @@ function Loaded(props: {
 
 function LoadingState() {
   return (
-    <div class="h-dvh flex items-center justify-center">
+    <div class="min-h-dvh flex items-center justify-center pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div class="text-ios-label-secondary text-ios-body">Loading…</div>
     </div>
   );
@@ -938,7 +938,7 @@ function LoadingState() {
 
 function ExpiredState() {
   return (
-    <div class="h-dvh flex flex-col items-center justify-center px-6 text-center gap-4">
+    <div class="min-h-dvh flex flex-col items-center justify-center px-6 text-center gap-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       {/* Splitea app icon — same `/apple-touch-icon.png` the
           splitea-shares worker serves at the apex (used by
           iMessage rich previews and the iOS home-screen Web
@@ -988,7 +988,7 @@ function ExpiredState() {
 
 function ErrorState() {
   return (
-    <div class="h-dvh flex flex-col items-center justify-center px-6 text-center gap-4">
+    <div class="min-h-dvh flex flex-col items-center justify-center px-6 text-center gap-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <h1 class="text-ios-title-2">Couldn't load this receipt</h1>
       <p class="text-ios-body text-ios-label-secondary max-w-xs">
         Try again in a moment. If the problem persists, ask your friend to
