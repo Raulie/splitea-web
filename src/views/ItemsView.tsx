@@ -1,5 +1,6 @@
 import { useParams, useSearchParams } from "@solidjs/router";
 import {
+  createEffect,
   createMemo,
   createResource,
   createSignal,
@@ -116,6 +117,15 @@ function Loaded(props: {
   // taps to (un)assign items locally.
   const { store, applyMutation, applyOptimistic, setSelfUserId, setEditLocked } =
     createSnapshotStore(props.snapshot, props.shareID);
+
+  // Overrides the splitea-shares landing-HTML title
+  // ("Splitea • Tap for details — Splitea") with the merchant's
+  // name once the snapshot is in. Falls back to plain "Splitea"
+  // when no merchant is known.
+  createEffect(() => {
+    const merchant = store.snapshot.receipt.merchantName?.trim();
+    document.title = merchant ? `Splitea | ${merchant}` : "Splitea";
+  });
 
   // Active contact — the "tap a contact, then tap their items"
   // model. Defaults to the first contact in the snapshot so
