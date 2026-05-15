@@ -132,17 +132,23 @@ export function formatPhoneNumber(raw: string | null | undefined): string {
   return trimmed;
 }
 
-/// Returns the first letters of each name component capped at
-/// two — used as the avatar placeholder when no photo is
-/// available. e.g. "Camila Rivera" → "CR", "Liu" → "L".
+/// Avatar placeholder when no photo is available. Mirrors iOS's
+/// `SpliteaContact.initials`: first letter of the first word plus
+/// first letter of the last word. e.g. "Camila Rivera" → "CR",
+/// "María José García" → "MG", "Pedro Antonio Martínez" → "PM",
+/// "Liu" → "L".
+///
+/// Taking first-and-last (instead of first-two) keeps middle
+/// names from squeezing out the family initial, which matches
+/// how iOS splits given/family before producing initials.
 export function initialsFor(fullName: string | null | undefined): string {
   if (!fullName) return "?";
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
-  const letters = parts
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase());
-  return letters.join("");
+  if (parts.length === 1) return parts[0][0]!.toUpperCase();
+  const first = parts[0][0]!.toUpperCase();
+  const last = parts[parts.length - 1][0]!.toUpperCase();
+  return first + last;
 }
 
 /// Builds the download filename basename (no extension) for a
