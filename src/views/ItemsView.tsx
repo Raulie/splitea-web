@@ -69,6 +69,19 @@ export function ItemsView() {
   // rather than ItemsView's editor.
   const forContactId = (): string | null => searchParams.for ?? null;
 
+  // Title for expired / error / loading states. The loaded state's
+  // own createEffect overrides this once a snapshot is in.
+  createEffect(() => {
+    const err = snapshot.error;
+    if (err instanceof ShareFetchError && err.kind === "expired") {
+      document.title = "Splitea | Expired split";
+    } else if (err) {
+      document.title = "Splitea | Couldn't load split";
+    } else if (snapshot.loading) {
+      document.title = "Splitea";
+    }
+  });
+
   return (
     // Loading/error states need a viewport-sized container too,
     // matching the `Loaded` state's `.ios-nav-stack` (which
