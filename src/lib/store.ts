@@ -6,6 +6,7 @@ import type {
 import type {
   AssignmentOpPayload,
   ItemAddPayload,
+  ItemAssignSetPayload,
   ItemUpdatePayload,
   MutationOp,
   ReceiptUpdatePayload,
@@ -129,6 +130,9 @@ function applyOp(snap: ReceiptSnapshot, op: MutationOp): void {
       return;
     case "split.evenly":
       applySplitEvenly(snap);
+      return;
+    case "item.assignSet":
+      applyItemAssignSet(snap, op.payload as ItemAssignSetPayload);
       return;
     case "item.add":
       applyItemAdd(snap, op.payload as ItemAddPayload);
@@ -347,6 +351,40 @@ function applySplitEvenly(snap: ReceiptSnapshot) {
         contactId: contact.id,
       });
     }
+  }
+}
+
+function applyItemAssignSet(
+  snap: ReceiptSnapshot,
+  payload: ItemAssignSetPayload,
+) {
+  // Atomic bulk: replace this item's assignment rows with
+  // exactly the desired contact set. Idempotent — re-applying
+  // converges to the same state. Empty `contactIds` clears all
+  // assignments for the item.
+  const desired = new Set(payload.contactIds);
+  // Remove rows for this item whose contact isn't in `desired`.
+  for (let i = snap.assignments.length - 1; i >= 0; i--) {
+    const a = snap.assignments[i];
+    if (a.itemId !== payload.itemId) continue;
+    if (!desired.has(a.contactId)) {
+      snap.assignments.splice(i, 1);
+    }
+  }
+  // Add rows for contacts in `desired` that aren't already
+  // assigned to this item.
+  const present = new Set(
+    snap.assignments
+      .filter((a) => a.itemId === payload.itemId)
+      .map((a) => a.contactId),
+  );
+  for (const contactId of desired) {
+    if (present.has(contactId)) continue;
+    snap.assignments.push({
+      id: `assignSet-${payload.itemId}-${contactId}`,
+      itemId: payload.itemId,
+      contactId,
+    });
   }
 }
 

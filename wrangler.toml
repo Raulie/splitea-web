@@ -30,7 +30,8 @@ preview_urls = false
 # the `[assets]` table header would scope it as `assets.routes`
 # (which Wrangler then warns about as "unexpected field").
 routes = [
-  { pattern = "splitea.app/*", zone_name = "splitea.app" },
+  { pattern = "splitea.app/*",     zone_name = "splitea.app" },
+  { pattern = "dev.splitea.app/*", zone_name = "splitea.app" },
 ]
 
 # Static-assets-only worker (no `main`, no Worker code). Vite's

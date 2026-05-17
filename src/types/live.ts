@@ -116,6 +116,7 @@ export type MutationOp =
   | { kind: "assignment.remove"; payload: AssignmentOpPayload }
   | { kind: "assignments.clear"; payload: Record<string, never> }
   | { kind: "split.evenly"; payload: Record<string, never> }
+  | { kind: "item.assignSet"; payload: ItemAssignSetPayload }
   | { kind: "item.add"; payload: ItemAddPayload }
   | { kind: "item.update"; payload: ItemUpdatePayload }
   | { kind: "item.delete"; payload: { itemId: string } }
@@ -131,6 +132,16 @@ export interface AssignmentOpPayload {
   assignmentId: string;
   itemId: string;
   contactId: string;
+}
+
+/// Bulk "set the assignment set for this item to exactly these
+/// contacts" payload. iOS sends this from Everyone-mode taps so
+/// one gesture = one frame, not N individual assignment.add /
+/// assignment.remove ops. Empty contactIds means "unassign
+/// everyone from this item."
+export interface ItemAssignSetPayload {
+  itemId: string;
+  contactIds: string[];
 }
 
 export interface ItemAddPayload {
