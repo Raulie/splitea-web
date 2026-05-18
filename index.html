@@ -31,30 +31,45 @@
          locally first. -->
     <link rel="preconnect" href="https://rsms.me/" />
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-    <!-- Squircle feature probe. `@supports (corner-shape:
-         superellipse(3))` is unreliable: Chrome's parser
-         accepts the declaration syntactically (the property
-         shipped behind a flag in Blink) and reports support
-         even though it doesn't actually render the curve, so
-         the `@supports not (...)` fallback in index.css never
-         fires there. Samsung Internet runs an older Blink that
-         doesn't parse the property, which is why it picked up
-         the bumped radii while Chrome Android kept the
-         tighter circular corners.
+    <!-- Squircle feature gate. Only WebKit (Safari + iOS
+         WKWebView) actually paints `corner-shape:
+         superellipse(3)` today; everything else renders the
+         declaration on `.squircle` as a plain circular arc
+         that looks ~20–25% tighter than the iOS app. Two
+         earlier attempts failed:
 
-         Probe instead: only WebKit (Safari + iOS WKWebView)
-         actually paints the superellipse today, and only
-         WebKit exposes `-webkit-touch-callout`. Mirror that as
-         the gate — if the browser doesn't understand
-         `-webkit-touch-callout: none`, treat it as a non-
-         squircle renderer and tag <html> with `.no-squircle`
-         so index.css can swap in the larger radii. Runs
-         inline before any CSS is applied, so paint never
-         flashes the wrong radius. -->
+         1. `@supports (corner-shape: superellipse(3))` returns
+            true in Chrome too — Blink ships the property
+            behind a flag, parser accepts the declaration even
+            though paint ignores it. Samsung Internet runs an
+            older Blink that doesn't parse the value, which is
+            why it happened to fall into the bumped-radius
+            branch.
+         2. `CSS.supports('-webkit-touch-callout', 'none')` is
+            also true in Blink — Chromium inherited the WebKit-
+            prefixed property and exposes it everywhere.
+
+         No CSS feature query reliably distinguishes the two
+         engines for this case. Falling back to UA sniffing:
+         WebKit browsers have `Safari/` in the UA but never
+         `Chrome/`, `Chromium/`, `Firefox/`, or `Edg/` — those
+         tokens only appear in non-WebKit engines (including
+         Android Chrome, desktop Chrome, Edge, Firefox, and
+         Samsung Internet via `SamsungBrowser/` + `Chrome/`).
+         iOS Chrome (`CriOS/`) and iOS Firefox (`FxiOS/`) use
+         WKWebView so they ship `Safari/` without `Chrome/`
+         and correctly land in the WebKit bucket. Tag <html>
+         with `.no-squircle` for the non-WebKit branch so
+         index.css can swap in the larger radii. Runs inline
+         before paint so the corners never flash the wrong
+         size. -->
     <script>
       (function () {
         try {
-          if (!CSS.supports('-webkit-touch-callout', 'none')) {
+          var ua = navigator.userAgent;
+          var isWebKit = /Safari\//.test(ua) &&
+                         !/(Chrome|Chromium|Firefox|Edg)\//.test(ua);
+          if (!isWebKit) {
             document.documentElement.classList.add('no-squircle');
           }
         } catch (e) {
