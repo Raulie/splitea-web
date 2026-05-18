@@ -5,38 +5,32 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Match iOS system colors so the web ItemsView reads
-        // identically to the native one. Pinning hex values
-        // rather than CSS-system tokens because non-Apple devices
-        // don't have iOS's `-apple-system-*` tokens — keeping
-        // the rendered look consistent across platforms.
-        "ios-bg":              "#000000",
-        "ios-card":            "#1c1c1e",
-        "ios-card-hi":         "#2c2c2e",
-        // iOS `Color.gray.opacity(0.5)` — verbatim from
-        // `ContactAvatar.swift`'s
-        // `backgroundColor: Color.gray.opacity(0.5)`. The
-        // critical bit is the **alpha**: SwiftUI composites this
-        // fill over whatever's behind it (card bg, highlighted-
-        // row bg, the bottom-bar's translucent scrim, etc.), so
-        // the avatar takes on a slightly different gray
-        // depending on context. Solid `#47474A` would only
-        // match in the over-pure-black case and look wrong over
-        // the lighter row backgrounds.
+        // iOS system colors wired through CSS variables so a
+        // single `bg-ios-card` or `text-ios-label` class
+        // resolves to the right value in light AND dark mode.
+        // Both palettes are declared in `src/index.css` —
+        // light is the default, dark gets swapped in via the
+        // `@media (prefers-color-scheme: dark)` block. The
+        // page also declares `color-scheme: light dark` so
+        // Chromium's auto-dark detection sees that we're
+        // handling theming ourselves and skips force-dark.
         //
-        // `rgba(142, 142, 147, 0.5)` is iOS systemGray (dark
-        // appearance, `#8E8E93`) at 0.5 alpha — the browser
-        // alpha-blends it over the parent the same way
-        // SwiftUI's compositor does.
-        "ios-gray-fill":       "rgba(142,142,147,0.5)",
-        "ios-separator":       "rgba(84,84,88,0.65)",
-        "ios-label":           "#ffffff",
-        "ios-label-secondary": "rgba(235,235,245,0.6)",
-        "ios-label-tertiary":  "rgba(235,235,245,0.3)",
-        // UIColor.systemBlue (dark appearance) — same accent
-        // UIKit uses for tinted buttons / links in dark mode.
-        "ios-blue":            "#0a84ff",
-        "ios-red":             "#ff453a",
+        // For each token, the dark value matches the SwiftUI
+        // dark-appearance color; the light value matches the
+        // SwiftUI light-appearance color (e.g. systemBlue
+        // `#007aff` light vs `#0a84ff` dark). When in doubt,
+        // these mirror what `UIColor.systemX.resolvedColor`
+        // would return on iOS in the corresponding trait.
+        "ios-bg":              "var(--ios-bg)",
+        "ios-card":            "var(--ios-card)",
+        "ios-card-hi":         "var(--ios-card-hi)",
+        "ios-gray-fill":       "var(--ios-gray-fill)",
+        "ios-separator":       "var(--ios-separator)",
+        "ios-label":           "var(--ios-label)",
+        "ios-label-secondary": "var(--ios-label-secondary)",
+        "ios-label-tertiary":  "var(--ios-label-tertiary)",
+        "ios-blue":            "var(--ios-blue)",
+        "ios-red":             "var(--ios-red)",
       },
       fontFamily: {
         // Apple devices auto-resolve to SF Pro via `-apple-system`;
@@ -54,42 +48,27 @@ export default {
         ],
       },
       borderRadius: {
-        // iOS 26 — 22pt for prominent grouped-list cards.
-        // Matches the iOS app's actual usage (`cornerRadius: 22,
-        // style: .continuous` on every prominent card surface:
-        // ContactBreakdownRow, OnboardingProfilePageView,
-        // ProfileSetupPageView, ItemsView grouped lists).
-        // Earlier passes of this file experimented with 28pt and
-        // 36pt — both diverged from what iOS actually renders,
-        // making the web feel inflated next to the native app.
+        // Radii are driven by CSS variables declared in
+        // `src/index.css`. The base values match the iOS app's
+        // actual usage (22pt cards, 36pt sheets, 12pt tags,
+        // 10pt inner shapes via the concentric rule
+        // inner_radius = parent_radius − padding).
         //
-        // Concentric rule: inner_radius = parent_radius
-        // − padding. With a 22pt outer card and ~12pt padding
-        // (`px-3 py-3` inside PayMenuSheet rows), nested shapes
-        // want roughly 10pt; exposed below as `ios-card-inner`.
-        "ios-card":       "22px",
-        "ios-card-inner": "10px",
-        // iOS 26 Liquid Glass sheets — `UISheetPresentationController`
-        // and the equivalent SwiftUI `.sheet(...)` use a 36pt
-        // top corner radius by default in iOS 26 (confirmed via
-        // the SwiftUI forum thread on adaptive container corner
-        // radii where Apple's reference is `RoundedRectangle
-        // (cornerRadius: 36)` for sheet container shapes). The
-        // sheet surface is intentionally MORE rounded than
-        // inline cards (22pt) because it reads as a separate
-        // floating layer detached from the underlying content
-        // — bigger curve = more "lifted" feel in the new
-        // Liquid Glass language. Apply via `rounded-t-ios-sheet`
-        // for partial-detent presentations (the only mode
-        // splitea-web exposes; full-screen detents on iOS
-        // square off the bottom corners as the sheet attaches
-        // to the screen edges).
-        "ios-sheet":      "36px",
-        // Smaller "tag" pills (date / time chips inside the
-        // receipt-info card) — bumped from `rounded-lg`
-        // (8pt) to 12pt so they breathe alongside the
-        // larger card radius.
-        "ios-tag":        "12px",
+        // Safari renders these via `corner-shape: superellipse(3)`
+        // (the `.squircle` class) and the result matches the
+        // native iOS continuous corner perfectly. Chromium has
+        // no superellipse support, so a plain `border-radius`
+        // of 22pt looks visibly tighter than the SwiftUI
+        // equivalent. To compensate, the `@supports not
+        // (corner-shape: superellipse(3))` block in index.css
+        // bumps each variable by ~25% so the circular-arc
+        // fallback approximates the squircle's perceived size.
+        // Single source of truth for both paths: change the
+        // variables, every consumer follows.
+        "ios-card":       "var(--radius-ios-card)",
+        "ios-card-inner": "var(--radius-ios-card-inner)",
+        "ios-sheet":      "var(--radius-ios-sheet)",
+        "ios-tag":        "var(--radius-ios-tag)",
       },
       fontSize: {
         "ios-large-title": ["34px", { lineHeight: "41px", fontWeight: "700" }],

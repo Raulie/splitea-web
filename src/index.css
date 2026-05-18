@@ -2,20 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
-/* App-wide chrome. Splitea iOS is dark-mode-only and the web
-   client is styled to match.
-   We deliberately DO NOT declare `color-scheme: dark` here —
-   when set, iOS 26 Safari interprets it as "this page is
-   dark-themed, render the bottom toolbar as a flat dark
-   material and skip the content-sampling pass". That kills
-   the bleed-through effect even when the body is the root
-   scroller and viewport-fit=cover is set. We rely on explicit
-   `bg-ios-bg` / `text-ios-label` Tailwind utilities to set
-   our dark palette instead. */
+/* App-wide chrome — palette + base typography.
+   The site supports BOTH light and dark via CSS-variable
+   swapping. `color-scheme: light dark` tells the browser
+   (including Chromium's auto-dark / force-dark mode) that
+   we handle theming ourselves — those features no longer
+   touch us; instead, they flip `prefers-color-scheme` and
+   our media query below responds with the right palette.
+   This is the canonical "I support both modes" opt-out
+   from Chromium's content-inversion pass. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Light palette — default. Mirrors SwiftUI light-
+     appearance system colors (systemGroupedBackground for
+     the body, secondarySystemGroupedBackground for cards,
+     systemBlue light variant, etc.). */
+  --ios-bg:              #f2f2f7;
+  --ios-card:            #ffffff;
+  --ios-card-hi:         #e5e5ea;
+  --ios-gray-fill:       rgba(120, 120, 128, 0.2);
+  --ios-separator:       rgba(60, 60, 67, 0.36);
+  --ios-label:           #000000;
+  --ios-label-secondary: rgba(60, 60, 67, 0.6);
+  --ios-label-tertiary:  rgba(60, 60, 67, 0.3);
+  --ios-blue:            #007aff;
+  --ios-red:             #ff3b30;
+  /* Background fill for the bottom Pay / Continue chrome
+     bar. `0.92` alpha + a `backdrop-filter: blur` give the
+     iOS-26 frosted-glass look in both modes. Light bar
+     reads as a near-white frosted surface; dark bar reads
+     near-black. Used as an inline `background` on the two
+     scrim bars (SavedReceiptView Pay bar, ItemsView
+     Continue bar) — they can't use Tailwind classes
+     because the alpha-and-blur stack needs to stay inline
+     with the mask-image gradient on the same element. */
+  --ios-scrim:           rgba(255, 255, 255, 0.92);
+
+  /* iOS continuous-corner radii. Tailwind classes
+     (`rounded-ios-card`, `rounded-t-ios-sheet`,
+     `rounded-ios-tag`) resolve to these vars. The
+     `@supports not (corner-shape: superellipse(3))`
+     fallback below bumps them in browsers that can't
+     render the squircle curve (everything Chromium-based
+     today) — at the same numeric radius, Chromium's plain
+     circular corners look ~20–25% tighter than Safari's
+     superellipse, so we increase the radius there to land
+     visually closer. Safari sees the smaller value AND
+     applies the superellipse modifier; same perceived
+     curve shape across both. */
+  --radius-ios-card:     22px;
+  --radius-ios-sheet:    36px;
+  --radius-ios-tag:      12px;
+  --radius-ios-card-inner: 10px;
+}
+
+@supports not (corner-shape: superellipse(3)) {
+  :root {
+    --radius-ios-card:       28px;
+    --radius-ios-sheet:      44px;
+    --radius-ios-tag:        15px;
+    --radius-ios-card-inner: 12px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark palette — matches SwiftUI dark-appearance.
+       Body is pure black so the chrome reads as iOS does
+       on OLED screens; cards step up to #1c1c1e for the
+       traditional "raised surface" look. */
+    --ios-bg:              #000000;
+    --ios-card:            #1c1c1e;
+    --ios-card-hi:         #2c2c2e;
+    --ios-gray-fill:       rgba(142, 142, 147, 0.5);
+    --ios-separator:       rgba(84, 84, 88, 0.65);
+    --ios-label:           #ffffff;
+    --ios-label-secondary: rgba(235, 235, 245, 0.6);
+    --ios-label-tertiary:  rgba(235, 235, 245, 0.3);
+    --ios-blue:            #0a84ff;
+    --ios-red:             #ff453a;
+    --ios-scrim:           rgba(0, 0, 0, 0.92);
+  }
+}
 
 html, body, #root {
-  background: #000;
-  color: #fff;
+  background: var(--ios-bg);
+  color: var(--ios-label);
   margin: 0;
   min-height: 100%;
   -webkit-font-smoothing: antialiased;

@@ -559,20 +559,21 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
             // at a hard edge.
             "padding-top": "64px",
             "padding-bottom": "calc(env(safe-area-inset-bottom) + 12px)",
-            // Solid dark fill — `rgba(0,0,0,0.92)`. The
-            // smooth fade-in is handled by `mask-image`
-            // below, NOT by gradient-ing the background
-            // itself. Why: the bar applies
-            // `backdrop-filter: blur(20px)` uniformly, and
-            // `backdrop-filter` can't take a gradient. So
-            // even a transparent-at-top color gradient still
-            // had a hard blur boundary at the bar's top
-            // edge — the blur snapped on at 100% strength
-            // even where the color was fully transparent.
-            // mask-image fades the ENTIRE element including
-            // the backdrop-filtered region, so blur AND color
-            // ramp in together with no abrupt edge.
-            background: "rgba(0,0,0,0.92)",
+            // Solid scrim fill via `--ios-scrim` (light ≈
+            // white@92%, dark ≈ black@92%). The smooth
+            // fade-in is handled by `mask-image` below, NOT
+            // by gradient-ing the background itself. Why:
+            // the bar applies `backdrop-filter: blur(20px)`
+            // uniformly, and `backdrop-filter` can't take a
+            // gradient. So even a transparent-at-top color
+            // gradient still had a hard blur boundary at the
+            // bar's top edge — the blur snapped on at 100%
+            // strength even where the color was fully
+            // transparent. mask-image fades the ENTIRE
+            // element including the backdrop-filtered
+            // region, so blur AND color ramp in together
+            // with no abrupt edge.
+            background: "var(--ios-scrim)",
             "backdrop-filter": "blur(20px) saturate(180%)",
             "-webkit-backdrop-filter": "blur(20px) saturate(180%)",
             // Mask: the bar's top is fully transparent

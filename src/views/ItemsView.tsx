@@ -758,7 +758,7 @@ function Loaded(props: {
       <div
         class="absolute inset-0 pointer-events-none"
         style={{
-          background: "rgba(0,0,0,0.92)",
+          background: "var(--ios-scrim)",
           "backdrop-filter": "blur(20px) saturate(180%)",
           "-webkit-backdrop-filter": "blur(20px) saturate(180%)",
           "mask-image":
