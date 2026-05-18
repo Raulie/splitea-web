@@ -157,7 +157,7 @@ export function ReceiptViewer(props: ReceiptViewerProps) {
       // transition reverses. Z-index 60 sits above the nav-
       // stack overlay (z-50) so the cover is the topmost
       // surface.
-      class="fixed inset-0 z-[60] bg-black flex flex-col ios-nav-cover"
+      class="fixed inset-0 z-[60] bg-ios-bg flex flex-col ios-nav-cover"
       classList={{ "ios-nav-cover-presented": presented() }}
       role="dialog"
       aria-modal="true"
