@@ -42,29 +42,31 @@
 
   /* iOS continuous-corner radii. Tailwind classes
      (`rounded-ios-card`, `rounded-t-ios-sheet`,
-     `rounded-ios-tag`) resolve to these vars. The
-     `@supports not (corner-shape: superellipse(3))`
-     fallback below bumps them in browsers that can't
-     render the squircle curve (everything Chromium-based
-     today) — at the same numeric radius, Chromium's plain
-     circular corners look ~20–25% tighter than Safari's
-     superellipse, so we increase the radius there to land
-     visually closer. Safari sees the smaller value AND
-     applies the superellipse modifier; same perceived
-     curve shape across both. */
+     `rounded-ios-tag`) resolve to these vars. WebKit
+     (Safari + iOS WKWebView) renders the squircle curve via
+     the `corner-shape: superellipse(3)` declaration on
+     `.squircle`, so these base radii match the iOS app.
+     Non-WebKit browsers (Chrome/Edge/Firefox/Samsung on
+     Android) can't render the superellipse — at the same
+     numeric radius their plain circular corners look
+     ~20–25% tighter, so the `.no-squircle` override below
+     bumps the vars to compensate. The class gets stamped
+     on <html> by the inline probe in index.html (which
+     gates on `-webkit-touch-callout` — a WebKit-only
+     property — because `@supports (corner-shape: ...)`
+     can't tell parser acceptance apart from actual
+     rendering). */
   --radius-ios-card:     22px;
   --radius-ios-sheet:    36px;
   --radius-ios-tag:      12px;
   --radius-ios-card-inner: 10px;
 }
 
-@supports not (corner-shape: superellipse(3)) {
-  :root {
-    --radius-ios-card:       28px;
-    --radius-ios-sheet:      44px;
-    --radius-ios-tag:        15px;
-    --radius-ios-card-inner: 12px;
-  }
+html.no-squircle {
+  --radius-ios-card:       28px;
+  --radius-ios-sheet:      44px;
+  --radius-ios-tag:        15px;
+  --radius-ios-card-inner: 12px;
 }
 
 @media (prefers-color-scheme: dark) {

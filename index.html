@@ -31,6 +31,37 @@
          locally first. -->
     <link rel="preconnect" href="https://rsms.me/" />
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <!-- Squircle feature probe. `@supports (corner-shape:
+         superellipse(3))` is unreliable: Chrome's parser
+         accepts the declaration syntactically (the property
+         shipped behind a flag in Blink) and reports support
+         even though it doesn't actually render the curve, so
+         the `@supports not (...)` fallback in index.css never
+         fires there. Samsung Internet runs an older Blink that
+         doesn't parse the property, which is why it picked up
+         the bumped radii while Chrome Android kept the
+         tighter circular corners.
+
+         Probe instead: only WebKit (Safari + iOS WKWebView)
+         actually paints the superellipse today, and only
+         WebKit exposes `-webkit-touch-callout`. Mirror that as
+         the gate — if the browser doesn't understand
+         `-webkit-touch-callout: none`, treat it as a non-
+         squircle renderer and tag <html> with `.no-squircle`
+         so index.css can swap in the larger radii. Runs
+         inline before any CSS is applied, so paint never
+         flashes the wrong radius. -->
+    <script>
+      (function () {
+        try {
+          if (!CSS.supports('-webkit-touch-callout', 'none')) {
+            document.documentElement.classList.add('no-squircle');
+          }
+        } catch (e) {
+          document.documentElement.classList.add('no-squircle');
+        }
+      })();
+    </script>
   </head>
   <body class="bg-ios-bg text-ios-label">
     <div id="root"></div>
