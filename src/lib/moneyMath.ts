@@ -1,10 +1,10 @@
 /// Verbatim port of `Splitea/Services/MoneyMath.swift` — same
 /// rounding semantics, same tax-total strategies. iOS uses
 /// `Decimal` for cent-precise arithmetic; web doesn't have a
-/// built-in decimal type so we do float math + `Math.round`.
-/// For typical receipt amounts (≤ $10k, two-decimal prices)
-/// float drift stays under 1 cent before rounding — well
-/// within the precision the rounding restores.
+/// built-in decimal type so we do float math, then snap away
+/// binary-float drift before each cent round (see `centsOf`)
+/// so the rounded result matches the iOS Decimal math exactly
+/// — including at the X.XX5 half-up midpoint.
 ///
 /// All functions take pre-built inputs and return pure
 /// outputs. No state; mirrors the Swift module's discipline.
@@ -13,25 +13,39 @@ import type { ItemPayload, ReceiptPayload } from "../types/snapshot";
 
 // MARK: - Cent rounding
 
+/// Number of cents in `value`, with binary-float drift
+/// removed. `value * 100` should land on an exact cent count
+/// but float math leaves it a hair off: $17.145 becomes
+/// 1714.4999999999998, $17.14 becomes 1714.0000000000002.
+/// Either error flips a directional round the wrong way —
+/// `Math.round` drags the .5 midpoint down, `Math.ceil` /
+/// `Math.floor` jump a whole cent. Snapping to the nearest
+/// 1e-6 of a cent erases the ~1e-11 drift while leaving any
+/// genuine sub-cent fraction (`price × rate ÷ 100` bottoms
+/// out near 1e-4 cents) untouched, so the round sees the
+/// value iOS's `Decimal` would have produced.
+function centsOf(value: number): number {
+  return Math.round(value * 100 * 1e6) / 1e6;
+}
+
 /// Half-up rounding to two decimals. Default for register-
-/// style math. Uses `Math.round`, which for positive numbers
-/// rounds toward `+∞` at the .005 midpoint — same direction
-/// `NSDecimalRound(.plain)` takes for positive Decimals on
-/// iOS, so the results stay consistent with the native side.
+/// style math. `Math.round` takes the .5 midpoint toward
+/// `+∞` — same direction `NSDecimalRound(.plain)` takes for
+/// the positive Decimals iOS feeds it.
 export function roundCents(value: number): number {
-  return Math.round(value * 100) / 100;
+  return Math.round(centsOf(value)) / 100;
 }
 
 /// Always rounds toward `+∞`. Matches POS systems that round
 /// taxes up regardless of the .005 midpoint.
 export function roundCentsUp(value: number): number {
-  return Math.ceil(value * 100) / 100;
+  return Math.ceil(centsOf(value)) / 100;
 }
 
 /// Always rounds toward 0 (truncates sub-cent fractions).
 /// Matches POS systems that floor taxes.
 export function roundCentsDown(value: number): number {
-  return Math.floor(value * 100) / 100;
+  return Math.floor(centsOf(value)) / 100;
 }
 
 // MARK: - Tax rounding strategies
