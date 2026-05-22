@@ -11,8 +11,9 @@
 # routes win — the splitea-shares routes keep working unchanged
 # even when this worker is bound to splitea.app/*.
 #
-# Deploy:    `npx wrangler deploy`
-# Develop:   `npm run dev`  (Vite dev server, no Worker)
+# Deploy prod: `npx wrangler deploy`            → splitea-web      @ splitea.app/*
+# Deploy dev:  `npx wrangler deploy --env dev`  → splitea-web-dev  @ dev.splitea.app/*
+# Develop:     `npm run dev`  (Vite dev server, no Worker)
 
 name = "splitea-web"
 compatibility_date = "2025-04-01"
@@ -29,9 +30,12 @@ preview_urls = false
 # the TOML top level, not under `[assets]`. Putting it after
 # the `[assets]` table header would scope it as `assets.routes`
 # (which Wrangler then warns about as "unexpected field").
+#
+# `routes` is non-inheritable, so this prod-only list does NOT
+# carry into `[env.dev]` — the dev worker declares its own
+# `dev.splitea.app/*` route below.
 routes = [
-  { pattern = "splitea.app/*",     zone_name = "splitea.app" },
-  { pattern = "dev.splitea.app/*", zone_name = "splitea.app" },
+  { pattern = "splitea.app/*", zone_name = "splitea.app" },
 ]
 
 # Static-assets-only worker (no `main`, no Worker code). Vite's
@@ -43,4 +47,26 @@ directory = "./dist"
 # `single-page-application` makes any unknown path return
 # index.html with status 200, which is what `@solidjs/router`
 # expects for client-side routing.
+not_found_handling = "single-page-application"
+
+# Dev environment. `wrangler deploy --env dev` ships a separate
+# worker (`splitea-web-dev`) bound to `dev.splitea.app/*`,
+# isolating dev deploys from prod — the same split the
+# `splitea-shares` worker uses. The splitea-shares-dev worker
+# owns the specific paths under dev.splitea.app
+# (`/r/*`, `/live/*`, etc.); this catchall serves the SPA for
+# everything else, mirroring the prod layering on `splitea.app`.
+#
+# `routes` and `assets` are non-inheritable, so both are
+# redeclared here rather than picked up from the top level.
+[env.dev]
+name = "splitea-web-dev"
+workers_dev = false
+preview_urls = false
+routes = [
+  { pattern = "dev.splitea.app/*", zone_name = "splitea.app" },
+]
+
+[env.dev.assets]
+directory = "./dist"
 not_found_handling = "single-page-application"
