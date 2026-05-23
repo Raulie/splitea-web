@@ -51,23 +51,59 @@ import {
 ///      mutations, and streams new ones from peers.
 ///   4. Tap-to-assign in `ItemsList` sends `assignment.add` /
 ///      `assignment.remove` ops and applies optimistically.
+/// Map a share-URL identifier (either the numeric `shortId`
+/// from `/r/<id>/c/<shortId>` or a UUID-shaped string from the
+/// legacy `?for=<UUID>` query) to the canonical contact UUID
+/// used everywhere else in the view. Returns null when nothing
+/// matches — the caller then renders the all-items breakdown.
+/// Mirrors `splitea-shares/src/contactBreakdown.ts:resolveContactUUID`
+/// so the two consumers can't disagree on what a given URL
+/// points at.
+function resolveForContact(
+  snapshot: ReceiptSnapshot,
+  raw: string | null,
+): string | null {
+  if (!raw) return null;
+  if (/^\d+$/.test(raw)) {
+    const n = Number(raw);
+    if (Number.isInteger(n) && n > 0) {
+      const hit = snapshot.contacts.find((c) => c.shortId === n);
+      if (hit) return hit.id;
+    }
+  }
+  const needle = raw.toLowerCase();
+  for (const c of snapshot.contacts) {
+    if (c.id.toLowerCase().startsWith(needle)) return c.id;
+  }
+  return null;
+}
+
 export function ItemsView() {
-  const params = useParams<{ shareID: string }>();
+  const params = useParams<{ shareID: string; contactShortId?: string }>();
   const [searchParams] = useSearchParams<{ for?: string }>();
   const [snapshot] = createResource(
     () => params.shareID,
     (id) => fetchSnapshot(id),
   );
 
-  // Recipient-targeted "request" link — sender's iOS Request
-  // button mints `splitea.app/r/<id>?for=<contactId>` and ships
-  // it via Messages / share-sheet. When the param is set, the
-  // visitor is read-only: the SPA skips the WebSocket (no live
-  // edits in / out), preselects that contact as the visitor's
-  // identity for the Pay flow, and forces summary-first mode
-  // so the recipient lands on their breakdown immediately
-  // rather than ItemsView's editor.
-  const forContactId = (): string | null => searchParams.for ?? null;
+  // Recipient-targeted "request" link. Two forms accepted:
+  //
+  //   - `/r/<id>/c/<shortId>` (current nested path) — the
+  //     short numeric id maps to `snapshot.contacts[].shortId`.
+  //     Resolved to the canonical UUID below once the snapshot
+  //     is in.
+  //   - `?for=<contactUUID>` (legacy query) — still honored so
+  //     in-flight share links from before the path rollout
+  //     keep working.
+  //
+  // When either resolves to a contact, the visitor is read-
+  // only: the SPA skips the WebSocket (no live edits in / out),
+  // preselects that contact as the visitor's identity for the
+  // Pay flow, and forces summary-first mode so the recipient
+  // lands on their breakdown immediately rather than ItemsView's
+  // editor.
+  const forContactRaw = (): string | null =>
+    params.contactShortId ?? searchParams.for ?? null;
 
   // Title for expired / error / loading states. The loaded state's
   // own createEffect overrides this once a snapshot is in.
@@ -104,7 +140,7 @@ export function ItemsView() {
             <Loaded
               snapshot={snap()}
               shareID={params.shareID}
-              forContactId={forContactId()}
+              forContactId={resolveForContact(snap(), forContactRaw())}
             />
           )}
         </Match>

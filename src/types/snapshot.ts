@@ -76,6 +76,12 @@ export interface ContactPayload {
   /// back to initials when null. Optional — older snapshots
   /// without the field decode unchanged.
   avatarUrl?: string | null;
+  /// Short numeric identifier within the share, used in
+  /// per-recipient URLs (`/r/<id>/c/<shortId>`) instead of the
+  /// long UUID. Optional — older snapshots that pre-date the
+  /// field omit it, and consumers fall back to UUID-prefix
+  /// matching.
+  shortId?: number | null;
 }
 
 export interface AssignmentPayload {
