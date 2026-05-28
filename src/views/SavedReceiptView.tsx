@@ -256,19 +256,19 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     // a PWA build, we'll add `safe-area-inset-top` once at
     // the body or `.ios-nav-stack` level so every surface
     // (base, overlay, modal) gets the same inset uniformly.
-    // `h-dvh` (NOT `h-full`) — locks the wrapper to exactly
-    // 100dvh of the viewport. Without this, in summary-first
-    // mode the parent `.ios-nav-page` is `min-height: 100dvh`
-    // and grows with content, so `h-full` resolved to that
-    // grown height; the absolute-positioned Pay bar's `bottom:
-    // 0` then anchored to the bottom of the long page rather
-    // than the visible viewport. Locking the wrapper to dvh
-    // forces the internal `<main flex-1 overflow-y-auto>` to
-    // own all scrolling, and `bottom: 0` of the wrapper now
-    // IS the visible bottom edge regardless of how much
-    // content is inside. dvh tracks iOS Safari's URL-bar
-    // visibility automatically — bar moves smoothly as the
-    // bar collapses/expands.
+    //
+    // `h-dvh` (NOT `min-h-dvh`) — locks the wrapper to
+    // exactly 100dvh and routes scroll into the internal
+    // `<main overflow-y-auto>` below. A brief experiment
+    // with `min-h-dvh + body scroll` (to coax Safari iOS 18
+    // into rendering its chrome in the standard light style)
+    // broke scrolling entirely because the parent
+    // `.ios-nav-pushed` is `position: fixed; top: 0; bottom: 0`
+    // — content inside a fixed element doesn't drive body
+    // scroll, so the wrapper grew past the visible viewport
+    // but had nowhere to scroll to. We accept Safari's
+    // compact chrome on this view as the price of the
+    // iOS-style push/pop animation pattern.
     <div class="h-dvh flex flex-col bg-ios-bg text-ios-label relative">
       {/*
         Bottom-padding clears the entire Pay bar (button + the
@@ -298,13 +298,25 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         + safe-area baseline applies.
       */}
       <main
+        // `flex-1 overflow-y-auto` — main owns all scrolling
+        // because the wrapper is locked to viewport height
+        // (see h-dvh rationale above). Bottom padding clears
+        // the absolute-positioned Pay bar so the last content
+        // row sits comfortably above the bar's top fade.
+        // Anatomy:
+        //   64px gradient fade region
+        //   + 48px button height
+        //   + 12px button bottom interior padding
+        //   + env(safe-area-inset-bottom)
+        //   ≈ 124px + env(safe-area-inset-bottom)
+        // The shorter no-Pay-bar variant (16px + safe-area)
+        // is the regular baseline gutter.
         class="flex-1 overflow-y-auto"
         classList={{
           "pb-[calc(108px+env(safe-area-inset-bottom))]":
             payerProviders().length > 0,
-          "pb-[calc(16px+env(safe-area-inset-bottom))]": !(
-            payerProviders().length > 0
-          ),
+          "pb-[calc(16px+env(safe-area-inset-bottom))]":
+            !(payerProviders().length > 0),
         }}
       >
         <NavBar
@@ -441,7 +453,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                   // (22pt) — matches the iOS app's
                   // `cornerRadius: 22, style: .continuous`.
                   return (
-                    <div class="bg-ios-card has-[button:active]:bg-ios-card-hi transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] rounded-ios-card squircle overflow-hidden">
+                    <div class="bg-ios-card has-[button:active]:bg-ios-card-hi transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] rounded-ios-card overflow-hidden">
                       <ContactBreakdownRow
                         contact={row.contact!}
                         amount={row.total}
@@ -549,6 +561,15 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         when={payerProviders().length > 0}
       >
         <div
+          // `absolute inset-x-0 bottom-0` — pinned to the
+          // bottom of the `h-dvh` wrapper (which equals the
+          // visible viewport bottom). Pairs with `<main
+          // overflow-y-auto>` above: main scrolls internally
+          // while this bar stays put. We tried `position:
+          // sticky` and `position: fixed` to enable body
+          // scroll for Safari light chrome but both broke
+          // scrolling because of the `.ios-nav-pushed` fixed
+          // parent (see h-dvh comment above).
           class="absolute inset-x-0 bottom-0 px-4 pointer-events-none"
           style={{
             // Frame height: ~64px gradient fade above the
@@ -598,7 +619,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         >
           <button
             type="button"
-            class="block w-full h-12 rounded-full squircle bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity pointer-events-auto truncate"
+            class="block w-full h-12 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity pointer-events-auto truncate"
             onClick={() => setShowingPayMenu(true)}
           >
             Pay {senderDisplayName()}

@@ -127,12 +127,21 @@ export function ConnectingPill(props: ConnectingPillProps) {
           // iOS 26 system pills use (Maps "Updating Location"
           // stays neutral whether the lock is in progress or
           // just succeeded — only the inline glyph changes).
-          background: "rgba(20, 20, 22, 0.7)",
+          // Mode-aware translucent capsule, defined in
+          // `src/index.css` as `--ios-toast-bg` /
+          // `--ios-toast-border`. Light mode lands a near-
+          // white translucent surface so the pill reads as a
+          // light material on top of the page; dark mode keeps
+          // the previous near-black material. The hardcoded
+          // dark values that used to be here showed up as a
+          // black slab in light mode regardless of the rest
+          // of the page being white.
+          background: "var(--ios-toast-bg)",
           // Hairline border via inset shadow (so it stays
           // pixel-perfect over the rounded capsule corners
           // without subpixel issues a real `border` would
           // introduce on retina displays).
-          "box-shadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.08)",
+          "box-shadow": "inset 0 0 0 1px var(--ios-toast-border)",
         }}
       >
         {/* Per-state glyph. The spinner is pure CSS (animated
@@ -179,8 +188,13 @@ function Spinner(props: { size: number }) {
       style={{
         width: `${props.size}px`,
         height: `${props.size}px`,
-        border: "1.5px solid rgba(255, 255, 255, 0.25)",
-        "border-top-color": "rgba(255, 255, 255, 0.95)",
+        // Mode-aware ring colors so the spinner contrasts
+        // against the pill's material in both light + dark.
+        // Light: dark ring on white pill. Dark: white ring on
+        // dark pill. Defined alongside the pill bg in
+        // index.css under `--ios-toast-spinner-*`.
+        border: "1.5px solid var(--ios-toast-spinner-base)",
+        "border-top-color": "var(--ios-toast-spinner-arc)",
         animation: "ios-pill-spin 700ms linear infinite",
       }}
       aria-hidden="true"

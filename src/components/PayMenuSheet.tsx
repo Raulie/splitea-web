@@ -206,7 +206,36 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
     // in the iMessage caption / Splitea share preview, so
     // it's still communicated, just not prefilled.
 
-    // Identity-resolved branch: amount-aware URL.
+    // We route the click through `splitea.app/p/<slug>/<b64u>?go=1`
+    // rather than linking directly to the destination URL.
+    // Reasons:
+    //
+    //   1. Server-side iOS / Android URL rewrites stay in
+    //      one place. The Venmo iOS app's Universal Link
+    //      handler renders `%20` and `+` both as literal `+`
+    //      in the note field — the worker swaps the HTTPS
+    //      URL to `venmo://paycharge?...` for iOS, where the
+    //      custom-scheme handler decodes spaces correctly.
+    //      ATH Móvil on Android needs an `intent://` URI
+    //      with the consumer-app package id. Centralising
+    //      these in splitea-shares avoids duplicating the
+    //      logic in every client (iOS, web).
+    //   2. The `?go=1` query param tells the worker to
+    //      return a 302 redirect instead of the OG-tagged
+    //      hand-off HTML — no visible intermediate page,
+    //      visitor lands straight in the provider app.
+    //   3. The HTTPS round-trip + redirect dispatch gives
+    //      Venmo's iOS launch sequence enough grace on
+    //      cold-start that the deep link routes through the
+    //      payment handler rather than the QR/code parser
+    //      (which fails with "we don't recognize that code"
+    //      when iOS hands `venmo://...` to a fresh-launched
+    //      Venmo without that small breathing room).
+    //
+    // Default (`/p/...` without `?go=1`) still serves the
+    // OG-tagged HTML page — that's the path the iOS app
+    // generates for iMessage rich-preview cards when it
+    // shares a payment-request link.
     if (candidate) {
       const dest = provider.paymentURL({
         username,
@@ -214,7 +243,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
         currencyCode: props.currencyCode,
         merchantName: props.merchantName,
       });
-      return spliteaShareURL(provider.slug, dest);
+      return spliteaShareURL(provider.slug, dest) + "?go=1";
     }
     // Defensive: if we somehow got here without a
     // candidate (shouldn't happen — the providers stage
@@ -222,25 +251,25 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
     // back to the no-amount profile URL so the user still
     // gets SOMEWHERE.
     const dest = provider.profileURL(username);
-    return spliteaShareURL(provider.slug, dest);
+    return spliteaShareURL(provider.slug, dest) + "?go=1";
   }
 
-  // No JS-driven navigation; provider rows are real `<a
-  // target="_blank">` anchors so the browser handles the
-  // tap as a user-initiated link click. Two things this
-  // gets us over `window.location.assign` / `window.open`:
+  // No JS-driven navigation; provider rows are real `<a>`
+  // anchors so the browser handles the tap as a user-
+  // initiated link click. That's required for iOS to route
+  // the splitea.app/p/... URL via Universal Link into the
+  // installed provider app (Revolut, Cash App, Monzo) with
+  // the prefilled amount intact — programmatic navigations
+  // (`window.location.assign` / `window.open`) get gated to
+  // in-Safari behaviour, and several providers silently drop
+  // the amount in that path.
   //
-  //   1. iOS routes user-clicked anchors via Universal
-  //      Links to the installed provider app (Revolut,
-  //      Cash App, Monzo) when the destination's AASA
-  //      claims the path. Programmatic navigations are
-  //      gated to in-Safari behaviour, which for several
-  //      providers means the prefilled amount is silently
-  //      dropped.
-  //   2. The Splitea page (and the modal on it) stays
-  //      mounted in the original tab — recipient can come
-  //      back, pick a different provider, or scroll the
-  //      breakdown without losing context.
+  // Navigation happens IN THE SAME TAB (no `target="_blank"`)
+  // so the typical flow on iOS — tap row → Universal Link
+  // hands off to provider app → user pays → swipes back to
+  // Safari — lands back on the Splitea receipt rather than
+  // an empty intermediate `/p/...` tab. Desktop users return
+  // via the back button.
 
   return (
     <Show when={providerEntries().length > 0}>
@@ -253,7 +282,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
       />
       <div class="fixed inset-x-0 bottom-0 z-50 flex justify-center pointer-events-none">
       <div
-        class="pointer-events-auto w-full sm:max-w-md bg-ios-card text-ios-label rounded-t-ios-sheet squircle pb-[env(safe-area-inset-bottom)] shadow-2xl pay-sheet"
+        class="pointer-events-auto w-full sm:max-w-md bg-ios-card text-ios-label rounded-t-ios-sheet pb-[env(safe-area-inset-bottom)] shadow-2xl pay-sheet"
         classList={{ "pay-sheet-presented": presented() }}
         role="dialog"
         aria-modal="true"
@@ -358,7 +387,7 @@ function IdentityStage(props: IdentityStageProps) {
                 />
               </button>
               <Show when={i() < props.candidates.length - 1}>
-                <div class="h-px bg-ios-separator mx-3" />
+                <div class="ios-hairline mx-3" />
               </Show>
             </li>
           )}
@@ -410,23 +439,28 @@ function ProvidersStage(props: ProvidersStageProps) {
         <For each={props.entries}>
           {(entry, i) => (
             <li>
-              {/* Provider rows are real anchors with
-                  `target="_blank"` — opens the destination
-                  in a new tab, leaves the Splitea page (and
-                  this modal) mounted in the original tab,
-                  and (importantly) registers as a
-                  user-initiated click so iOS Universal
-                  Links can route the splitea.app/p/... URL
-                  through the worker's auto-redirect into
-                  the destination provider's app with the
-                  amount prefilled. `rel="noopener
-                  noreferrer"` is the standard target=_blank
-                  hardening — the destination tab can't
-                  reach back into our window.opener. */}
+              {/* Provider rows are real anchors so the click
+                  registers as user-initiated — required for
+                  iOS Universal Links to route the
+                  splitea.app/p/... URL through the worker's
+                  auto-redirect into the destination provider's
+                  app with the amount prefilled. Same-tab
+                  navigation (no `target="_blank"`) keeps the
+                  user on a single Safari tab end-to-end:
+                  tap → Universal Link → pay in provider app →
+                  swipe back to Safari, landing on the
+                  receipt rather than an empty `/p/...` tab.
+                  `rel="external"` is the @solidjs/router
+                  opt-out — without it the Router intercepts
+                  the same-origin click and tries to match
+                  `/p/<slug>/<b64u>` against the SPA route
+                  table, falling through to NotFound. We want
+                  a real browser navigation so Cloudflare hands
+                  the request to the splitea-shares worker
+                  that owns `/p/*`. */}
               <a
                 href={props.buildURL(entry.provider, entry.username)}
-                target="_blank"
-                rel="noopener noreferrer"
+                rel="external"
                 class="w-full flex items-center gap-3 px-3 py-3 rounded-ios-card-inner active:bg-ios-card-hi transition-colors"
               >
                 <img
@@ -446,7 +480,7 @@ function ProvidersStage(props: ProvidersStageProps) {
                 />
               </a>
               <Show when={i() < props.entries.length - 1}>
-                <div class="h-px bg-ios-separator mx-3" />
+                <div class="ios-hairline mx-3" />
               </Show>
             </li>
           )}

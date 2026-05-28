@@ -70,15 +70,36 @@ export function Avatar(props: AvatarProps) {
     const t = props.displayText?.trim();
     return !!t;
   };
+  // Empty-state detection — mirrors the iOS
+  // `ItemRow.swift::assignmentIndicator` empty branch:
+  // when there's no contact / image / text / glyph variant
+  // to render AND the call-site opted into the empty form
+  // via `emptyWhenUnnamed`, the circle should use the
+  // LIGHTER fill (`Color.gray.opacity(0.2)` on iOS) so it
+  // reads as "no assignee" against the more solid 0.5α
+  // fills used for assigned states, the everyone-chip, and
+  // initials avatars.
+  const isEmpty = () =>
+    props.variant !== "everyone" &&
+    !hasDisplayText() &&
+    !props.imageURL &&
+    !hasName() &&
+    !!props.emptyWhenUnnamed;
   return (
     <div
-      // iOS `ContactAvatar` uses `.foregroundStyle(.white)`
-      // for both the initials text and the `person.fill` /
-      // `person.3.fill` glyph fallbacks. We mirror that via
-      // the `ios-label` token (`#ffffff` in the tailwind
-      // config) so the color stays in the design-system
-      // namespace and tracks any future light-mode variant.
-      class={`shrink-0 rounded-full bg-ios-gray-fill flex items-center justify-center overflow-hidden text-ios-label font-semibold ${props.class ?? ""}`}
+      // iOS `ContactAvatar` uses `.foregroundStyle(.white)` —
+      // a LITERAL `Color.white`, not a system label token — for
+      // both the initials text and the `person.fill` /
+      // `person.3.fill` glyph fallbacks. The previous `text-
+      // ios-label` mapping happened to render white in dark
+      // mode (where `--ios-label` is `#ffffff`) but rendered
+      // BLACK in light mode (where `--ios-label` is
+      // `#000000`), which was wrong on every avatar surface
+      // because the gray-fill circle stays dark enough that
+      // black text barely registers. Use a hardcoded `text-
+      // white` so initials and SF glyphs stay white in both
+      // modes, matching iOS's literal `Color.white`.
+      class={`shrink-0 rounded-full ${isEmpty() ? "bg-ios-gray-fill-dim" : "bg-ios-gray-fill"} flex items-center justify-center overflow-hidden text-white font-semibold ${props.class ?? ""}`}
       style={{
         width: `${props.size}px`,
         height: `${props.size}px`,

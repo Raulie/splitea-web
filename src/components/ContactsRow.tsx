@@ -298,20 +298,19 @@ export function ContactsRow(props: ContactsRowProps) {
                   size={size()}
                   fullName={contact.fullName}
                   imageURL={contact.avatarUrl}
-                  // Pre-composited gray-fill: Avatar's default
-                  // bg is `rgba(142,142,147,0.5)` (the iOS gray-
-                  // fill token, semi-transparent so it picks up
-                  // whatever's behind). In ContactsRow the bar's
-                  // mask gradient renders the area behind the
-                  // avatar partly transparent, which would let
-                  // the items list bleed into the avatar's
-                  // backing too. Override with the same color
-                  // pre-composited over black: 0.5×(142,142,147)
-                  // + 0.5×(0,0,0) = rgb(71,71,74) — visually
-                  // identical to the original-on-black, but
-                  // FULLY OPAQUE so it stays solid regardless
-                  // of what the bar mask does.
-                  style={{ "background-color": "rgb(71, 71, 74)" }}
+                  // Pre-composited opaque gray-fill. Avatar's
+                  // default bg is the translucent `--ios-gray-
+                  // fill` token, which would let the items list
+                  // bleed through this row's mask-image gradient.
+                  // `--ios-gray-fill-opaque` is the same color
+                  // pre-composited over the body bg per mode
+                  // (rgb(71,71,74) on dark / rgb(218,218,223) on
+                  // light) — visually identical to the
+                  // translucent fill on its native body, but
+                  // FULLY OPAQUE so it stays solid regardless of
+                  // what the bar mask does. Defined in
+                  // index.css.
+                  style={{ "background-color": "var(--ios-gray-fill-opaque)" }}
                 />
               </span>
               <Show when={isActive()}>
@@ -377,9 +376,11 @@ function EveryonePill(props: EveryonePillProps) {
           size={size()}
           variant="everyone"
           // Same pre-composited opaque gray-fill as the per-
-          // contact avatars above — keeps the "Everyone" pill
-          // visually flush with them on the masked bar.
-          style={{ "background-color": "rgb(71, 71, 74)" }}
+          // contact avatars above (`--ios-gray-fill-opaque`,
+          // mode-aware) — keeps the "Everyone" pill visually
+          // flush with them on the masked bar in both light
+          // and dark mode.
+          style={{ "background-color": "var(--ios-gray-fill-opaque)" }}
         />
       </span>
       <Show when={props.active}>

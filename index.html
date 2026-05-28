@@ -6,15 +6,15 @@
     <!-- Theme-color drives the browser URL bar / status bar
          tint on mobile. Split per scheme so it matches the
          body background in each mode. -->
-    <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
-    <!-- Tell the browser we support both modes. Combined
-         with the @media (prefers-color-scheme: dark)
-         palette swap in src/index.css, this opts the page
-         out of Chromium's force-dark inversion — instead
-         force-dark just flips `prefers-color-scheme` and
-         our own rules handle it. -->
-    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" />
+    <!-- Light-mode-only while the rest of the app catches up
+         on dark-mode polish. With `color-scheme: light`, iOS
+         Chrome's force-dark mode and any user-OS dark setting
+         can't trigger our `@media (prefers-color-scheme: dark)`
+         rules — so the body bg stays #f2f2f7 (light) instead
+         of flashing #000. When dark mode is ready, restore
+         `light dark` + a second per-scheme theme-color. -->
+    <meta name="color-scheme" content="light" />
     <title>Splitea</title>
 
     <!-- Reuses the same icons the worker already serves at the
@@ -31,52 +31,6 @@
          locally first. -->
     <link rel="preconnect" href="https://rsms.me/" />
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-    <!-- Squircle feature gate. Only WebKit (Safari + iOS
-         WKWebView) actually paints `corner-shape:
-         superellipse(3)` today; everything else renders the
-         declaration on `.squircle` as a plain circular arc
-         that looks ~20–25% tighter than the iOS app. Two
-         earlier attempts failed:
-
-         1. `@supports (corner-shape: superellipse(3))` returns
-            true in Chrome too — Blink ships the property
-            behind a flag, parser accepts the declaration even
-            though paint ignores it. Samsung Internet runs an
-            older Blink that doesn't parse the value, which is
-            why it happened to fall into the bumped-radius
-            branch.
-         2. `CSS.supports('-webkit-touch-callout', 'none')` is
-            also true in Blink — Chromium inherited the WebKit-
-            prefixed property and exposes it everywhere.
-
-         No CSS feature query reliably distinguishes the two
-         engines for this case. Falling back to UA sniffing:
-         WebKit browsers have `Safari/` in the UA but never
-         `Chrome/`, `Chromium/`, `Firefox/`, or `Edg/` — those
-         tokens only appear in non-WebKit engines (including
-         Android Chrome, desktop Chrome, Edge, Firefox, and
-         Samsung Internet via `SamsungBrowser/` + `Chrome/`).
-         iOS Chrome (`CriOS/`) and iOS Firefox (`FxiOS/`) use
-         WKWebView so they ship `Safari/` without `Chrome/`
-         and correctly land in the WebKit bucket. Tag <html>
-         with `.no-squircle` for the non-WebKit branch so
-         index.css can swap in the larger radii. Runs inline
-         before paint so the corners never flash the wrong
-         size. -->
-    <script>
-      (function () {
-        try {
-          var ua = navigator.userAgent;
-          var isWebKit = /Safari\//.test(ua) &&
-                         !/(Chrome|Chromium|Firefox|Edg)\//.test(ua);
-          if (!isWebKit) {
-            document.documentElement.classList.add('no-squircle');
-          }
-        } catch (e) {
-          document.documentElement.classList.add('no-squircle');
-        }
-      })();
-    </script>
   </head>
   <body class="bg-ios-bg text-ios-label">
     <div id="root"></div>

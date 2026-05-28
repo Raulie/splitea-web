@@ -203,15 +203,20 @@ export const PAY_PROVIDERS: PayProvider[] = [
     // visitor actually initiated.
     paymentURL: ({ username, amount, merchantName }) => {
       const user = encodeURIComponent(stripVenmoAt(username));
-      // Use standard `encodeURIComponent` (produces `%20` for
-      // spaces) — NOT the legacy `formURLEncodeValue` which
-      // converted spaces to `+`. Earlier comments here
-      // claimed Venmo rejected `%20` in the note and required
-      // form-urlencoded `+` instead. That's no longer true:
-      // Venmo's current URL parser displays `+` LITERALLY in
-      // the note field, so the iMessage preview shows
-      // `My+share+at+La+Malcriada+-+sent+via+Splitea` when
-      // tapped through. `%20` decodes to space correctly.
+      // Encode the note with RFC 3986 percent-encoding —
+      // spaces as `%20`, NOT form-encoded `+`. The native
+      // iOS Splitea app uses the same encoding (see
+      // `PaymentProvider.formURLEncodedQuery` — misnamed,
+      // it actually uses `addingPercentEncoding`).
+      //
+      // On iOS the splitea-shares worker rewrites this HTTPS
+      // URL to `venmo://paycharge?...` before navigation —
+      // the iOS Venmo app's Universal Link handler renders
+      // `%20` AND `+` both as literal `+` in the composer's
+      // note field, but its custom-scheme handler decodes
+      // them correctly. Pay-sheet rows route through
+      // `splitea.app/p/venmo/<b64u>?go=1` (302 redirect)
+      // specifically to let that server-side rewrite kick in.
       const note = encodeURIComponent(paymentNote(merchantName));
       return `https://venmo.com/${user}?txn=pay&amount=${formatAmount(amount)}&note=${note}`;
     },

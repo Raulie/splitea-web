@@ -22,8 +22,58 @@
   --ios-bg:              #f2f2f7;
   --ios-card:            #ffffff;
   --ios-card-hi:         #e5e5ea;
-  --ios-gray-fill:       rgba(120, 120, 128, 0.2);
-  --ios-separator:       rgba(60, 60, 67, 0.36);
+  /* iOS `Color.gray.opacity(0.5)` translucent token — used
+     as the default Avatar circle backing. SwiftUI's
+     `Color.gray` is the literal CSS gray (`rgb(128,128,128)`),
+     NOT `UIColor.systemGray` (`#8e8e93`) — easy to confuse
+     because the system-named gray is what most iOS UI uses
+     elsewhere. ContactAvatar / InitialsAvatar / everyone-
+     chip all use the literal `.gray`. 0.5α renders over
+     whatever's behind: on a white card surface ≈ `#c0c0c0`;
+     on the `#f2f2f7` body ≈ `#b9b9bb`. */
+  --ios-gray-fill:       rgba(128, 128, 128, 0.5);
+  /* Lighter variant of the same fill — iOS uses 0.2α (vs
+     0.5α) specifically for the "no assignment" avatar
+     circle on items (`Color.gray.opacity(0.2)` in
+     `ItemRow.swift::assignmentIndicator`'s empty branch).
+     This makes unassigned items read as visibly "neutral"
+     against the more solid 0.5α fills used for assigned
+     contacts, the everyone-chip, and initials avatars.
+     Over white: rgb(228, 228, 228). */
+  --ios-gray-fill-dim:   rgba(128, 128, 128, 0.2);
+  /* Opaque pre-composited equivalent of `--ios-gray-fill`
+     for places where a translucent fill would bleed through
+     a gradient-masked backdrop (ContactsRow's mask-image
+     fade). Pre-composited onto the body bg per mode:
+       Light:  0.5×(128,128,128) + 0.5×(242,242,247)
+               = rgb(185, 185, 187)
+       Dark:   0.5×(128,128,128) + 0.5×(0,0,0)
+               = rgb(64, 64, 64)
+     ContactsRow + EveryonePill consume this directly via
+     inline `background-color: var(--ios-gray-fill-opaque)`. */
+  --ios-gray-fill-opaque: rgb(185, 185, 187);
+  /* iOS-style floating toast pill (ConnectingPill, future
+     notification pills). Modelled after iOS 26's "Updating
+     Location" / AirDrop-progress capsule — thin material
+     with hairline border, neutral tint across all
+     connection states, only the inline glyph color shifts.
+     Light: near-white translucent (95% white + blur picks up
+     a soft tint from the page). Dark: near-black translucent.
+     The hairline border + spinner ring track the same hue
+     direction so the pill reads as a single material surface
+     in both modes. */
+  --ios-toast-bg:        rgba(255, 255, 255, 0.85);
+  --ios-toast-border:    rgba(0, 0, 0, 0.08);
+  --ios-toast-spinner-base: rgba(0, 0, 0, 0.25);
+  --ios-toast-spinner-arc:  rgba(0, 0, 0, 0.95);
+  /* iOS `opaqueSeparator` token — the color UIKit's
+     `.insetGrouped` table style uses for its row dividers
+     (NOT the translucent `separator` token; that one is
+     for free-floating dividers on non-grouped lists and is
+     visibly darker over solid white cards). On a white card
+     `#c6c6c8` reads as a faint hairline, matching the iOS
+     native ItemsView screenshot. */
+  --ios-separator:       #c6c6c8;
   --ios-label:           #000000;
   --ios-label-secondary: rgba(60, 60, 67, 0.6);
   --ios-label-tertiary:  rgba(60, 60, 67, 0.3);
@@ -38,7 +88,15 @@
      Continue bar) — they can't use Tailwind classes
      because the alpha-and-blur stack needs to stay inline
      with the mask-image gradient on the same element. */
-  --ios-scrim:           rgba(255, 255, 255, 0.92);
+  /* Light scrim is tinted with the body bg (`#f2f2f7`), not
+     pure white. iOS UIBarBackground paints the bar with a
+     material blur on top of whatever's behind, so the bar
+     reads as a translucent continuation of the page rather
+     than a separate white sheet sitting on top of it. The
+     previous `rgba(255,255,255,0.92)` was correct on white-
+     card screens but wrong on `--ios-bg`-backed screens
+     (the bar looked like a card had been overlaid). */
+  --ios-scrim:           rgba(242, 242, 247, 0.85);
 
   /* iOS continuous-corner radii. Tailwind classes
      (`rounded-ios-card`, `rounded-t-ios-sheet`,
@@ -56,16 +114,22 @@
      property — because `@supports (corner-shape: ...)`
      can't tell parser acceptance apart from actual
      rendering). */
-  --radius-ios-card:     22px;
-  --radius-ios-sheet:    36px;
-  --radius-ios-tag:      12px;
-  --radius-ios-card-inner: 10px;
-}
-
-html.no-squircle {
-  --radius-ios-card:       28px;
-  --radius-ios-sheet:      44px;
-  --radius-ios-tag:        15px;
+  /* Universal radii — same numeric value on every engine, no
+     UA / @supports detection. The iOS app uses
+     `cornerRadius: 22, style: .continuous`; we go larger
+     here (28) because the web is a separate visual surface
+     and the slightly softer corners read as deliberately
+     iOS-flavored rather than as a faithful port. On Safari
+     the `.squircle` class adds `corner-shape: superellipse(3)`
+     for the true iOS continuous curve at this radius; every
+     other engine paints the same 28px as a plain circular
+     arc, which lands close to the squircle's perceived size.
+     Pill-shaped buttons should use `rounded-full` (not
+     `rounded-ios-card`) and skip `.squircle` — at half-height
+     radius the two curves are visually identical. */
+  --radius-ios-card:     28px;
+  --radius-ios-sheet:    44px;
+  --radius-ios-tag:      14px;
   --radius-ios-card-inner: 12px;
 }
 
@@ -78,8 +142,16 @@ html.no-squircle {
     --ios-bg:              #000000;
     --ios-card:            #1c1c1e;
     --ios-card-hi:         #2c2c2e;
-    --ios-gray-fill:       rgba(142, 142, 147, 0.5);
-    --ios-separator:       rgba(84, 84, 88, 0.65);
+    --ios-gray-fill:       rgba(128, 128, 128, 0.5);
+    --ios-gray-fill-dim:   rgba(128, 128, 128, 0.2);
+    --ios-gray-fill-opaque: rgb(64, 64, 64);
+    --ios-toast-bg:        rgba(20, 20, 22, 0.7);
+    --ios-toast-border:    rgba(255, 255, 255, 0.08);
+    --ios-toast-spinner-base: rgba(255, 255, 255, 0.25);
+    --ios-toast-spinner-arc:  rgba(255, 255, 255, 0.95);
+    /* iOS `opaqueSeparator` token, dark-mode resolution.
+       Mirrors the light-mode comment above. */
+    --ios-separator:       #38383a;
     --ios-label:           #ffffff;
     --ios-label-secondary: rgba(235, 235, 245, 0.6);
     --ios-label-tertiary:  rgba(235, 235, 245, 0.3);
@@ -89,8 +161,27 @@ html.no-squircle {
   }
 }
 
+/* Hard-coded html/body/#root bg (NOT via `var(--ios-bg)`)
+   so iOS Safari / iOS Chrome use the right color for the
+   rubber-band / overscroll region. iOS Chrome's "Force dark
+   mode for web content" silently injects an extra
+   stylesheet that sets `html, body { background: #000;
+   color: #fff }` — same specificity as our author rule, and
+   loaded LATER in the cascade, so a plain hex assignment
+   loses. `!important` is the only sure way to beat the
+   injected rule. We accept the `!important` here because
+   this is the root canvas — there's no legitimate downstream
+   override of body bg anywhere in the app, so the usual
+   "avoid !important" hygiene doesn't apply. */
 html, body, #root {
-  background: var(--ios-bg);
+  background-color: #f2f2f7 !important;
+}
+@media (prefers-color-scheme: dark) {
+  html, body, #root {
+    background-color: #000000 !important;
+  }
+}
+html, body, #root {
   color: var(--ios-label);
   margin: 0;
   min-height: 100%;
@@ -217,8 +308,44 @@ html { scroll-behavior: smooth; }
   right: 0;
   bottom: 0;
   height: 0;
-  border-top: 1px solid rgba(84, 84, 88, 0.65);
+  /* iOS hairlines are 1 PHYSICAL pixel — on a @2x or @3x
+     display that's 0.5 or 0.33 CSS pixels. A plain `1px`
+     border on the web renders at 1 LOGICAL pixel, which on
+     retina is 2-3 physical pixels and reads visibly thicker
+     than the iOS native screenshot. We drop to `0.5px` on
+     ≥2x displays (effectively every modern phone) so the
+     stroke lands at ~1 physical pixel. Non-retina displays
+     keep `1px` because sub-pixel borders there round
+     inconsistently across browsers. Color is driven from
+     `--ios-separator` so it switches per mode. */
+  border-top: 1px solid var(--ios-separator);
   pointer-events: none;
+}
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
+  .ios-list-divide > *:not(:last-child)::after {
+    border-top-width: 0.5px;
+  }
+}
+
+/* Standalone iOS-style hairline. Use this on a `<div>` (or
+   any block element) when you need a horizontal divider not
+   embedded in an `.ios-list-divide` parent — e.g. the
+   provider-group separators in PayMenuSheet or the
+   subtotal-rule dividers in ContactBreakdownRow. Inherits
+   the same retina-aware thickness rule below. Replaces the
+   ad-hoc `h-px bg-ios-separator` and `border-t border-ios-
+   separator` patterns scattered across components, so every
+   hairline in the app sits at the same physical thickness. */
+.ios-hairline {
+  height: 1px;
+  background: var(--ios-separator);
+  border: 0;
+  pointer-events: none;
+}
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
+  .ios-hairline {
+    height: 0.5px;
+  }
 }
 
 /* Horizontal padding utility that respects landscape-phone

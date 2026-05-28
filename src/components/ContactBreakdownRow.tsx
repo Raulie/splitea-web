@@ -140,7 +140,7 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
       <div class="px-[18px] pb-[18px]">
         {/* Solid divider between the header and the items
             list — iOS `Divider()` with vertical padding 4. */}
-        <div class="border-t border-ios-separator mt-1 mb-3" />
+        <div class="ios-hairline mt-1 mb-3" />
 
         {/* Per-item shares — VStack(spacing: 6) on iOS, NO
             dividers between rows. */}
