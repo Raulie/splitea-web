@@ -51,9 +51,31 @@ export interface ReceiptViewerProps {
 /// parent unmounts only after the slide-down finishes.
 const COVER_ANIMATION_MS = 320;
 
+/// MIME types we'll render from a snapshot-supplied `data:` URI.
+/// `mimeType` ultimately comes from user input on another
+/// device, and `dataURL()` feeds an `<iframe src>` — so an
+/// unrestricted `data:text/html;base64,...` would execute
+/// attacker HTML in our origin. Restrict to image + PDF.
+const ALLOWED_RECEIPT_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "application/pdf",
+]);
+
 export function ReceiptViewer(props: ReceiptViewerProps) {
-  const dataURL = () => `data:${props.mimeType};base64,${props.base64}`;
-  const isPDF = () => props.mimeType.toLowerCase().includes("pdf");
+  /// Sanitized MIME: anything not on the allowlist falls back to
+  /// `application/octet-stream`, which a browser will not execute
+  /// or render as a document (the viewer shows an error / blank
+  /// rather than running injected markup).
+  const safeMime = () => {
+    const m = props.mimeType.split(";")[0]!.trim().toLowerCase();
+    return ALLOWED_RECEIPT_MIME.has(m) ? m : "application/octet-stream";
+  };
+  const dataURL = () => `data:${safeMime()};base64,${props.base64}`;
+  const isPDF = () => safeMime() === "application/pdf";
 
   /// Drives the iOS `.fullScreenCover()`-style slide animation.
   /// Starts `false` so the first paint renders the cover at

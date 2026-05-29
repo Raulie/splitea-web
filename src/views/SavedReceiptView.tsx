@@ -181,10 +181,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   /// the Pay bar still has to point at the person who's owed
   /// money (the payer), not the messenger.
   const payerContact = () =>
-    props.snapshot.contacts.find(
-      (c) =>
-        c.phoneNumber === props.snapshot.receipt.payerPhoneNumber,
-    );
+    props.snapshot.contacts.find((c) => isPayer(c.phoneNumber));
 
   /// Provider rows that will populate the Pay modal. The Pay
   /// bar gates on a non-empty list — the iOS author broadcasts

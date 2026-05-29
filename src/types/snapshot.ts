@@ -14,7 +14,10 @@ export interface SnapshotEnvelope {
   /// whole iOS POST body as opaque text and hands it back here
   /// verbatim — we parse on the client.
   snapshot: string;
-  ownerUserId: string;
+  /// Owner's Apple `sub`. Only present on the authenticated
+  /// fetch; the public share-link snapshot omits it (the SPA
+  /// never needs it to render a receipt).
+  ownerUserId?: string;
   /// Epoch ms.
   createdAt: number;
   /// Epoch ms — the 7-day TTL deadline.

@@ -233,11 +233,14 @@ function applyProfileUpdate(
     contact.fullName = combined.length > 0 ? combined : null;
   }
 
-  // Avatar update — empty string clears.
+  // Avatar update — empty string clears. The URL arrives from an
+  // untrusted peer over the live channel and is bound to an
+  // <img src>, so only accept https:// (or clear). A javascript:
+  // / data: value is rejected rather than stored.
   if (payload.profileAvatarUrl !== undefined) {
-    contact.avatarUrl = payload.profileAvatarUrl.length > 0
-      ? payload.profileAvatarUrl
-      : null;
+    const url = payload.profileAvatarUrl;
+    contact.avatarUrl =
+      url.length > 0 && /^https:\/\//i.test(url) ? url : null;
   }
 
   // Payment usernames — only meaningful for the contact's own

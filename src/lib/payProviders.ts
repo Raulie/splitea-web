@@ -352,6 +352,15 @@ export function payProviderForRawValue(rawValue: string): PayProvider | undefine
 /// validates the decoded host/scheme against its own
 /// per-provider allowlist before redirecting.
 export function spliteaShareURL(slug: string, destinationURL: string): string {
+  // Defense-in-depth: never wrap a destination whose scheme
+  // isn't an expected payment scheme. The worker has its own
+  // per-provider allowlist, but validating here too means a
+  // crafted username can never produce a `javascript:` /
+  // `data:` href in the anchor even if the worker check were
+  // bypassed or misrouted.
+  if (!/^(https:|upi:)/i.test(destinationURL)) {
+    throw new Error(`refusing to wrap destination with unexpected scheme: ${destinationURL}`);
+  }
   const bytes = new TextEncoder().encode(destinationURL);
   // base64url: standard base64, swap +/ → -_, strip =.
   let b64 = "";
