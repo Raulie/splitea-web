@@ -48,6 +48,40 @@ export function roundCentsDown(value: number): number {
   return Math.floor(centsOf(value)) / 100;
 }
 
+/// Largest-remainder (Hamilton) distribution of a cent-quantized
+/// `total` across `weights`, so the returned shares sum EXACTLY to
+/// `total`. Each share is floor(total * w / Σw) cents; leftover
+/// cents go to the largest fractional remainders (ties by index).
+/// All-zero weights fall back to an even split. Verbatim port of
+/// `distributeCents` in `Services/MoneyMath.swift`.
+export function distributeCents(total: number, weights: number[]): number[] {
+  const n = weights.length;
+  if (n === 0) return [];
+  const totalCents = Math.round(centsOf(total));
+  const weightSum = weights.reduce((s, w) => s + w, 0);
+  if (weightSum <= 0) {
+    const base = Math.floor(totalCents / n);
+    const rem = totalCents - base * n;
+    return weights.map((_, i) => (base + (i < rem ? 1 : 0)) / 100);
+  }
+  const floors: number[] = [];
+  const remainders: { i: number; r: number }[] = [];
+  let allocated = 0;
+  for (let i = 0; i < n; i++) {
+    const exact = (totalCents * weights[i]!) / weightSum;
+    const fl = Math.floor(exact);
+    floors.push(fl);
+    remainders.push({ i, r: exact - fl });
+    allocated += fl;
+  }
+  const leftover = totalCents - allocated;
+  remainders.sort((a, b) => (b.r !== a.r ? b.r - a.r : a.i - b.i));
+  for (let k = 0; k < leftover && k < remainders.length; k++) {
+    floors[remainders[k]!.i]!++;
+  }
+  return floors.map((c) => c / 100);
+}
+
 // MARK: - Tax rounding strategies
 
 /// Mirror of the `TaxRoundingMethod` enum's raw values from
@@ -62,6 +96,7 @@ export type TaxRoundingMethod =
   | "on_subtotal_up"
   | "on_subtotal_down"
   | "per_rate_group_half_up"
+  | "per_rate_group_up"
   | "per_rate_group_down";
 
 /// Calculates the tax total using the specified rounding
@@ -92,6 +127,13 @@ export function calculateTaxTotal(
     case "per_rate_group_half_up":
       return groupedByRate(items).reduce(
         (sum, g) => sum + roundCents((g.subtotal * g.rate) / 100),
+        0,
+      );
+    case "per_rate_group_up":
+      // Each rate group's tax ceiled independently — matches POS
+      // systems (e.g. Puerto Rico IVU) that round up per group.
+      return groupedByRate(items).reduce(
+        (sum, g) => sum + roundCentsUp((g.subtotal * g.rate) / 100),
         0,
       );
     case "per_rate_group_down":
@@ -211,48 +253,82 @@ export function calculateContactBreakdowns(
   receipt: ReceiptPayload,
 ): ContactBreakdown[] {
   const subtotals = new Map<string, number>();
-  const taxes = new Map<string, number>();
+  const taxWeights = new Map<string, number>();
   const itemShares = new Map<string, ContactItemShare[]>();
+
+  // Viewer-independent order (by lowercased contact id) so the
+  // largest-remainder split lands the leftover cent on the SAME
+  // person on every client (iOS / web / shares).
+  const byId = (ids: string[]) =>
+    [...ids].sort((a, b) => (a.toLowerCase() < b.toLowerCase() ? -1 : 1));
 
   for (const item of items) {
     const contactIds = assignmentsByItem.get(item.id) ?? [];
     if (contactIds.length === 0) continue;
-    const count = contactIds.length;
-    const itemSubtotal = roundCents(item.price / count);
-    const itemTax = roundCents(
-      roundCents((item.price * (item.tax ?? 0)) / 100) / count,
-    );
-    for (const contactId of contactIds) {
-      subtotals.set(contactId, (subtotals.get(contactId) ?? 0) + itemSubtotal);
-      taxes.set(contactId, (taxes.get(contactId) ?? 0) + itemTax);
+    const ordered = byId(contactIds);
+    const count = ordered.length;
+    // Largest-remainder split of the item subtotal and its rounded
+    // tax so each item's shares sum EXACTLY to the item totals.
+    const subtotalShares = distributeCents(item.price, new Array(count).fill(1));
+    const itemTaxTotal = roundCents((item.price * (item.tax ?? 0)) / 100);
+    const taxSplit = distributeCents(itemTaxTotal, new Array(count).fill(1));
+    ordered.forEach((contactId, index) => {
+      const sub = subtotalShares[index] ?? 0;
+      subtotals.set(contactId, (subtotals.get(contactId) ?? 0) + sub);
+      taxWeights.set(
+        contactId,
+        (taxWeights.get(contactId) ?? 0) + (taxSplit[index] ?? 0),
+      );
       const shares = itemShares.get(contactId) ?? [];
       shares.push({
         itemId: item.id,
         description: item.itemDescription,
         splitCount: count,
-        amount: itemSubtotal,
+        amount: sub,
       });
       itemShares.set(contactId, shares);
-    }
+    });
   }
 
   const billSub = billSubtotal(items);
   const tipAmount = billTipAmount(receipt, billSub);
 
-  const allIds = new Set<string>([...subtotals.keys(), ...taxes.keys()]);
-  return Array.from(allIds).map((contactId) => {
-    const subtotal = subtotals.get(contactId) ?? 0;
-    const tax = taxes.get(contactId) ?? 0;
-    const tip =
-      billSub > 0 ? roundCents((tipAmount * subtotal) / billSub) : 0;
-    return {
-      contactId,
-      subtotal,
-      tax,
-      tip,
-      items: itemShares.get(contactId) ?? [],
-    };
-  });
+  const order = Array.from(
+    new Set<string>([...subtotals.keys(), ...taxWeights.keys()]),
+  ).sort((a, b) => (a.toLowerCase() < b.toLowerCase() ? -1 : 1));
+
+  // Reconcile per-contact tax to the receipt's METHOD-computed
+  // total (largest-remainder, weighted by each contact's summed
+  // per-item tax) so the per-person taxes add up EXACTLY to the
+  // receipt's tax line. Mirrors
+  // `BillCalculationService.calculateContactBreakdowns` on iOS.
+  const taxTotal = calculateTaxTotal(
+    items,
+    receipt.taxRoundingMethod as TaxRoundingMethod,
+  );
+  const taxShares = distributeCents(
+    taxTotal,
+    order.map((id) => taxWeights.get(id) ?? 0),
+  );
+  const taxByContact = new Map<string, number>();
+  order.forEach((id, i) => taxByContact.set(id, taxShares[i] ?? 0));
+
+  // Tip: largest-remainder weighted by each contact's subtotal so
+  // sum(tips) == tipAmount, identical to iOS.
+  const tipShares = distributeCents(
+    tipAmount,
+    order.map((id) => subtotals.get(id) ?? 0),
+  );
+  const tipByContact = new Map<string, number>();
+  order.forEach((id, i) => tipByContact.set(id, tipShares[i] ?? 0));
+
+  return order.map((contactId) => ({
+    contactId,
+    subtotal: subtotals.get(contactId) ?? 0,
+    tax: taxByContact.get(contactId) ?? 0,
+    tip: tipByContact.get(contactId) ?? 0,
+    items: itemShares.get(contactId) ?? [],
+  }));
 }
 
 /// Convenience: return a `Map<contactId, total>` ready to
