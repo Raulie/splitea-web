@@ -3,18 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <!-- Theme-color drives the browser URL bar / status bar
-         tint on mobile. Split per scheme so it matches the
-         body background in each mode. -->
-    <meta name="theme-color" content="#ffffff" />
-    <!-- Light-mode-only while the rest of the app catches up
-         on dark-mode polish. With `color-scheme: light`, iOS
-         Chrome's force-dark mode and any user-OS dark setting
-         can't trigger our `@media (prefers-color-scheme: dark)`
-         rules — so the body bg stays #f2f2f7 (light) instead
-         of flashing #000. When dark mode is ready, restore
-         `light dark` + a second per-scheme theme-color. -->
-    <meta name="color-scheme" content="light" />
+    <!-- Splitea web is dark-only. Black theme-color so the
+         mobile URL/status bar matches the always-dark page, and
+         color-scheme:dark so the browser paints native controls
+         dark and skips force-dark inversion. -->
+    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="dark" />
     <title>Splitea</title>
 
     <!-- Reuses the same icons the worker already serves at the

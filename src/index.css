@@ -2,23 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-/* App-wide chrome — palette + base typography.
-   The site supports BOTH light and dark via CSS-variable
-   swapping. `color-scheme: light dark` tells the browser
-   (including Chromium's auto-dark / force-dark mode) that
-   we handle theming ourselves — those features no longer
-   touch us; instead, they flip `prefers-color-scheme` and
-   our media query below responds with the right palette.
-   This is the canonical "I support both modes" opt-out
-   from Chromium's content-inversion pass. */
+/* App-wide chrome: palette + base typography.
+   Splitea web is DARK-ONLY (there is no light design). The
+   dark palette in the second `:root` below is applied
+   UNCONDITIONALLY and wins over these base values by source
+   order, so the app renders dark regardless of the OS
+   appearance. `color-scheme: dark` tells the browser to paint
+   native controls / scrollbars dark and skip any force-dark
+   inversion. The values in this first block are the (fully
+   shadowed) base, kept only so every token has a definition. */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 
-  /* Light palette — default. Mirrors SwiftUI light-
-     appearance system colors (systemGroupedBackground for
-     the body, secondarySystemGroupedBackground for cards,
-     systemBlue light variant, etc.). */
+  /* Base palette — fully overridden by the unconditional dark
+     `:root` below. Kept only as the source-order base. */
   --ios-bg:              #f2f2f7;
   --ios-card:            #ffffff;
   --ios-card-hi:         #e5e5ea;
@@ -133,32 +131,30 @@
   --radius-ios-card-inner: 12px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark palette — matches SwiftUI dark-appearance.
-       Body is pure black so the chrome reads as iOS does
-       on OLED screens; cards step up to #1c1c1e for the
-       traditional "raised surface" look. */
-    --ios-bg:              #000000;
-    --ios-card:            #1c1c1e;
-    --ios-card-hi:         #2c2c2e;
-    --ios-gray-fill:       rgba(128, 128, 128, 0.5);
-    --ios-gray-fill-dim:   rgba(128, 128, 128, 0.2);
-    --ios-gray-fill-opaque: rgb(64, 64, 64);
-    --ios-toast-bg:        rgba(20, 20, 22, 0.7);
-    --ios-toast-border:    rgba(255, 255, 255, 0.08);
-    --ios-toast-spinner-base: rgba(255, 255, 255, 0.25);
-    --ios-toast-spinner-arc:  rgba(255, 255, 255, 0.95);
-    /* iOS `opaqueSeparator` token, dark-mode resolution.
-       Mirrors the light-mode comment above. */
-    --ios-separator:       #38383a;
-    --ios-label:           #ffffff;
-    --ios-label-secondary: rgba(235, 235, 245, 0.6);
-    --ios-label-tertiary:  rgba(235, 235, 245, 0.3);
-    --ios-blue:            #0a84ff;
-    --ios-red:             #ff453a;
-    --ios-scrim:           rgba(0, 0, 0, 0.92);
-  }
+/* Dark palette — applied UNCONDITIONALLY (dark-only site).
+   This plain `:root` follows the base block above, so by source
+   order it overrides every color token regardless of the OS
+   `prefers-color-scheme`. Body is pure black so the chrome reads
+   as iOS does on OLED screens; cards step up to #1c1c1e for the
+   traditional "raised surface" look. */
+:root {
+  --ios-bg:              #000000;
+  --ios-card:            #1c1c1e;
+  --ios-card-hi:         #2c2c2e;
+  --ios-gray-fill:       rgba(128, 128, 128, 0.5);
+  --ios-gray-fill-dim:   rgba(128, 128, 128, 0.2);
+  --ios-gray-fill-opaque: rgb(64, 64, 64);
+  --ios-toast-bg:        rgba(20, 20, 22, 0.7);
+  --ios-toast-border:    rgba(255, 255, 255, 0.08);
+  --ios-toast-spinner-base: rgba(255, 255, 255, 0.25);
+  --ios-toast-spinner-arc:  rgba(255, 255, 255, 0.95);
+  --ios-separator:       #38383a;
+  --ios-label:           #ffffff;
+  --ios-label-secondary: rgba(235, 235, 245, 0.6);
+  --ios-label-tertiary:  rgba(235, 235, 245, 0.3);
+  --ios-blue:            #0a84ff;
+  --ios-red:             #ff453a;
+  --ios-scrim:           rgba(0, 0, 0, 0.92);
 }
 
 /* Hard-coded html/body/#root bg (NOT via `var(--ios-bg)`)
@@ -174,12 +170,7 @@
    override of body bg anywhere in the app, so the usual
    "avoid !important" hygiene doesn't apply. */
 html, body, #root {
-  background-color: #f2f2f7 !important;
-}
-@media (prefers-color-scheme: dark) {
-  html, body, #root {
-    background-color: #000000 !important;
-  }
+  background-color: #000000 !important;
 }
 html, body, #root {
   color: var(--ios-label);
