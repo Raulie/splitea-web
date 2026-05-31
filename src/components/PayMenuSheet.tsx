@@ -275,12 +275,12 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
     <Show when={providerEntries().length > 0}>
       <Portal>
       <div
-        class="fixed inset-0 z-40 bg-black/40 pay-backdrop"
+        class="fixed inset-0 z-[60] bg-black/40 pay-backdrop"
         classList={{ "pay-backdrop-presented": presented() }}
         onClick={handleDismiss}
         aria-hidden="true"
       />
-      <div class="fixed inset-x-0 bottom-0 z-50 flex justify-center pointer-events-none">
+      <div class="fixed inset-x-0 bottom-0 z-[70] flex justify-center pointer-events-none">
       <div
         class="pointer-events-auto w-full sm:max-w-md bg-ios-card text-ios-label rounded-t-ios-sheet pb-[env(safe-area-inset-bottom)] shadow-2xl pay-sheet"
         classList={{ "pay-sheet-presented": presented() }}
