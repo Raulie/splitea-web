@@ -175,9 +175,23 @@ html, body, #root {
 html, body, #root {
   color: var(--ios-label);
   margin: 0;
-  min-height: 100%;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+/* Locked-root scroll model — the fix for Android Chrome's URL
+   toolbar dragging the fixed bottom bars (Pay / Continue) while
+   scrolling. The document root is made non-scrollable, so Chrome
+   never collapses the toolbar, the visual viewport never resizes
+   mid-scroll, and the bars stay glued. `body` is the scroller,
+   sized by `position: fixed; inset: 0` (definite viewport bounds,
+   no fragile percentage height-chain), with `#root` flowing
+   inside it. Trade-off: the URL bar no longer auto-hides. */
+html {
+  height: 100%;
+  overflow: hidden;
+}
+#root {
+  min-height: 100%;
 }
 
 body {
@@ -185,6 +199,13 @@ body {
                "SF Pro Text", Inter, system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.3;
+  /* The scroller (see locked-root note above). `inset: 0` gives
+     it the viewport's size without depending on any ancestor
+     height. */
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* iOS-style scrolling: bounce on overscroll where supported,
