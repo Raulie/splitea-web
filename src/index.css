@@ -199,13 +199,15 @@ body {
                "SF Pro Text", Inter, system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.3;
-  /* The scroller (see locked-root note above). `inset: 0` gives
-     it the viewport's size without depending on any ancestor
-     height. */
+  /* Non-scrolling viewport shell. Scrolling lives in the
+     per-page internal scrollers (`.ios-nav-page` /
+     `.ios-nav-pushed`), never on `body` — a scrolling body is
+     what lets Android Chrome collapse its URL toolbar and drift
+     the fixed bottom bar. `inset: 0` sizes it to the viewport
+     with no ancestor-height dependency. */
   position: fixed;
   inset: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
 }
 
 /* iOS-style scrolling: bounce on overscroll where supported,
@@ -441,14 +443,22 @@ html { scroll-behavior: smooth; }
    in overlay also stay within the column. On phones this
    resolves to viewport-width and is invisible. */
 .ios-nav-page {
-  position: relative;
-  /* `100dvh` minimum so the page is at least as tall as the
-     viewport even when there's not much content (otherwise
-     a short receipt would leave a black gap below). */
-  min-height: 100dvh;
-  max-width: 440px;
-  margin-left: auto;
-  margin-right: auto;
+  /* Self-bounding internal scroller — mirrors `.ios-nav-pushed`
+     below. The base page scrolls HERE, not on `body`, so the
+     document root never scrolls and Android Chrome's URL toolbar
+     never collapses mid-scroll — which is what was dragging the
+     fixed Continue/Done bar (the receipt view already scrolled
+     internally, which is why its Pay bar stayed put). Sized by
+     `position: fixed` + pinned edges; the `right`+`width` combo
+     isn't honored for fixed, so we pin both edges directly (same
+     `max(0px, calc(50% - 220px))` column form as `.ios-nav-pushed`). */
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: max(0px, calc(50% - 220px));
+  right: max(0px, calc(50% - 220px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   /* Match OnsenUI's leave-page animation curve. The transform
      and opacity transitions both run for the same 400ms over
      the same easing so the parallax + dim move in lockstep. */
@@ -563,11 +573,7 @@ html { scroll-behavior: smooth; }
   .ios-nav-stack {
     clip-path: none;
   }
-  .ios-nav-page {
-    max-width: none;
-    margin-left: 0;
-    margin-right: 0;
-  }
+  .ios-nav-page,
   .ios-nav-pushed,
   .ios-nav-page-bottom {
     left: 0;
