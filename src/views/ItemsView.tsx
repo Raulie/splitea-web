@@ -591,15 +591,13 @@ function Loaded(props: {
   ///     locally before the relay echoes, so the UI doesn't
   ///     wait on the round-trip.
   ///
-  ///   • **Everyone active** — mirror iOS `toggleAssignment`
-  ///     when `isEveryoneActive`. If the item is currently
-  ///     assigned to ALL contacts, remove all of them (one
-  ///     `assignment.remove` per existing edge). Otherwise
-  ///     add the missing edges so the end state is "every
-  ///     contact assigned." We deliberately don't send
-  ///     `split.evenly` / `assignments.clear` bulk ops — the
-  ///     iOS-side tap-by-tap behavior is per-item, not
-  ///     receipt-wide.
+  ///   • **Everyone active** — mirror iOS `setItemAssignments`:
+  ///     one atomic `item.assignSet` op carrying the full
+  ///     desired post-state for this item (every contact, or an
+  ///     empty list to clear when it's already fully assigned).
+  ///     Single op, so it lands as one optimistic write and the
+  ///     row jumps straight to the everyone badge — a bulk
+  ///     action, not N avatars filling in one at a time.
   const onToggleItem = (itemId: string) => {
     // Gate on liveStatus — if the WebSocket isn't open, the
     // mutation we'd send is dropped on the floor (see
@@ -623,44 +621,32 @@ function Loaded(props: {
 
     if (active === EVERYONE_ID) {
       const allContacts = store.snapshot.contacts;
-      const currentAssignments = store.snapshot.assignments.filter(
-        (a) => a.itemId === itemId,
+      const assignedIds = new Set(
+        store.snapshot.assignments
+          .filter((a) => a.itemId === itemId)
+          .map((a) => a.contactId),
       );
-      const assignedIds = new Set(currentAssignments.map((a) => a.contactId));
       const isFullyAssigned =
         allContacts.length > 0 &&
         allContacts.every((c) => assignedIds.has(c.id));
 
-      if (isFullyAssigned) {
-        // Strip all assignees off this item.
-        for (const a of currentAssignments) {
-          const op: MutationOp = {
-            kind: "assignment.remove",
-            payload: {
-              assignmentId: a.id,
-              itemId: a.itemId,
-              contactId: a.contactId,
-            },
-          };
-          applyOptimistic(op);
-          session.sendMutation(op);
-        }
-      } else {
-        // Add only the missing edges.
-        for (const c of allContacts) {
-          if (assignedIds.has(c.id)) continue;
-          const op: MutationOp = {
-            kind: "assignment.add",
-            payload: {
-              assignmentId: newMutationId(),
-              itemId,
-              contactId: c.id,
-            },
-          };
-          applyOptimistic(op);
-          session.sendMutation(op);
-        }
-      }
+      // Atomic bulk toggle — mirror iOS `setItemAssignments`: one
+      // `item.assignSet` carrying the full desired post-state
+      // (everyone, or empty to clear) rather than N individual
+      // assignment.add/.remove ops. A single op = a single
+      // optimistic store write = one re-render, so the row snaps
+      // straight to the `person.3.fill` everyone badge instead of
+      // avatars filling in one-by-one. Also the on-wire shape iOS
+      // ships for the same gesture, so peers converge identically.
+      const op: MutationOp = {
+        kind: "item.assignSet",
+        payload: {
+          itemId,
+          contactIds: isFullyAssigned ? [] : allContacts.map((c) => c.id),
+        },
+      };
+      applyOptimistic(op);
+      session.sendMutation(op);
       return;
     }
 
