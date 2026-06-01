@@ -226,15 +226,19 @@ export const PAY_PROVIDERS: PayProvider[] = [
     slug: "cashapp",
     displayName: "Cash App",
     // Cash App cashtags conventionally start with `$`; if
-    // the user stored it without one, we add it. The
-    // amount form is path-based: `cash.app/$tag/25.00`.
+    // the user stored it without one, we add it. The amount
+    // form is path-based: `cash.app/$tag/25.00`. The leading
+    // `$` MUST stay literal — percent-encoding it to `%24`
+    // makes Cash App fail to resolve the cashtag, so we only
+    // encode the tag body (alphanumeric, so effectively a
+    // no-op) and prepend a literal `$`.
     profileURL: (u) => {
-      const tag = u.startsWith("$") ? u : `$${u}`;
-      return `https://cash.app/${encodeURIComponent(tag)}`;
+      const body = u.startsWith("$") ? u.slice(1) : u;
+      return `https://cash.app/$${encodeURIComponent(body)}`;
     },
     paymentURL: ({ username, amount }) => {
-      const tag = username.startsWith("$") ? username : `$${username}`;
-      return `https://cash.app/${encodeURIComponent(tag)}/${formatAmount(amount)}`;
+      const body = username.startsWith("$") ? username.slice(1) : username;
+      return `https://cash.app/$${encodeURIComponent(body)}/${formatAmount(amount)}`;
     },
   },
   {
