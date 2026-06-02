@@ -551,6 +551,20 @@ html { scroll-behavior: smooth; }
   transform: translate3d(-25%, 0, 0);
   opacity: 0.9;
 }
+/* When the bar lives INSIDE the pushed overlay (the items
+   editor reached via the pencil), anchor it to the overlay with
+   `position: absolute` instead of `position: fixed`. On Android
+   a `position: fixed` bar inside the overlay's `will-change:
+   transform` containing block still drifts as you scroll — the
+   exact bug the receipt's `position: absolute` Pay bar doesn't
+   have. The overlay is already column-constrained, so the bar
+   fills it edge-to-edge (`left/right: 0`). It rides the overlay's
+   slide animation, so it doesn't need the parallax transform. */
+.ios-nav-pushed > .ios-nav-page-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
 
 /* Drop the 440px column on landscape phones. The viewport's
    WIDTH alone isn't enough to distinguish a desktop from a
