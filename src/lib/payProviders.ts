@@ -218,7 +218,7 @@ export const PAY_PROVIDERS: PayProvider[] = [
       // `splitea.app/p/venmo/<b64u>?go=1` (302 redirect)
       // specifically to let that server-side rewrite kick in.
       const note = encodeURIComponent(paymentNote(merchantName));
-      return `https://venmo.com/${user}?txn=pay&amount=${formatAmount(amount)}&note=${note}`;
+      return `https://venmo.com/?txn=pay&recipients=${user}&amount=${formatAmount(amount)}&note=${note}`;
     },
   },
   {
