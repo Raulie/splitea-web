@@ -409,6 +409,15 @@ html { scroll-behavior: smooth; }
    scroll position. */
 .ios-nav-stack {
   position: relative;
+  /* The under-page and pushed page are both `position: fixed`, so
+     the stack has no in-flow height. Above 431px the column
+     `clip-path` below masks the fixed subtree to 440px — but a
+     zero-height stack collapses that mask to zero height too,
+     blanking the whole UI. Pin the stack to the viewport height so
+     the clip has vertical extent. `relative` (not fixed/transform)
+     keeps fixed descendants escaping to the viewport for Android
+     URL-bar-collapse pinning. */
+  min-height: 100dvh;
 }
 /* Mask the painted output of `.ios-nav-stack` to the 440px
    centered column on desktop so the iOS-slide push/pop
