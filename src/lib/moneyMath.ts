@@ -279,6 +279,56 @@ export interface ContactItemShare {
   amount: number;
 }
 
+/// Removes negative cents in `arr` by shifting a cent from the largest
+/// element, preserving the array's sum. Mirror of iOS `clampNonNegative`.
+function clampNonNegative(arr: number[]): void {
+  let guardN = 0;
+  while (guardN < 50) {
+    let minI = 0;
+    let maxI = 0;
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i]! < arr[minI]!) minI = i;
+      if (arr[i]! > arr[maxI]!) maxI = i;
+    }
+    if (arr[minI]! >= 0 || minI === maxI || arr[maxI]! <= 0) break;
+    arr[minI]!++;
+    arr[maxI]!--;
+    guardN++;
+  }
+}
+
+/// Splits each person's `nonSub` (tax+tip share, in cents) into a reconciled
+/// line (`recon`, which already sums to its receipt total) and a derived line
+/// (`nonSub - recon`). Cents are shifted within the reconciled line so the
+/// derived line never goes negative. Mirror of iOS `splitNonSub`.
+function splitNonSub(
+  nonSub: number[],
+  recon: number[],
+): { recon: number[]; derived: number[] } {
+  const r = [...recon];
+  const d = nonSub.map((v, i) => v - (r[i] ?? 0));
+  const limit = 20 * Math.max(1, nonSub.length);
+  let guardN = 0;
+  while (guardN < limit) {
+    let minI = 0;
+    let maxI = 0;
+    for (let i = 1; i < d.length; i++) {
+      if (d[i]! < d[minI]!) minI = i;
+      if (d[i]! > d[maxI]!) maxI = i;
+    }
+    if (d[minI]! >= 0) break;
+    if (r[minI]! <= 0 || minI === maxI || d[maxI]! <= 0) break;
+    r[minI]!--;
+    d[minI]!++;
+    r[maxI]!++;
+    d[maxI]!--;
+    guardN++;
+  }
+  clampNonNegative(r);
+  clampNonNegative(d);
+  return { recon: r, derived: d };
+}
+
 export function calculateContactBreakdowns(
   items: ItemPayload[],
   assignmentsByItem: Map<string, string[]>,
@@ -286,6 +336,9 @@ export function calculateContactBreakdowns(
 ): ContactBreakdown[] {
   const subtotals = new Map<string, number>();
   const taxWeights = new Map<string, number>();
+  // Scaled-integer "exact share" weights for the grand-total split.
+  const subWeight = new Map<string, number>();
+  const taxWeight = new Map<string, number>();
   const itemShares = new Map<string, ContactItemShare[]>();
 
   // Viewer-independent order (by lowercased contact id) so the
@@ -306,6 +359,10 @@ export function calculateContactBreakdowns(
     const subtotalShares = distributeCents(item.price, new Array(count).fill(1));
     const itemTaxTotal = roundCents((item.price * (item.tax ?? 0)) / 100);
     const taxSplit = distributeCents(itemTaxTotal, new Array(count).fill(1));
+    const priceCents = Math.round(centsOf(item.price));
+    const taxCents = Math.round(centsOf(itemTaxTotal));
+    const subPartItem = Math.floor(priceCents / count);
+    const taxPartItem = Math.floor(taxCents / count);
     ordered.forEach((contactId, index) => {
       const sub = subtotalShares[index] ?? 0;
       subtotals.set(contactId, (subtotals.get(contactId) ?? 0) + sub);
@@ -313,6 +370,8 @@ export function calculateContactBreakdowns(
         contactId,
         (taxWeights.get(contactId) ?? 0) + (taxSplit[index] ?? 0),
       );
+      subWeight.set(contactId, (subWeight.get(contactId) ?? 0) + subPartItem);
+      taxWeight.set(contactId, (taxWeight.get(contactId) ?? 0) + taxPartItem);
       const shares = itemShares.get(contactId) ?? [];
       shares.push({
         itemId: item.id,
@@ -326,35 +385,63 @@ export function calculateContactBreakdowns(
 
   const billSub = billSubtotal(items);
   const tipAmount = billTipAmount(receipt, billSub);
+  const taxTotal = calculateTaxTotal(
+    items,
+    receipt.taxRoundingMethod as TaxRoundingMethod,
+  );
 
   const order = Array.from(
     new Set<string>([...subtotals.keys(), ...taxWeights.keys()]),
   ).sort((a, b) => (a.toLowerCase() < b.toLowerCase() ? -1 : 1));
 
-  // Reconcile per-contact tax to the receipt's METHOD-computed
-  // total (largest-remainder, weighted by each contact's summed
-  // per-item tax) so the per-person taxes add up EXACTLY to the
-  // receipt's tax line. Mirrors
-  // `BillCalculationService.calculateContactBreakdowns` on iOS.
-  const taxTotal = calculateTaxTotal(
-    items,
-    receipt.taxRoundingMethod as TaxRoundingMethod,
-  );
-  const taxShares = distributeCents(
-    taxTotal,
-    order.map((id) => taxWeights.get(id) ?? 0),
-  );
+  // Grand-total reconciliation: distribute the WHOLE bill once (weighted by
+  // each person's floored exact share, equal on an even split) so per-person
+  // totals differ by at most a cent, then back out the tax/tip lines so they
+  // still sum to the receipt totals. MUST stay identical to iOS / shares.
   const taxByContact = new Map<string, number>();
-  order.forEach((id, i) => taxByContact.set(id, taxShares[i] ?? 0));
-
-  // Tip: largest-remainder weighted by each contact's subtotal so
-  // sum(tips) == tipAmount, identical to iOS.
-  const tipShares = distributeCents(
-    tipAmount,
-    order.map((id) => subtotals.get(id) ?? 0),
-  );
   const tipByContact = new Map<string, number>();
-  order.forEach((id, i) => tipByContact.set(id, tipShares[i] ?? 0));
+  const taxTotalCents = Math.round(centsOf(taxTotal));
+  const tipTotalCents = Math.round(centsOf(tipAmount));
+
+  if (taxTotalCents === 0 && tipTotalCents === 0) {
+    for (const id of order) {
+      taxByContact.set(id, 0);
+      tipByContact.set(id, 0);
+    }
+  } else {
+    const grandTotal = billSub + taxTotal + tipAmount;
+    const gtWeights = order.map(
+      (id) => (subWeight.get(id) ?? 0) + (taxWeight.get(id) ?? 0),
+    );
+    const gshare = distributeCents(grandTotal, gtWeights);
+    const subsCents = order.map((id) => Math.round(centsOf(subtotals.get(id) ?? 0)));
+    const gshareCents = gshare.map((v) => Math.round(centsOf(v)));
+    const nonSub = order.map((_, i) => gshareCents[i]! - subsCents[i]!);
+
+    let taxC: number[];
+    let tipC: number[];
+    if (tipTotalCents >= taxTotalCents) {
+      const recon = distributeCents(
+        taxTotal,
+        order.map((id) => taxWeights.get(id) ?? 0),
+      ).map((v) => Math.round(centsOf(v)));
+      const split = splitNonSub(nonSub, recon);
+      taxC = split.recon;
+      tipC = split.derived;
+    } else {
+      const recon = distributeCents(
+        tipAmount,
+        order.map((id) => subtotals.get(id) ?? 0),
+      ).map((v) => Math.round(centsOf(v)));
+      const split = splitNonSub(nonSub, recon);
+      tipC = split.recon;
+      taxC = split.derived;
+    }
+    order.forEach((id, i) => {
+      taxByContact.set(id, (taxC[i] ?? 0) / 100);
+      tipByContact.set(id, (tipC[i] ?? 0) / 100);
+    });
+  }
 
   return order.map((contactId) => ({
     contactId,
