@@ -82,6 +82,38 @@ export function distributeCents(total: number, weights: number[]): number[] {
   return floors.map((c) => c / 100);
 }
 
+/// Left-rotates `arr` by `offset` (mod length). Mirror of iOS `rotated`.
+function rotated<T>(arr: T[], offset: number): T[] {
+  if (arr.length <= 1) return arr;
+  const k = ((offset % arr.length) + arr.length) % arr.length;
+  return k === 0 ? arr : [...arr.slice(k), ...arr.slice(0, k)];
+}
+
+/// Per-item rotation offsets that spread the largest-remainder leftover
+/// cents evenly across participants instead of always landing them on
+/// the lowest-id person. Walks items in canonical id order with a
+/// running carry advanced by each item's leftover-cent count, so an
+/// even split comes out within a cent per person. MUST stay identical
+/// to iOS `itemLeftoverRotations` and splitea-shares.
+function itemLeftoverRotations(
+  items: ItemPayload[],
+  assignmentsByItem: Map<string, string[]>,
+): Map<string, number> {
+  const rotations = new Map<string, number>();
+  let carry = 0;
+  const sorted = [...items].sort((a, b) =>
+    a.id.toLowerCase() < b.id.toLowerCase() ? -1 : 1,
+  );
+  for (const item of sorted) {
+    const count = assignmentsByItem.get(item.id)?.length ?? 0;
+    if (count === 0) continue;
+    rotations.set(item.id, carry % count);
+    const totalCents = Math.round(centsOf(item.price));
+    carry += ((totalCents % count) + count) % count;
+  }
+  return rotations;
+}
+
 // MARK: - Tax rounding strategies
 
 /// Mirror of the `TaxRoundingMethod` enum's raw values from
@@ -262,10 +294,12 @@ export function calculateContactBreakdowns(
   const byId = (ids: string[]) =>
     [...ids].sort((a, b) => (a.toLowerCase() < b.toLowerCase() ? -1 : 1));
 
+  const rotations = itemLeftoverRotations(items, assignmentsByItem);
+
   for (const item of items) {
     const contactIds = assignmentsByItem.get(item.id) ?? [];
     if (contactIds.length === 0) continue;
-    const ordered = byId(contactIds);
+    const ordered = rotated(byId(contactIds), rotations.get(item.id) ?? 0);
     const count = ordered.length;
     // Largest-remainder split of the item subtotal and its rounded
     // tax so each item's shares sum EXACTLY to the item totals.
