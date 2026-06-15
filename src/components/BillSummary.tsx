@@ -34,7 +34,7 @@ export interface BillSummaryProps {
 export function BillSummary(props: BillSummaryProps) {
   const subtotal = () => billSubtotal(props.items);
   const tax = () => billTaxTotal(props.receipt, props.items);
-  const tip = () => billTipAmount(props.receipt, subtotal());
+  const tip = () => billTipAmount(props.receipt, subtotal(), tax());
   const total = () => billGrandTotal(props.receipt, props.items);
   const currency = () => props.receipt.currencyCode;
 

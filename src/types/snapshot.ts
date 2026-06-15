@@ -38,6 +38,9 @@ export interface ReceiptPayload {
   receiptDate: number | null;
   tipType: string;
   tipValue: number;
+  /// Percentage tips: tip applies to subtotal + tax when true.
+  /// Optional — older snapshots omit it; absent means pre-tax.
+  tipPostTax?: boolean;
   currencyCode: string;
   receiptImageBase64: string | null;
   receiptMimeType: string;

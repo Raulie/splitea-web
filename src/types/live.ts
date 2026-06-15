@@ -170,6 +170,7 @@ export interface ReceiptUpdatePayload {
 export interface TipUpdatePayload {
   tipType: "percentage" | "amount";
   tipValue: string;
+  tipPostTax?: boolean;
 }
 
 export interface PayerUpdatePayload {

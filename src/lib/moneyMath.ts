@@ -214,13 +214,18 @@ export function billTaxTotal(receipt: ReceiptPayload, items: ItemPayload[]): num
 }
 
 /// Tip amount. `percentage` types compute tip as a fraction of
-/// the bill subtotal and round half-up to cents (matches iOS
-/// `roundCents(subtotal * tipValue / 100)`); `amount` types
-/// pass through verbatim — iOS doesn't re-round a user-typed
-/// dollar value.
-export function billTipAmount(receipt: ReceiptPayload, subtotal: number): number {
+/// the bill subtotal (plus tax when `tipPostTax`) and round
+/// half-up to cents — matches iOS `BillSplitViewModel.tipAmount`;
+/// `amount` types pass through verbatim — iOS doesn't re-round a
+/// user-typed dollar value.
+export function billTipAmount(
+  receipt: ReceiptPayload,
+  subtotal: number,
+  taxTotal: number,
+): number {
   if (receipt.tipType === "percentage") {
-    return roundCents((subtotal * receipt.tipValue) / 100);
+    const base = receipt.tipPostTax ? subtotal + taxTotal : subtotal;
+    return roundCents((base * receipt.tipValue) / 100);
   }
   return receipt.tipValue;
 }
@@ -232,7 +237,7 @@ export function billGrandTotal(
 ): number {
   const sub = billSubtotal(items);
   const tax = billTaxTotal(receipt, items);
-  const tip = billTipAmount(receipt, sub);
+  const tip = billTipAmount(receipt, sub, tax);
   return sub + tax + tip;
 }
 
@@ -384,11 +389,11 @@ export function calculateContactBreakdowns(
   }
 
   const billSub = billSubtotal(items);
-  const tipAmount = billTipAmount(receipt, billSub);
   const taxTotal = calculateTaxTotal(
     items,
     receipt.taxRoundingMethod as TaxRoundingMethod,
   );
+  const tipAmount = billTipAmount(receipt, billSub, taxTotal);
 
   const order = Array.from(
     new Set<string>([...subtotals.keys(), ...taxWeights.keys()]),

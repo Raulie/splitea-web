@@ -455,6 +455,9 @@ function applyReceiptUpdate(
 function applyTipUpdate(snap: ReceiptSnapshot, payload: TipUpdatePayload) {
   snap.receipt.tipType = payload.tipType;
   snap.receipt.tipValue = parseDecimal(payload.tipValue);
+  if (payload.tipPostTax !== undefined) {
+    snap.receipt.tipPostTax = payload.tipPostTax;
+  }
 }
 
 function applyPayerUpdate(snap: ReceiptSnapshot, payload: PayerUpdatePayload) {
