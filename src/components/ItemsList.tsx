@@ -3,6 +3,7 @@ import type { ItemPayload, ContactPayload } from "../types/snapshot";
 import { Avatar } from "./Avatar";
 import { EVERYONE_ID } from "./ContactsRow";
 import { formatCurrency, formatTaxRate } from "../lib/format";
+import { uniformItemRate } from "../lib/moneyMath";
 
 /// Items section header ("Items" + "Reset" right-aligned) plus
 /// the rounded-card list of items. Each row shows the assigned
@@ -30,6 +31,10 @@ export interface ItemsListProps {
 }
 
 export function ItemsList(props: ItemsListProps) {
+  // One uniform rate across all items → it shows once in the summary's
+  // "Tax (X%)" row, so drop the redundant per-row badge. Mixed rates →
+  // keep the badge so each row's own rate stays visible.
+  const showsTaxRate = () => uniformItemRate(props.items) === null;
   return (
     <section>
       {/* "Items" header only — the Reset / "Split evenly"
@@ -83,6 +88,7 @@ export function ItemsList(props: ItemsListProps) {
                 currencyCode={props.currencyCode}
                 isAssignedToActive={isAssignedToActive()}
                 tappable={props.activeContactId !== null}
+                showsTaxRate={showsTaxRate()}
                 onTap={() => props.onToggleItem(item.id)}
               />
             );
@@ -106,6 +112,9 @@ interface ItemRowProps {
   /// something). When false the row is still rendered but
   /// taps are no-ops — same UX as iOS.
   tappable: boolean;
+  /// False when every item shares one tax rate — the per-row tax badge
+  /// is dropped because the rate is shown once in the summary instead.
+  showsTaxRate: boolean;
   onTap: () => void;
 }
 
@@ -230,7 +239,7 @@ function ItemRow(props: ItemRowProps) {
           <span class="text-ios-subheadline font-semibold text-ios-label">
             {formatCurrency(props.item.price, props.currencyCode)}
           </span>
-          <Show when={props.item.tax !== null && props.item.tax !== undefined && props.item.tax > 0}>
+          <Show when={props.showsTaxRate && props.item.tax !== null && props.item.tax !== undefined && props.item.tax > 0}>
             <span class="text-ios-caption2 text-ios-label-secondary">
               {formatTaxRate(props.item.tax!)}
             </span>

@@ -181,6 +181,22 @@ export function calculateTaxTotal(
   }
 }
 
+/// The single tax rate shared by every taxed item, or null when rates
+/// are mixed (or there are none). Mirrors iOS
+/// `BillSummarySection.displayRate`'s per-item branch — drives showing
+/// the rate once in the "Tax (X%)" summary and dropping the redundant
+/// per-row tax badge.
+export function uniformItemRate(items: ItemPayload[]): number | null {
+  const rates = [
+    ...new Set(
+      items
+        .map((i) => i.tax)
+        .filter((t): t is number => t !== null && t !== undefined && t > 0),
+    ),
+  ];
+  return rates.length === 1 ? rates[0] : null;
+}
+
 interface RateGroup {
   rate: number;
   subtotal: number;

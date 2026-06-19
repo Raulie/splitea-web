@@ -5,6 +5,7 @@ import {
   billSubtotal,
   billTaxTotal,
   billTipAmount,
+  uniformItemRate,
 } from "../lib/moneyMath";
 import { formatCurrency } from "../lib/format";
 
@@ -42,8 +43,19 @@ export function BillSummary(props: BillSummaryProps) {
   /// rate is known. Format the rate without trailing zeros
   /// (`7` not `7.0`, `11.5` not `11.50`) — same `.formatted()`
   /// behavior Swift's `Decimal` gives by default.
+  /// Effective rate for the "Tax (X%)" label: the receipt-level rate
+  /// (tax-inclusive jurisdictions), else the per-item rate when every
+  /// taxed item shares one (the common US/PR case) so it shows once
+  /// here instead of being implicit on each item. Mirrors iOS
+  /// `BillSummarySection.displayRate`.
+  const effectiveRate = (): number | null => {
+    const receiptRate = props.receipt.taxRate;
+    if (receiptRate !== null && receiptRate !== undefined) return receiptRate;
+    return uniformItemRate(props.items);
+  };
+
   const taxLabel = () => {
-    const rate = props.receipt.taxRate;
+    const rate = effectiveRate();
     if (rate === null || rate === undefined) return "Tax";
     const trimmed = Number.isInteger(rate)
       ? rate.toString()
