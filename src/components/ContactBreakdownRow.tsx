@@ -4,6 +4,8 @@ import type { ContactItemShare } from "../lib/moneyMath";
 import { Avatar } from "./Avatar";
 import { ChevronGlyph } from "./ChevronGlyph";
 import { DisclosureGroup } from "./DisclosureGroup";
+import { SettlementChip } from "./SettlementChip";
+import { settlementState } from "../lib/settlement";
 import { formatCurrency, formatPhoneNumber } from "../lib/format";
 
 /// Single contact's row on the post-split summary screen.
@@ -84,6 +86,14 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
             </Show>
           </div>
           <div class="flex items-center gap-1.5">
+            {/* Quiet settlement indicator — "Paid" while the
+                debtor's claim awaits confirmation, "Settled" once
+                the payer confirms. Hidden for the payer's own row
+                (they're owed, not owing) and for contacts who
+                haven't claimed. */}
+            <Show when={!props.isPayer}>
+              <SettlementChip state={settlementState(props.contact)} />
+            </Show>
             <Show when={props.isPayer}>
               <CreditCardGlyph size={12} />
             </Show>

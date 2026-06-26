@@ -32,6 +32,7 @@ export default {
         "ios-label-tertiary":  "var(--ios-label-tertiary)",
         "ios-blue":            "var(--ios-blue)",
         "ios-red":             "var(--ios-red)",
+        "ios-green":           "var(--ios-green)",
       },
       fontFamily: {
         // Apple devices auto-resolve to SF Pro via `-apple-system`;

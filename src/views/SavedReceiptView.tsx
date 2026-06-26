@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import type { ReceiptSnapshot } from "../types/snapshot";
 import { ContactBreakdownRow } from "../components/ContactBreakdownRow";
 import { BillSummary } from "../components/BillSummary";
@@ -13,6 +13,37 @@ import {
 } from "../lib/moneyMath";
 import { formatReceiptDateTime } from "../lib/format";
 import { configuredPayProviders } from "../lib/payProviders";
+import { claimPaid } from "../lib/api";
+import { settlementState } from "../lib/settlement";
+
+/// localStorage key for a per-visitor "I marked paid" flag.
+/// Scoped by `${receiptId}:${contactId}` so the same browser can
+/// hold independent flags for different receipts (and different
+/// recipients on the same shared device). Mirrors the
+/// `splitea:pay-identity:<receiptID>` cache pattern in
+/// `PayMenuSheet`. Advisory only — it lets the Pay bar read the
+/// "waiting for confirmation" state on a return visit without a
+/// round-trip; the authoritative state still flows from the
+/// snapshot / live ops.
+function claimFlagKey(receiptID: string, contactID: string): string {
+  return `splitea:claim-paid:${receiptID}:${contactID}`;
+}
+
+function readClaimFlag(receiptID: string, contactID: string): boolean {
+  try {
+    return localStorage.getItem(claimFlagKey(receiptID, contactID)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeClaimFlag(receiptID: string, contactID: string): void {
+  try {
+    localStorage.setItem(claimFlagKey(receiptID, contactID), "1");
+  } catch {
+    /* storage blocked — in-memory signal still drives this session */
+  }
+}
 
 /// Web port of iOS `SavedReceiptDetailView`. Day-3 scope is
 /// the read-only summary surface: per-contact breakdown rows
@@ -230,6 +261,91 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         avatarUrl: row.contact!.avatarUrl ?? null,
       }));
 
+  /// The visitor's own contact, resolved from `forContactId`
+  /// (which `ItemsView` already mapped from the `/c/<shortId>` or
+  /// `?for=` URL via `resolveForContact`). Only set on a
+  /// per-recipient link — anonymous visitors have no identity to
+  /// claim against, so the "I paid" affordance stays hidden for
+  /// them. Also gated on NOT being the payer (the payer is owed,
+  /// they don't pay themselves).
+  const visitorContact = createMemo(() => {
+    const id = props.forContactId;
+    if (!id) return null;
+    const c = props.snapshot.contacts.find((c) => c.id === id);
+    if (!c) return null;
+    if (isPayer(c.phoneNumber)) return null;
+    return c;
+  });
+
+  /// In-session "I marked paid" flag. Seeded from localStorage so
+  /// a return visit in the same browser reads the advisory state
+  /// without a round-trip, then flipped on a successful claim.
+  const [claimedLocal, setClaimedLocal] = createSignal(
+    (() => {
+      const c = visitorContact();
+      return c ? readClaimFlag(props.snapshot.receipt.id, c.id) : false;
+    })(),
+  );
+  const [claimInFlight, setClaimInFlight] = createSignal(false);
+
+  /// True when the Pay bar should show the advisory "waiting for
+  /// confirmation" state instead of the "I paid" button. Either
+  /// the visitor claimed this session / on a prior visit
+  /// (`claimedLocal`), OR the authoritative snapshot already
+  /// reflects their `paid` claim (a live `settlement.markPaid`
+  /// landed, or the snapshot was fetched after the claim). NEVER
+  /// reads as "settled" from the local flag alone — only the
+  /// snapshot's `confirmed === true` does that, surfaced by the
+  /// breakdown chip, not here.
+  const visitorClaimed = createMemo(() => {
+    const c = visitorContact();
+    if (!c) return false;
+    return claimedLocal() || c.paid === true;
+  });
+
+  /// Whether the visitor's bill is fully settled (payer
+  /// confirmed). Drives a "Settled" read on the bar so the
+  /// confirmed end-state isn't stuck showing "waiting".
+  const visitorSettled = createMemo(() => {
+    const c = visitorContact();
+    return c ? settlementState(c) === "settled" : false;
+  });
+
+  /// Per-visitor share total — used to gate the affordance (no
+  /// point claiming a $0 share) and is independent of whether the
+  /// payer configured pay providers.
+  const visitorTotal = createMemo(() => {
+    const c = visitorContact();
+    if (!c) return 0;
+    const row = breakdowns().find((r) => r.breakdown.contactId === c.id);
+    return row?.total ?? 0;
+  });
+
+  /// Show the "I paid" affordance only for an identified,
+  /// non-payer recipient who actually owes something. It renders
+  /// independently of `payerProviders()` — a recipient should be
+  /// able to mark themselves paid (e.g. they paid cash) even when
+  /// the payer configured no in-app payment providers.
+  const showClaimBar = () =>
+    visitorContact() !== null && visitorTotal() > 0;
+
+  const onClaimPaid = async () => {
+    const c = visitorContact();
+    if (!c || claimInFlight() || visitorClaimed()) return;
+    setClaimInFlight(true);
+    try {
+      await claimPaid(props.snapshot.receipt.id, c.id);
+      writeClaimFlag(props.snapshot.receipt.id, c.id);
+      setClaimedLocal(true);
+    } catch {
+      // Leave the button in place so the visitor can retry. The
+      // claim is stateless and idempotent server-side, so a retry
+      // after a transient failure is safe.
+    } finally {
+      setClaimInFlight(false);
+    }
+  };
+
   return (
     // Layout: a flex column that fills its parent
     // (`.ios-nav-pushed`, which is `position: fixed; inset: 0`
@@ -311,9 +427,9 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         class="flex-1 overflow-y-auto"
         classList={{
           "pb-[calc(108px+env(safe-area-inset-bottom))]":
-            payerProviders().length > 0,
+            payerProviders().length > 0 || showClaimBar(),
           "pb-[calc(16px+env(safe-area-inset-bottom))]":
-            !(payerProviders().length > 0),
+            !(payerProviders().length > 0 || showClaimBar()),
         }}
       >
         <NavBar
@@ -555,7 +671,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         it).
       */}
       <Show
-        when={payerProviders().length > 0}
+        when={payerProviders().length > 0 || showClaimBar()}
       >
         <div
           // `absolute inset-x-0 bottom-0` — pinned to the
@@ -614,13 +730,58 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
               " black 55%)",
           }}
         >
-          <button
-            type="button"
-            class="block w-full h-12 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity pointer-events-auto truncate"
-            onClick={() => setShowingPayMenu(true)}
-          >
-            Pay {senderDisplayName()}
-          </button>
+          <div class="flex flex-col gap-2 pointer-events-auto">
+            {/* Pay button — unchanged gating: only when the payer
+                configured at least one in-app payment provider. */}
+            <Show when={payerProviders().length > 0}>
+              <button
+                type="button"
+                class="block w-full h-12 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity truncate"
+                onClick={() => setShowingPayMenu(true)}
+              >
+                Pay {senderDisplayName()}
+              </button>
+            </Show>
+
+            {/* "I paid" affordance for an identified recipient on
+                a per-recipient link. Three reads:
+                  • settled  — payer confirmed; show a quiet done
+                               state.
+                  • claimed  — debtor marked paid, awaiting the
+                               payer's confirmation. NEVER "settled"
+                               from the local claim alone.
+                  • else     — the actionable "I paid" button. */}
+            <Show when={showClaimBar()}>
+              <Show
+                when={visitorSettled()}
+                fallback={
+                  <Show
+                    when={visitorClaimed()}
+                    fallback={
+                      <button
+                        type="button"
+                        class="block w-full h-12 rounded-full bg-ios-gray-fill text-ios-label text-ios-headline font-semibold active:opacity-80 transition-opacity truncate disabled:opacity-60"
+                        disabled={claimInFlight()}
+                        onClick={() => void onClaimPaid()}
+                      >
+                        I paid
+                      </button>
+                    }
+                  >
+                    {/* Advisory, non-interactive. Middot separator
+                        (no em dash). */}
+                    <div class="flex items-center justify-center w-full h-12 rounded-full bg-ios-gray-fill text-ios-label-secondary text-ios-subheadline font-medium px-4 text-center">
+                      Paid · waiting for confirmation
+                    </div>
+                  </Show>
+                }
+              >
+                <div class="flex items-center justify-center gap-1.5 w-full h-12 rounded-full bg-ios-gray-fill text-ios-green text-ios-subheadline font-semibold px-4 text-center">
+                  Settled
+                </div>
+              </Show>
+            </Show>
+          </div>
         </div>
       </Show>
 

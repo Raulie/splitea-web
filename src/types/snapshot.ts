@@ -88,6 +88,27 @@ export interface ContactPayload {
   /// field omit it, and consumers fall back to UUID-prefix
   /// matching.
   shortId?: number | null;
+  /// Settlement state — the debtor's "I paid" claim. Set true
+  /// by anyone via the `settlement.markPaid` live op or the web
+  /// `/receipt/<id>/claim` POST. Advisory only; `paid` alone is
+  /// NOT "settled". Optional — the relay splices these onto each
+  /// contact on read, so snapshots taken before any settlement
+  /// activity omit them.
+  paid?: boolean;
+  /// Epoch ms when `paid` was last set. Drives last-writer-wins
+  /// on both the relay and the client (`settlement.markPaid`
+  /// only advances when its `at` is >= the stored `paidAt`). The
+  /// relay can splice `null` (a record with paid set but no
+  /// timestamp), so this is nullable, not just optional.
+  paidAt?: number | null;
+  /// Settlement state — the payer's confirmation that the debtor
+  /// actually paid. Set only via `settlement.confirmPaid` (no
+  /// web affordance — web can claim, never confirm). A contact
+  /// is "settled" only when `paid && confirmed`.
+  confirmed?: boolean;
+  /// Epoch ms when `confirmed` was last set. Last-writer-wins,
+  /// same rule as `paidAt`. Nullable for the same reason.
+  confirmedAt?: number | null;
 }
 
 export interface AssignmentPayload {

@@ -126,6 +126,8 @@ export type MutationOp =
   | { kind: "payer.update"; payload: PayerUpdatePayload }
   | { kind: "warning.dismissReceipt"; payload: { warningCode: string } }
   | { kind: "warning.dismissItem"; payload: { itemId: string; warningCode: string } }
+  | { kind: "settlement.markPaid"; payload: SettlementMarkPaidPayload }
+  | { kind: "settlement.confirmPaid"; payload: SettlementConfirmPaidPayload }
   | { kind: string; payload: Record<string, unknown> }; // forward-compat
 
 export interface AssignmentOpPayload {
@@ -176,6 +178,25 @@ export interface TipUpdatePayload {
 export interface PayerUpdatePayload {
   payerPhoneNumber?: string;
   payerContactId?: string;
+}
+
+/// Settlement "I paid" claim. `at` is epoch ms and drives
+/// last-writer-wins on both relay and client (apply only advances
+/// when `at` >= the stored `paidAt`). Broadcast over the live
+/// socket AND recorded by the web `/receipt/<id>/claim` POST.
+export interface SettlementMarkPaidPayload {
+  contactId: string;
+  paid: boolean;
+  at: number;
+}
+
+/// Settlement confirmation by the payer. Same `at` last-writer-
+/// wins rule against `confirmedAt`. No web affordance produces
+/// this — web can claim, never confirm.
+export interface SettlementConfirmPaidPayload {
+  contactId: string;
+  confirmed: boolean;
+  at: number;
 }
 
 /// Bulk ops echo back to the sender (so it learns the server

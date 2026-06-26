@@ -12,6 +12,8 @@ import type {
   ReceiptUpdatePayload,
   TipUpdatePayload,
   PayerUpdatePayload,
+  SettlementMarkPaidPayload,
+  SettlementConfirmPaidPayload,
 } from "../types/live";
 
 /// Reactive view of the receipt snapshot, mutated either by
@@ -179,10 +181,57 @@ function applyOp(snap: ReceiptSnapshot, op: MutationOp): void {
     case "profile.update":
       applyProfileUpdate(snap, op.payload as ProfileUpdatePayload);
       return;
+    case "settlement.markPaid":
+      applySettlementMarkPaid(snap, op.payload as SettlementMarkPaidPayload);
+      return;
+    case "settlement.confirmPaid":
+      applySettlementConfirmPaid(
+        snap,
+        op.payload as SettlementConfirmPaidPayload,
+      );
+      return;
     default:
       // Forward-compat: ignore unknown ops. iOS does the same.
       return;
   }
+}
+
+/// Applies a `settlement.markPaid` live op: sets the matching
+/// contact's `paid` / `paidAt`. Idempotent + last-writer-wins by
+/// `at` — only advances when `at` is >= the stored `paidAt`, so a
+/// reconnect replay or an out-of-order frame can't clobber a newer
+/// claim. Mirrors the relay's server-side `applyMarkPaid`.
+function applySettlementMarkPaid(
+  snap: ReceiptSnapshot,
+  payload: SettlementMarkPaidPayload,
+): void {
+  const contact = snap.contacts.find(
+    (c) => c.id.toLowerCase() === payload.contactId.toLowerCase(),
+  );
+  if (!contact) return;
+  if (contact.paidAt != null && payload.at < contact.paidAt) return;
+  contact.paid = payload.paid;
+  contact.paidAt = payload.at;
+}
+
+/// Applies a `settlement.confirmPaid` live op: sets the matching
+/// contact's `confirmed` / `confirmedAt`. Same idempotent +
+/// last-writer-wins-by-`at` rule as `applySettlementMarkPaid`.
+/// `paid` is left untouched — a confirmation never changes the
+/// debtor's claim.
+function applySettlementConfirmPaid(
+  snap: ReceiptSnapshot,
+  payload: SettlementConfirmPaidPayload,
+): void {
+  const contact = snap.contacts.find(
+    (c) => c.id.toLowerCase() === payload.contactId.toLowerCase(),
+  );
+  if (!contact) return;
+  if (contact.confirmedAt != null && payload.at < contact.confirmedAt) {
+    return;
+  }
+  contact.confirmed = payload.confirmed;
+  contact.confirmedAt = payload.at;
 }
 
 interface ProfileUpdatePayload {
