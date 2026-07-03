@@ -261,6 +261,15 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         avatarUrl: row.contact!.avatarUrl ?? null,
       }));
 
+  /// Whether the "Pay {payer}" button should render. Requires
+  /// BOTH the payer having a configured provider AND at least
+  /// one non-payer debtor to pay for. Without a candidate the
+  /// PayMenuSheet's identity picker has zero rows and the flow
+  /// dead-ends (the visitor can never reach the provider stage),
+  /// so a payer-only-assignment receipt would otherwise present
+  /// a Pay button that does nothing when tapped.
+  const canPay = () => payerProviders().length > 0 && payCandidates().length > 0;
+
   /// The visitor's own contact, resolved from `forContactId`
   /// (which `ItemsView` already mapped from the `/c/<shortId>` or
   /// `?for=` URL via `resolveForContact`). Only set on a
@@ -427,9 +436,9 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         class="flex-1 overflow-y-auto"
         classList={{
           "pb-[calc(108px+env(safe-area-inset-bottom))]":
-            payerProviders().length > 0 || showClaimBar(),
+            canPay() || showClaimBar(),
           "pb-[calc(16px+env(safe-area-inset-bottom))]":
-            !(payerProviders().length > 0 || showClaimBar()),
+            !(canPay() || showClaimBar()),
         }}
       >
         <NavBar
@@ -671,7 +680,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         it).
       */}
       <Show
-        when={payerProviders().length > 0 || showClaimBar()}
+        when={canPay() || showClaimBar()}
       >
         <div
           // `absolute inset-x-0 bottom-0` — pinned to the
@@ -731,9 +740,11 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           }}
         >
           <div class="flex flex-col gap-2 pointer-events-auto">
-            {/* Pay button — unchanged gating: only when the payer
-                configured at least one in-app payment provider. */}
-            <Show when={payerProviders().length > 0}>
+            {/* Pay button — shown only when the payer has a
+                configured provider AND there is a non-payer debtor
+                to pay for (else the identity picker is empty and
+                the flow dead-ends). See `canPay`. */}
+            <Show when={canPay()}>
               <button
                 type="button"
                 class="block w-full h-12 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity truncate"

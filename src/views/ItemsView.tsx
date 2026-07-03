@@ -433,6 +433,16 @@ function Loaded(props: {
   // The session refetches snapshot on `resumeGap: true` because
   // the relay's log no longer covers our seq cursor — we'd
   // otherwise apply mutations on top of a stale base.
+  //
+  // The cursor starts at the snapshot's own `snapshotSeq`
+  // watermark, so a gap on a FRESH mount means the log was
+  // trimmed past the watermark — reloading would re-fetch the
+  // same snapshot and gap again forever. In that case accept the
+  // relay's full-log replay on top of the snapshot (idempotent /
+  // LWW appliers converge) and only hard-reload when the cursor
+  // has advanced past the seeded value, i.e. a genuinely stale
+  // long-lived session.
+  const seededResumeSeq = store.lastSeenSeq;
   const session = new LiveSession({
     shareID: props.shareID,
     userId: getGuestUserId(),
@@ -441,12 +451,7 @@ function Loaded(props: {
     onHello: (msg) => {
       setSelfUserId(msg.yourUserId);
       setEditLocked(msg.editLocked === true);
-      if (msg.resumeGap) {
-        // Seq cursor was outside the relay's retained window.
-        // Cleanest recovery is a hard reload — the next mount
-        // re-bootstraps from `/r/<id>/snapshot` and resets
-        // `lastSeenSeq`. Triggering it inline avoids stale
-        // state from leaking across the boundary.
+      if (msg.resumeGap && store.lastSeenSeq > seededResumeSeq) {
         window.location.reload();
       }
       // Note the relay's current high-water seq so we know

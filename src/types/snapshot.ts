@@ -22,6 +22,11 @@ export interface SnapshotEnvelope {
   createdAt: number;
   /// Epoch ms — the 7-day TTL deadline.
   expiresAt: number;
+  /// The relay's mutation-log watermark at the moment the stored
+  /// snapshot was last POSTed. Ops with seq <= this are already
+  /// reflected in the blob — seed the live-session resume cursor
+  /// from it so replay doesn't re-apply superseded history.
+  snapshotSeq?: number;
 }
 
 export interface ReceiptSnapshot {
@@ -30,6 +35,9 @@ export interface ReceiptSnapshot {
   items: ItemPayload[];
   contacts: ContactPayload[];
   assignments: AssignmentPayload[];
+  /// Carried over from the envelope by `fetchSnapshot` (not part
+  /// of the iOS-encoded blob). See `SnapshotEnvelope.snapshotSeq`.
+  snapshotSeq?: number;
 }
 
 export interface ReceiptPayload {

@@ -27,7 +27,9 @@ export async function fetchSnapshot(shareID: string): Promise<ReceiptSnapshot> {
   if (!envelope.snapshot) {
     throw new ShareFetchError("expired", 404);
   }
-  return JSON.parse(envelope.snapshot) as ReceiptSnapshot;
+  const parsed = JSON.parse(envelope.snapshot) as ReceiptSnapshot;
+  parsed.snapshotSeq = envelope.snapshotSeq ?? 0;
+  return parsed;
 }
 
 /// Stateless "I paid" claim from a read-only per-recipient

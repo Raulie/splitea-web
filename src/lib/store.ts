@@ -70,7 +70,12 @@ export function createSnapshotStore(initial: ReceiptSnapshot, shareID: string) {
   const [store, setStore] = createStore<SnapshotStore>({
     snapshot: initial,
     selfUserId: null,
-    lastSeenSeq: 0,
+    // Start the cursor at the snapshot's relay watermark: ops with
+    // seq <= snapshotSeq are already reflected in the blob, so
+    // replaying them would re-apply superseded history — and revert
+    // snapshot-only writes (e.g. a payer refreshed outside the live
+    // channel). The socket sends `?resume=<this>` on connect.
+    lastSeenSeq: initial.snapshotSeq ?? 0,
     editLocked: false,
   });
 
@@ -205,11 +210,19 @@ function applySettlementMarkPaid(
   snap: ReceiptSnapshot,
   payload: SettlementMarkPaidPayload,
 ): void {
+  // Defensive: sessions started before the relay's claim broadcast
+  // carried a nested `payload` still hold flat-shaped ops in their
+  // replay log; those decode here as undefined fields. Skip them —
+  // the merged snapshot already carries their effect.
+  if (typeof payload?.contactId !== "string") return;
   const contact = snap.contacts.find(
     (c) => c.id.toLowerCase() === payload.contactId.toLowerCase(),
   );
   if (!contact) return;
-  if (contact.paidAt != null && payload.at < contact.paidAt) return;
+  // Unconditional: ops arrive in relay-seq order (live and replay),
+  // so the stream is the total order. A wall-clock `at` guard here
+  // compared cross-device clocks and silently dropped legitimate
+  // toggles; `at` is metadata only.
   contact.paid = payload.paid;
   contact.paidAt = payload.at;
 }
@@ -223,13 +236,13 @@ function applySettlementConfirmPaid(
   snap: ReceiptSnapshot,
   payload: SettlementConfirmPaidPayload,
 ): void {
+  // Same flat-shaped-op guard as `applySettlementMarkPaid`.
+  if (typeof payload?.contactId !== "string") return;
   const contact = snap.contacts.find(
     (c) => c.id.toLowerCase() === payload.contactId.toLowerCase(),
   );
   if (!contact) return;
-  if (contact.confirmedAt != null && payload.at < contact.confirmedAt) {
-    return;
-  }
+  // Unconditional — see `applySettlementMarkPaid`.
   contact.confirmed = payload.confirmed;
   contact.confirmedAt = payload.at;
 }
