@@ -1,10 +1,9 @@
-import { For, Show } from "solid-js";
+import { For, Show, createMemo } from "solid-js";
 import type { ContactPayload } from "../types/snapshot";
 import type { ContactItemShare } from "../lib/moneyMath";
 import { Avatar } from "./Avatar";
 import { ChevronGlyph } from "./ChevronGlyph";
 import { DisclosureGroup } from "./DisclosureGroup";
-import { SettlementChip } from "./SettlementChip";
 import { settlementState } from "../lib/settlement";
 import { formatCurrency, formatPhoneNumber } from "../lib/format";
 
@@ -47,6 +46,7 @@ export interface ContactBreakdownRowProps {
 }
 
 export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
+  const state = createMemo(() => settlementState(props.contact));
   return (
     <DisclosureGroup
       open={props.open}
@@ -72,33 +72,51 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
             imageURL={props.contact.avatarUrl}
           />
           <div class="flex-1 min-w-0">
-            {/* iOS `ContactBreakdownRow.swift:78-79`:
-                  Text(displayName)
-                    .font(.subheadline).fontWeight(.semibold)
-                Phone (line 84): .font(.caption) .secondary */}
+            {/* Name — iOS `.subheadline .semibold`. */}
             <div class="text-ios-subheadline font-semibold text-ios-label truncate">
               {props.contact.fullName ?? "Contact"}
             </div>
-            <Show when={props.contact.phoneNumber}>
-              <div class="text-ios-caption text-ios-label-secondary truncate">
-                {formatPhoneNumber(props.contact.phoneNumber)}
+            {/* Mirrors iOS `ContactBreakdownRow.settlementSubtitleInfo`
+                (swift:130-141): the settlement status REPLACES the
+                phone number as the subtitle — green "Paid" once
+                settled, orange "Marked as paid" while the claim
+                awaits confirmation — otherwise the phone number.
+                No pill, no checkmark. */}
+            <Show
+              when={!props.isPayer && state() !== "owes"}
+              fallback={
+                <Show when={props.contact.phoneNumber}>
+                  <div class="text-ios-caption text-ios-label-secondary truncate">
+                    {formatPhoneNumber(props.contact.phoneNumber)}
+                  </div>
+                </Show>
+              }
+            >
+              <div
+                class="text-ios-caption truncate"
+                classList={{
+                  "text-ios-green": state() === "settled",
+                  "text-ios-orange": state() === "pending",
+                }}
+              >
+                {state() === "settled" ? "Paid" : "Marked as paid"}
               </div>
             </Show>
           </div>
           <div class="flex items-center gap-1.5">
-            {/* Quiet settlement indicator — "Paid" while the
-                debtor's claim awaits confirmation, "Settled" once
-                the payer confirms. Hidden for the payer's own row
-                (they're owed, not owing) and for contacts who
-                haven't claimed. */}
-            <Show when={!props.isPayer}>
-              <SettlementChip state={settlementState(props.contact)} />
-            </Show>
             <Show when={props.isPayer}>
               <CreditCardGlyph size={12} />
             </Show>
-            {/* iOS amount: .subheadline.semibold (line 99-100). */}
-            <span class="text-ios-subheadline font-semibold text-ios-label">
+            {/* iOS strikes through + greys the amount once settled
+                (`ContactBreakdownRow.swift:308-309`). */}
+            <span
+              class="text-ios-subheadline font-semibold"
+              classList={{
+                "text-ios-label": state() !== "settled",
+                "text-ios-label-secondary line-through":
+                  state() === "settled",
+              }}
+            >
               {formatCurrency(props.amount, props.currencyCode)}
             </span>
           </div>

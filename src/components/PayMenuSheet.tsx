@@ -1,6 +1,7 @@
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { Portal } from "solid-js/web";
 import { ChevronGlyph } from "./ChevronGlyph";
+import { CheckmarkGlyph } from "./CheckmarkGlyph";
 import { Avatar } from "./Avatar";
 import {
   configuredPayProviders,
@@ -69,6 +70,11 @@ export interface PayMenuSheetProps {
   /// values (contact missing from `candidates`) silently fall
   /// through to the regular initial-identity logic.
   forcedContactId?: string | null;
+  /// Marks the given contact as paid — the recipient claims they
+  /// paid. Wired to the "Mark as paid" row at the bottom of the
+  /// providers stage, mirroring the iOS Pay menu's settlement
+  /// section (`ContactBreakdownRow.payMenuSettlementSection`).
+  onMarkPaid: (contactId: string) => void;
   /// Called once the slide-down exit animation completes.
   onClose: () => void;
 }
@@ -86,6 +92,10 @@ export interface PayCandidate {
   /// no directory match. Avatar component falls back to
   /// initials when omitted.
   avatarUrl?: string | null;
+  /// Snapshot settlement state, driving the "Mark as paid"
+  /// bottom row: "owes" → actionable button, "pending" →
+  /// "Marked as paid" advisory, "settled" → "Paid" advisory.
+  settlementState: "owes" | "pending" | "settled";
 }
 
 /// Keep in sync with `.pay-sheet` transition duration in
@@ -309,6 +319,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
             currencyCode={props.currencyCode}
             entries={providerEntries()}
             buildURL={urlForProvider}
+            onMarkPaid={props.onMarkPaid}
             // Only offer the "Not me, switch identity" link
             // when there's actually somebody else to switch
             // to. With a single candidate we landed here by
@@ -411,6 +422,9 @@ interface ProvidersStageProps {
   /// hidden — used in the single-candidate case where
   /// switching identity is meaningless.
   onChangeIdentity?: () => void;
+  /// Claims the given contact as paid — wired to the
+  /// "Mark as paid" row below the providers.
+  onMarkPaid: (contactId: string) => void;
 }
 
 /// Stage 2: provider list with the recipient's amount in
@@ -419,6 +433,12 @@ interface ProvidersStageProps {
 /// (or they're sharing the device with another household
 /// member splitting the same bill).
 function ProvidersStage(props: ProvidersStageProps) {
+  // Optimistic local flag so tapping "Mark as paid" flips to the
+  // advisory read immediately, before the snapshot round-trips.
+  const [justMarked, setJustMarked] = createSignal(false);
+  const settled = () => props.candidate.settlementState === "settled";
+  const marked = () =>
+    justMarked() || props.candidate.settlementState === "pending";
   return (
     <>
       <div class="px-5 pt-2 pb-1 text-center">
@@ -486,6 +506,53 @@ function ProvidersStage(props: ProvidersStageProps) {
           )}
         </For>
       </ul>
+      {/* "Mark as paid" — mirrors iOS's Pay-menu settlement
+          section (`ContactBreakdownRow.payMenuSettlementSection`):
+          an actionable row while the recipient still owes, an
+          advisory read once claimed / confirmed. Separated from
+          the provider list by a hairline. */}
+      <div class="ios-hairline mx-3" />
+      <div class="px-2 pt-1 pb-3">
+        <Show
+          when={settled()}
+          fallback={
+            <Show
+              when={marked()}
+              fallback={
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-3 px-3 py-3 rounded-ios-card-inner active:bg-ios-card-hi transition-colors"
+                  onClick={() => {
+                    setJustMarked(true);
+                    props.onMarkPaid(props.candidate.contactId);
+                  }}
+                >
+                  <span class="text-ios-green shrink-0 inline-flex">
+                    <CheckmarkGlyph size={16} />
+                  </span>
+                  <span class="flex-1 text-left text-ios-body text-ios-label">
+                    Mark as paid
+                  </span>
+                </button>
+              }
+            >
+              <div class="flex items-center gap-2 px-3 py-3 text-ios-footnote text-ios-orange">
+                <span class="shrink-0 inline-flex">
+                  <CheckmarkGlyph size={13} />
+                </span>
+                Marked as paid · waiting for confirmation
+              </div>
+            </Show>
+          }
+        >
+          <div class="flex items-center gap-2 px-3 py-3 text-ios-footnote text-ios-green">
+            <span class="shrink-0 inline-flex">
+              <CheckmarkGlyph size={13} />
+            </span>
+            Paid
+          </div>
+        </Show>
+      </div>
     </>
   );
 }

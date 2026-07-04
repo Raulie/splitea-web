@@ -33,6 +33,7 @@ export default {
         "ios-blue":            "var(--ios-blue)",
         "ios-red":             "var(--ios-red)",
         "ios-green":           "var(--ios-green)",
+        "ios-orange":          "var(--ios-orange)",
       },
       fontFamily: {
         // Apple devices auto-resolve to SF Pro via `-apple-system`;
