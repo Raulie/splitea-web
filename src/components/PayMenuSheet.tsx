@@ -75,6 +75,11 @@ export interface PayMenuSheetProps {
   /// providers stage, mirroring the iOS Pay menu's settlement
   /// section (`ContactBreakdownRow.payMenuSettlementSection`).
   onMarkPaid: (contactId: string) => void;
+  /// Fired when a still-owing candidate taps a provider row, carrying
+  /// that candidate's id, so the host can arm a "Did you pay?" prompt for
+  /// when they return (mirrors iOS `openProviderURL` arming
+  /// `awaitingPayConfirmation`).
+  onProviderTap?: (contactId: string) => void;
   /// Called once the slide-down exit animation completes.
   onClose: () => void;
 }
@@ -320,6 +325,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
             entries={providerEntries()}
             buildURL={urlForProvider}
             onMarkPaid={props.onMarkPaid}
+            onProviderTap={props.onProviderTap}
             // Only offer the "Not me, switch identity" link
             // when there's actually somebody else to switch
             // to. With a single candidate we landed here by
@@ -425,6 +431,8 @@ interface ProvidersStageProps {
   /// Claims the given contact as paid — wired to the
   /// "Mark as paid" row below the providers.
   onMarkPaid: (contactId: string) => void;
+  /// Fired when a still-owing candidate taps a provider anchor.
+  onProviderTap?: (contactId: string) => void;
 }
 
 /// Stage 2: provider list with the recipient's amount in
@@ -481,6 +489,11 @@ function ProvidersStage(props: ProvidersStageProps) {
               <a
                 href={props.buildURL(entry.provider, entry.username)}
                 rel="external"
+                onClick={() => {
+                  if (props.candidate.settlementState === "owes") {
+                    props.onProviderTap?.(props.candidate.contactId);
+                  }
+                }}
                 class="w-full flex items-center gap-3 px-3 py-3 rounded-ios-card-inner active:bg-ios-card-hi transition-colors"
               >
                 <img

@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, For, Show, onMount, onCleanup } from "solid-js";
 import type { ReceiptSnapshot } from "../types/snapshot";
 import { ContactBreakdownRow } from "../components/ContactBreakdownRow";
 import { BillSummary } from "../components/BillSummary";
@@ -8,6 +8,7 @@ import { EditButton } from "../components/EditButton";
 import { NavBar } from "../components/NavBar";
 import { ReceiptViewer } from "../components/ReceiptViewer";
 import { PayMenuSheet } from "../components/PayMenuSheet";
+import { IOSAlert } from "../components/IOSAlert";
 import {
   calculateContactBreakdowns,
 } from "../lib/moneyMath";
@@ -252,6 +253,86 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   const onMarkPaid = (contactId: string) => {
     void claimPaid(props.snapshot.receipt.id, contactId).catch(() => {});
   };
+
+  /// "Did you pay <payer>?" return prompt — the web analog of iOS's
+  /// scenePhase confirm in `BreakdownSectionsView`. When a still-owing
+  /// visitor taps a provider we stash an armed record in sessionStorage
+  /// (so it survives the same-tab Universal-Link navigation), and when the
+  /// tab becomes visible again we ask, marking paid on "Yes".
+  const payConfirmKey = () => `splitea:pay-confirm:${props.snapshot.receipt.id}`;
+  const [payConfirm, setPayConfirm] = createSignal<{
+    contactId: string;
+    payerName: string;
+  } | null>(null);
+
+  const armPayConfirm = (contactId: string) => {
+    try {
+      sessionStorage.setItem(
+        payConfirmKey(),
+        JSON.stringify({ contactId, payerName: payerDisplayName(), at: Date.now() }),
+      );
+    } catch {
+      /* storage blocked — skip the return prompt this session */
+    }
+  };
+
+  const checkPayConfirm = () => {
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(payConfirmKey());
+    } catch {
+      return;
+    }
+    if (!raw) return;
+    const clear = () => {
+      try {
+        sessionStorage.removeItem(payConfirmKey());
+      } catch {
+        /* ignore */
+      }
+    };
+    let rec: { contactId?: string; payerName?: string; at?: number };
+    try {
+      rec = JSON.parse(raw);
+    } catch {
+      clear();
+      return;
+    }
+    const age = Date.now() - (rec.at ?? 0);
+    // Ignore a visibility flip in the same tick as the tap (no real
+    // hand-off happened); drop stale arms after 15 minutes.
+    if (age < 600) return;
+    if (age > 15 * 60_000 || !rec.contactId) {
+      clear();
+      return;
+    }
+    // Only ask if that debtor still owes — they may have settled
+    // elsewhere or already tapped "Mark as paid".
+    const cand = payCandidates().find((c) => c.contactId === rec.contactId);
+    if (!cand || cand.settlementState !== "owes") {
+      clear();
+      return;
+    }
+    clear();
+    setPayConfirm({
+      contactId: rec.contactId,
+      payerName: rec.payerName || payerDisplayName(),
+    });
+  };
+
+  onMount(() => {
+    checkPayConfirm();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") checkPayConfirm();
+    };
+    const onPageShow = () => checkPayConfirm();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onPageShow);
+    onCleanup(() => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onPageShow);
+    });
+  });
 
   return (
     // Layout: a flex column that fills its parent
@@ -670,9 +751,25 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           merchantName={props.snapshot.receipt.merchantName}
           forcedContactId={props.forContactId ?? null}
           onMarkPaid={onMarkPaid}
+          onProviderTap={armPayConfirm}
           onClose={() => setShowingPayMenu(false)}
         />
       </Show>
+
+      {/* "Did you pay <payer>?" — the iOS-style confirmation shown when
+          the visitor returns after tapping a payment provider. */}
+      <IOSAlert
+        open={payConfirm() !== null}
+        title={`Did you pay ${payConfirm()?.payerName ?? "the payer"}?`}
+        confirmLabel="Yes"
+        cancelLabel="No"
+        onConfirm={() => {
+          const c = payConfirm();
+          if (c) onMarkPaid(c.contactId);
+          setPayConfirm(null);
+        }}
+        onCancel={() => setPayConfirm(null)}
+      />
 
       {/* Receipt-image fullscreen overlay — only mounted when
           toggled on, to keep the base64 payload from being

@@ -644,3 +644,41 @@ html { scroll-behavior: smooth; }
   display: none;
 }
 
+/* iOS UIAlertController port (IOSAlert). Centered translucent
+   material panel that pops in from a slightly larger scale, with the
+   scrim fading up behind it — the classic system-alert entrance. The
+   panel background is a light material in light mode and a dark one in
+   dark mode (switched via `prefers-color-scheme`, matching the rest of
+   this file). */
+.ios-alert-panel {
+  background-color: rgba(247, 247, 247, 0.82);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+  animation: ios-alert-pop 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (prefers-color-scheme: dark) {
+  .ios-alert-panel {
+    background-color: rgba(44, 44, 46, 0.82);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+}
+.ios-alert-btn {
+  height: 44px;
+  transition: background-color 120ms ease-out;
+}
+.ios-alert-btn:active {
+  background-color: rgba(120, 120, 128, 0.2);
+}
+.ios-alert-scrim {
+  animation: ios-alert-fade 200ms ease-out;
+}
+@keyframes ios-alert-pop {
+  from { opacity: 0; transform: scale(1.12); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes ios-alert-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
