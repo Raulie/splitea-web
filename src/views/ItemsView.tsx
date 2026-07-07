@@ -442,12 +442,20 @@ function Loaded(props: {
   // LWW appliers converge) and only hard-reload when the cursor
   // has advanced past the seeded value, i.e. a genuinely stale
   // long-lived session.
+  // Recipient Request links open the socket RECEIVE-ONLY: they
+  // stream settlement / edit broadcasts into `store.snapshot` (so
+  // the breakdown and Pay sheet reflect an owner's confirmation
+  // live, without a reload) but never send an op — see
+  // `receiveOnly` on LiveSession. Non-recipient viewers connect
+  // as normal read/write peers.
+  const receiveOnly = props.forContactId !== null;
   const seededResumeSeq = store.lastSeenSeq;
   const session = new LiveSession({
     shareID: props.shareID,
     userId: getGuestUserId(),
     displayName: getGuestDisplayName(),
     initialResumeSeq: store.lastSeenSeq,
+    receiveOnly,
     onHello: (msg) => {
       setSelfUserId(msg.yourUserId);
       setEditLocked(msg.editLocked === true);
@@ -488,6 +496,12 @@ function Loaded(props: {
     onStatus: (next) => {
       setLiveStatus(next);
       clearTimers();
+      // Recipient links keep the live connection invisible — no
+      // "Connecting…"/"Connected" pill for a read-only viewer.
+      if (receiveOnly) {
+        setPillState("hidden");
+        return;
+      }
       if (next === "open") {
         // Flash the green "Connected" confirmation, then
         // hide the pill once the user has had a chance to
@@ -517,19 +531,15 @@ function Loaded(props: {
       }
     },
   });
-  // Read-only Request links don't need a live channel — the
-  // recipient just sees the snapshot + their breakdown + Pay
-  // button. Skipping `session.open()` keeps the relay's peer
-  // count clean (we'd otherwise show up as a ghost peer for
-  // every Request-link visitor) AND prevents the recipient
-  // from accidentally landing edits via item taps (the relay
-  // happily forwards mutations from any peer with the
-  // shareID; not opening the socket sidesteps that). The
-  // ConnectingPill stays hidden via the explicit
-  // `pillState=hidden` set below.
-  if (!isReadOnly()) {
-    session.open();
-  } else {
+  // Always open. Recipient Request links connect receive-only
+  // (see `receiveOnly`): they can't land edits (the relay forwards
+  // ops from any peer with the shareID, but `sendMutation` no-ops
+  // for them), and their breakdown + Pay sheet now reflect an
+  // owner's settlement confirmation live instead of only on
+  // reload. The ConnectingPill stays hidden for them via the
+  // `onStatus` guard above and the explicit set below.
+  session.open();
+  if (receiveOnly) {
     setPillState("hidden");
   }
   onCleanup(() => {
@@ -887,6 +897,7 @@ function Loaded(props: {
                 >
                   <SavedReceiptView
                     snapshot={store.snapshot}
+                    shareID={props.shareID}
                     onBack={() => popSummary()}
                     forContactId={props.forContactId}
                   />
@@ -908,6 +919,7 @@ function Loaded(props: {
           >
             <SavedReceiptView
               snapshot={store.snapshot}
+              shareID={props.shareID}
               // Hide the pencil-edit affordance when the
               // visitor is on a read-only Request link — they
               // can't push to the items editor either way

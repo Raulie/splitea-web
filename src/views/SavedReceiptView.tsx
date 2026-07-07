@@ -27,6 +27,13 @@ import { settlementState } from "../lib/settlement";
 /// permission boundary anyway.
 export interface SavedReceiptViewProps {
   snapshot: ReceiptSnapshot;
+  /// The share's URL id (e.g. `GFhGNmMwmH`) — the capability token
+  /// the relay DO is keyed by. REQUIRED for `claimPaid`: the claim
+  /// endpoint is `/live/receipt/<shareID>/claim`, NOT the receipt's
+  /// internal UUID (`snapshot.receipt.id`). Passing the receipt UUID
+  /// hits a nonexistent DO and 404s, so a web "Mark as paid" silently
+  /// never reaches the owner.
+  shareID: string;
   /// Called when the user taps the back chevron in the nav
   /// bar. Parent owns the stack-pop animation and the
   /// associated CSS state — see `ItemsView`. Optional: when
@@ -251,7 +258,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   /// in the breakdown rows. Idempotent server-side, so a transient
   /// failure is safely retriable on the next tap.
   const onMarkPaid = (contactId: string) => {
-    void claimPaid(props.snapshot.receipt.id, contactId).catch(() => {});
+    void claimPaid(props.shareID, contactId).catch(() => {});
   };
 
   /// "Did you pay <payer>?" return prompt — the web analog of iOS's

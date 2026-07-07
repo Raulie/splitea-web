@@ -47,6 +47,14 @@ export interface LiveSessionOptions {
   /// Fired when the owner toggles edit-lock from another client.
   /// Initial value also arrives via `onHello`'s `editLocked`.
   onLockStatusChanged?: (editLocked: boolean) => void;
+  /// When true this client NEVER sends mutations — `sendMutation`
+  /// is a no-op. Used for read-only recipients (Request links)
+  /// who open the socket purely to RECEIVE settlement / edit
+  /// broadcasts into their breakdown, but must not be able to
+  /// land edits on the shared receipt. The relay forwards ops
+  /// from any peer holding the shareID, so gating on the client
+  /// is the guard. `ping`/`pong` keep-alive frames still flow.
+  receiveOnly?: boolean;
 }
 
 export type LiveStatus = "connecting" | "open" | "reconnecting" | "closed";
@@ -237,6 +245,7 @@ export class LiveSession {
   /// the server doesn't echo, just so the caller has it).
   /// Returns null when the share is edit-locked (no-op).
   sendMutation(op: MutationOp): string | null {
+    if (this.opts.receiveOnly) return null;
     if (this.editLocked) return null;
     const id = newMutationId();
     this.send({ type: "mutation", id, op });

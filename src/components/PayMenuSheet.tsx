@@ -1,7 +1,6 @@
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { Portal } from "solid-js/web";
 import { ChevronGlyph } from "./ChevronGlyph";
-import { CheckmarkGlyph } from "./CheckmarkGlyph";
 import { Avatar } from "./Avatar";
 import {
   configuredPayProviders,
@@ -326,6 +325,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
             buildURL={urlForProvider}
             onMarkPaid={props.onMarkPaid}
             onProviderTap={props.onProviderTap}
+            onDismiss={handleDismiss}
             // Only offer the "Not me, switch identity" link
             // when there's actually somebody else to switch
             // to. With a single candidate we landed here by
@@ -433,6 +433,9 @@ interface ProvidersStageProps {
   onMarkPaid: (contactId: string) => void;
   /// Fired when a still-owing candidate taps a provider anchor.
   onProviderTap?: (contactId: string) => void;
+  /// Slides the whole sheet away. Called right after "Mark as
+  /// paid" so the action dismisses the sheet, iOS-style.
+  onDismiss: () => void;
 }
 
 /// Stage 2: provider list with the recipient's amount in
@@ -441,12 +444,9 @@ interface ProvidersStageProps {
 /// (or they're sharing the device with another household
 /// member splitting the same bill).
 function ProvidersStage(props: ProvidersStageProps) {
-  // Optimistic local flag so tapping "Mark as paid" flips to the
-  // advisory read immediately, before the snapshot round-trips.
+  // Optimistic local flag: tapping "Mark as paid" disables the
+  // button so the visitor can't fire the claim twice.
   const [justMarked, setJustMarked] = createSignal(false);
-  const settled = () => props.candidate.settlementState === "settled";
-  const marked = () =>
-    justMarked() || props.candidate.settlementState === "pending";
   return (
     <>
       <div class="px-5 pt-2 pb-1 text-center">
@@ -463,7 +463,7 @@ function ProvidersStage(props: ProvidersStageProps) {
           </button>
         </Show>
       </div>
-      <ul class="px-2 pt-2 pb-3">
+      <ul class="px-2 pt-2">
         <For each={props.entries}>
           {(entry, i) => (
             <li>
@@ -519,53 +519,34 @@ function ProvidersStage(props: ProvidersStageProps) {
           )}
         </For>
       </ul>
-      {/* "Mark as paid" — mirrors iOS's Pay-menu settlement
-          section (`ContactBreakdownRow.payMenuSettlementSection`):
-          an actionable row while the recipient still owes, an
-          advisory read once claimed / confirmed. Separated from
-          the provider list by a hairline. */}
-      <div class="ios-hairline mx-3" />
-      <div class="px-2 pt-1 pb-3">
-        <Show
-          when={settled()}
-          fallback={
-            <Show
-              when={marked()}
-              fallback={
-                <button
-                  type="button"
-                  class="w-full flex items-center gap-3 px-3 py-3 rounded-ios-card-inner active:bg-ios-card-hi transition-colors"
-                  onClick={() => {
-                    setJustMarked(true);
-                    props.onMarkPaid(props.candidate.contactId);
-                  }}
-                >
-                  <span class="text-ios-green shrink-0 inline-flex">
-                    <CheckmarkGlyph size={16} />
-                  </span>
-                  <span class="flex-1 text-left text-ios-body text-ios-label">
-                    Mark as paid
-                  </span>
-                </button>
-              }
-            >
-              <div class="flex items-center gap-2 px-3 py-3 text-ios-footnote text-ios-orange">
-                <span class="shrink-0 inline-flex">
-                  <CheckmarkGlyph size={13} />
-                </span>
-                Marked as paid · waiting for confirmation
-              </div>
-            </Show>
-          }
-        >
-          <div class="flex items-center gap-2 px-3 py-3 text-ios-footnote text-ios-green">
-            <span class="shrink-0 inline-flex">
-              <CheckmarkGlyph size={13} />
-            </span>
-            Paid
-          </div>
-        </Show>
-      </div>
+      {/* "Mark as paid" — a plain iOS action row, shown ONLY
+          while the selected contact still owes. Once they've
+          claimed paid (pending) or the payer has confirmed
+          (settled), the row disappears entirely — no button, no
+          status text. `candidate.settlementState` is store-backed,
+          so a live settlement broadcast makes the row vanish
+          without a reload. Separated from the provider list by a
+          hairline. */}
+      <Show when={props.candidate.settlementState === "owes"}>
+        <div class="ios-hairline mx-5" />
+        <div class="px-2 pt-2 pb-3">
+          <button
+            type="button"
+            class="w-full px-3 py-3 text-center text-ios-body text-ios-blue active:opacity-60 transition-opacity"
+            onClick={() => {
+              // Guard against a double tap during the dismiss
+              // animation; then fire the claim and slide the sheet
+              // away (iOS action sheets close on an action).
+              if (justMarked()) return;
+              setJustMarked(true);
+              props.onMarkPaid(props.candidate.contactId);
+              props.onDismiss();
+            }}
+          >
+            Mark as paid
+          </button>
+        </div>
+      </Show>
     </>
   );
 }
