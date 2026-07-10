@@ -222,11 +222,38 @@ export function billSubtotal(items: ItemPayload[]): number {
   return items.reduce((sum, i) => sum + i.price, 0);
 }
 
+/// Sum of the baked per-item tax amounts, or null when the bill
+/// isn't fully baked. iOS reconciles each item's tax against the
+/// OCR-printed total (`printedTaxTotal`, authoritative) and bakes
+/// the result into `taxAmount`, so summing them ties out to the
+/// printed total without redoing the float rate math. All-or-
+/// nothing per bill: null (→ rate-based path) unless
+/// `printedTaxTotal` is set AND every taxed item carries a
+/// `taxAmount`. Presence is `!= null`, not truthiness, so a
+/// reconciled $0.00 item counts as baked, not missing.
+function bakedTaxTotal(
+  receipt: ReceiptPayload,
+  items: ItemPayload[],
+): number | null {
+  if (receipt.printedTaxTotal == null) return null;
+  let sum = 0;
+  for (const item of items) {
+    if ((item.tax ?? 0) > 0 && item.taxAmount == null) return null;
+    if (item.taxAmount != null) sum += item.taxAmount;
+  }
+  return sum;
+}
+
 /// Tax total. Returns 0 when the receipt is tax-inclusive
 /// (the per-item prices already include tax in that case).
+/// Otherwise prefers the baked per-item total, falling back to
+/// the rate-based calculation for snapshots without baked amounts.
 export function billTaxTotal(receipt: ReceiptPayload, items: ItemPayload[]): number {
   if (receipt.taxInclusive) return 0;
-  return calculateTaxTotal(items, receipt.taxRoundingMethod as TaxRoundingMethod);
+  return (
+    bakedTaxTotal(receipt, items) ??
+    calculateTaxTotal(items, receipt.taxRoundingMethod as TaxRoundingMethod)
+  );
 }
 
 /// Tip amount. `percentage` types compute tip as a fraction of
@@ -378,7 +405,10 @@ export function calculateContactBreakdowns(
     // Largest-remainder split of the item subtotal and its rounded
     // tax so each item's shares sum EXACTLY to the item totals.
     const subtotalShares = distributeCents(item.price, new Array(count).fill(1));
-    const itemTaxTotal = roundCents((item.price * (item.tax ?? 0)) / 100);
+    const itemTaxTotal =
+      item.taxAmount != null
+        ? roundCents(item.taxAmount)
+        : roundCents((item.price * (item.tax ?? 0)) / 100);
     const taxSplit = distributeCents(itemTaxTotal, new Array(count).fill(1));
     const priceCents = Math.round(centsOf(item.price));
     const taxCents = Math.round(centsOf(itemTaxTotal));
@@ -405,10 +435,12 @@ export function calculateContactBreakdowns(
   }
 
   const billSub = billSubtotal(items);
-  const taxTotal = calculateTaxTotal(
-    items,
-    receipt.taxRoundingMethod as TaxRoundingMethod,
-  );
+  // Same baked preference as `billTaxTotal` so the reconciliation
+  // base equals the sum of the per-item baked amounts (otherwise a
+  // cent leaks into the tip line).
+  const taxTotal =
+    bakedTaxTotal(receipt, items) ??
+    calculateTaxTotal(items, receipt.taxRoundingMethod as TaxRoundingMethod);
   const tipAmount = billTipAmount(receipt, billSub, taxTotal);
 
   const order = Array.from(

@@ -56,6 +56,11 @@ export interface ReceiptPayload {
   taxRoundingMethod: string;
   taxInclusive: boolean;
   taxRate: number | null;
+  /// OCR-printed tax total from the receipt, treated as
+  /// authoritative. When present alongside per-item `taxAmount`s,
+  /// the baked amounts sum to this. Optional — older snapshots
+  /// omit it and the tax total comes from the rate-based path.
+  printedTaxTotal?: number | null;
   payerPhoneNumber: string | null;
 }
 
@@ -64,6 +69,11 @@ export interface ItemPayload {
   itemDescription: string;
   price: number;
   tax: number | null;
+  /// Reconciled per-item tax AMOUNT (major units) baked in by
+  /// iOS so non-iOS consumers sum to `receipt.printedTaxTotal`
+  /// exactly instead of redoing rate math in float. Optional —
+  /// older snapshots omit it and fall back to the rate path.
+  taxAmount?: number | null;
   sortOrder: number;
   warningCodes: string[];
 }

@@ -152,6 +152,8 @@ export interface ItemAddPayload {
   /// Decimal as STRING (preserves precision across language boundaries).
   price: string;
   tax?: string;
+  /// Baked reconciled per-item tax amount, decimal as STRING.
+  taxAmount?: string;
   sortOrder: number;
 }
 
@@ -160,6 +162,7 @@ export interface ItemUpdatePayload {
   description?: string;
   price?: string;
   tax?: string;
+  taxAmount?: string;
   sortOrder?: number;
 }
 

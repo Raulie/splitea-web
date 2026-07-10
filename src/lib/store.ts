@@ -461,6 +461,8 @@ function applyItemAdd(snap: ReceiptSnapshot, payload: ItemAddPayload) {
     itemDescription: payload.description,
     price: parseDecimal(payload.price),
     tax: payload.tax !== undefined ? parseDecimal(payload.tax) : null,
+    taxAmount:
+      payload.taxAmount !== undefined ? parseDecimal(payload.taxAmount) : null,
     sortOrder: payload.sortOrder,
     warningCodes: [],
   });
@@ -472,6 +474,7 @@ function applyItemUpdate(snap: ReceiptSnapshot, payload: ItemUpdatePayload) {
   if (payload.description !== undefined) item.itemDescription = payload.description;
   if (payload.price !== undefined) item.price = parseDecimal(payload.price);
   if (payload.tax !== undefined) item.tax = parseDecimal(payload.tax);
+  if (payload.taxAmount !== undefined) item.taxAmount = parseDecimal(payload.taxAmount);
   if (payload.sortOrder !== undefined) item.sortOrder = payload.sortOrder;
 }
 
