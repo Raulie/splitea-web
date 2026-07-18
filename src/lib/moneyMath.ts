@@ -11,6 +11,38 @@
 
 import type { ItemPayload, ReceiptPayload } from "../types/snapshot";
 
+// MARK: - Minor units
+
+/// ISO 4217 currencies whose minor unit is the whole unit (no cents).
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  "BIF", "CLP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW",
+  "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF",
+]);
+
+/// ISO 4217 currencies with a 3-decimal minor unit (mils).
+const THREE_DECIMAL_CURRENCIES = new Set([
+  "BHD", "IQD", "JOD", "KWD", "LYD", "OMR", "TND",
+]);
+
+/// Minor-unit exponent for a currency code: 0 for whole-unit
+/// currencies (JPY, KRW, ...), 3 for mil currencies (BHD, KWD, ...),
+/// 2 otherwise. A nullish code returns 2 so every legacy call site
+/// keeps its exact cent behavior. MUST stay identical to iOS
+/// `MoneyMath.swift` and splitea-shares `contactBreakdown.ts`.
+export function minorUnitExponent(currencyCode?: string | null): number {
+  if (!currencyCode) return 2;
+  const code = currencyCode.toUpperCase();
+  if (ZERO_DECIMAL_CURRENCIES.has(code)) return 0;
+  if (THREE_DECIMAL_CURRENCIES.has(code)) return 3;
+  return 2;
+}
+
+/// 10^minorUnitExponent, the major-to-minor-unit scale factor.
+function minorUnitScale(currencyCode?: string | null): number {
+  const exp = minorUnitExponent(currencyCode);
+  return exp === 0 ? 1 : exp === 3 ? 1000 : 100;
+}
+
 // MARK: - Cent rounding
 
 /// Number of cents in `value`, with binary-float drift
@@ -24,28 +56,32 @@ import type { ItemPayload, ReceiptPayload } from "../types/snapshot";
 /// genuine sub-cent fraction (`price × rate ÷ 100` bottoms
 /// out near 1e-4 cents) untouched, so the round sees the
 /// value iOS's `Decimal` would have produced.
-function centsOf(value: number): number {
-  return Math.round(value * 100 * 1e6) / 1e6;
+function centsOf(value: number, scale = 100): number {
+  return Math.round(value * scale * 1e6) / 1e6;
 }
 
-/// Half-up rounding to two decimals. Default for register-
-/// style math. `Math.round` takes the .5 midpoint toward
+/// Half-up rounding to the currency's minor unit (two decimals
+/// for a nullish `currencyCode`). Default for register-style
+/// math. `Math.round` takes the .5 midpoint toward
 /// `+∞` — same direction `NSDecimalRound(.plain)` takes for
 /// the positive Decimals iOS feeds it.
-export function roundCents(value: number): number {
-  return Math.round(centsOf(value)) / 100;
+export function roundCents(value: number, currencyCode?: string | null): number {
+  const scale = minorUnitScale(currencyCode);
+  return Math.round(centsOf(value, scale)) / scale;
 }
 
 /// Always rounds toward `+∞`. Matches POS systems that round
 /// taxes up regardless of the .005 midpoint.
-export function roundCentsUp(value: number): number {
-  return Math.ceil(centsOf(value)) / 100;
+export function roundCentsUp(value: number, currencyCode?: string | null): number {
+  const scale = minorUnitScale(currencyCode);
+  return Math.ceil(centsOf(value, scale)) / scale;
 }
 
 /// Always rounds toward 0 (truncates sub-cent fractions).
 /// Matches POS systems that floor taxes.
-export function roundCentsDown(value: number): number {
-  return Math.floor(centsOf(value)) / 100;
+export function roundCentsDown(value: number, currencyCode?: string | null): number {
+  const scale = minorUnitScale(currencyCode);
+  return Math.floor(centsOf(value, scale)) / scale;
 }
 
 /// Largest-remainder (Hamilton) distribution of a cent-quantized
@@ -54,15 +90,20 @@ export function roundCentsDown(value: number): number {
 /// cents go to the largest fractional remainders (ties by index).
 /// All-zero weights fall back to an even split. Verbatim port of
 /// `distributeCents` in `Services/MoneyMath.swift`.
-export function distributeCents(total: number, weights: number[]): number[] {
+export function distributeCents(
+  total: number,
+  weights: number[],
+  currencyCode?: string | null,
+): number[] {
   const n = weights.length;
   if (n === 0) return [];
-  const totalCents = Math.round(centsOf(total));
+  const scale = minorUnitScale(currencyCode);
+  const totalCents = Math.round(centsOf(total, scale));
   const weightSum = weights.reduce((s, w) => s + w, 0);
   if (weightSum <= 0) {
     const base = Math.floor(totalCents / n);
     const rem = totalCents - base * n;
-    return weights.map((_, i) => (base + (i < rem ? 1 : 0)) / 100);
+    return weights.map((_, i) => (base + (i < rem ? 1 : 0)) / scale);
   }
   const floors: number[] = [];
   const remainders: { i: number; r: number }[] = [];
@@ -79,7 +120,7 @@ export function distributeCents(total: number, weights: number[]): number[] {
   for (let k = 0; k < leftover && k < remainders.length; k++) {
     floors[remainders[k]!.i]!++;
   }
-  return floors.map((c) => c / 100);
+  return floors.map((c) => c / scale);
 }
 
 /// Left-rotates `arr` by `offset` (mod length). Mirror of iOS `rotated`.
@@ -98,9 +139,11 @@ function rotated<T>(arr: T[], offset: number): T[] {
 function itemLeftoverRotations(
   items: ItemPayload[],
   assignmentsByItem: Map<string, string[]>,
+  currencyCode?: string | null,
 ): Map<string, number> {
   const rotations = new Map<string, number>();
   let carry = 0;
+  const scale = minorUnitScale(currencyCode);
   const sorted = [...items].sort((a, b) =>
     a.id.toLowerCase() < b.id.toLowerCase() ? -1 : 1,
   );
@@ -108,7 +151,7 @@ function itemLeftoverRotations(
     const count = assignmentsByItem.get(item.id)?.length ?? 0;
     if (count === 0) continue;
     rotations.set(item.id, carry % count);
-    const totalCents = Math.round(centsOf(item.price));
+    const totalCents = Math.round(centsOf(item.price, scale));
     carry += ((totalCents % count) + count) % count;
   }
   return rotations;
@@ -139,45 +182,46 @@ export type TaxRoundingMethod =
 export function calculateTaxTotal(
   items: ItemPayload[],
   method: TaxRoundingMethod,
+  currencyCode?: string | null,
 ): number {
   const taxOf = (item: ItemPayload) =>
     (item.price * (item.tax ?? 0)) / 100;
 
   switch (method) {
     case "per_item_half_up":
-      return items.reduce((sum, i) => sum + roundCents(taxOf(i)), 0);
+      return items.reduce((sum, i) => sum + roundCents(taxOf(i), currencyCode), 0);
     case "per_item_up":
-      return items.reduce((sum, i) => sum + roundCentsUp(taxOf(i)), 0);
+      return items.reduce((sum, i) => sum + roundCentsUp(taxOf(i), currencyCode), 0);
     case "per_item_down":
-      return items.reduce((sum, i) => sum + roundCentsDown(taxOf(i)), 0);
+      return items.reduce((sum, i) => sum + roundCentsDown(taxOf(i), currencyCode), 0);
     case "on_subtotal_half_up":
-      return roundCents(items.reduce((sum, i) => sum + taxOf(i), 0));
+      return roundCents(items.reduce((sum, i) => sum + taxOf(i), 0), currencyCode);
     case "on_subtotal_up":
-      return roundCentsUp(items.reduce((sum, i) => sum + taxOf(i), 0));
+      return roundCentsUp(items.reduce((sum, i) => sum + taxOf(i), 0), currencyCode);
     case "on_subtotal_down":
-      return roundCentsDown(items.reduce((sum, i) => sum + taxOf(i), 0));
+      return roundCentsDown(items.reduce((sum, i) => sum + taxOf(i), 0), currencyCode);
     case "per_rate_group_half_up":
       return groupedByRate(items).reduce(
-        (sum, g) => sum + roundCents((g.subtotal * g.rate) / 100),
+        (sum, g) => sum + roundCents((g.subtotal * g.rate) / 100, currencyCode),
         0,
       );
     case "per_rate_group_up":
       // Each rate group's tax ceiled independently — matches POS
       // systems (e.g. Puerto Rico IVU) that round up per group.
       return groupedByRate(items).reduce(
-        (sum, g) => sum + roundCentsUp((g.subtotal * g.rate) / 100),
+        (sum, g) => sum + roundCentsUp((g.subtotal * g.rate) / 100, currencyCode),
         0,
       );
     case "per_rate_group_down":
       return groupedByRate(items).reduce(
-        (sum, g) => sum + roundCentsDown((g.subtotal * g.rate) / 100),
+        (sum, g) => sum + roundCentsDown((g.subtotal * g.rate) / 100, currencyCode),
         0,
       );
     default:
       // Forward-compat: unknown method on the wire → fall
       // back to the iOS default. Same behavior as
       // `Receipt+Helpers.swift`'s `?? .onSubtotalHalfUp`.
-      return roundCents(items.reduce((sum, i) => sum + taxOf(i), 0));
+      return roundCents(items.reduce((sum, i) => sum + taxOf(i), 0), currencyCode);
   }
 }
 
@@ -252,7 +296,11 @@ export function billTaxTotal(receipt: ReceiptPayload, items: ItemPayload[]): num
   if (receipt.taxInclusive) return 0;
   return (
     bakedTaxTotal(receipt, items) ??
-    calculateTaxTotal(items, receipt.taxRoundingMethod as TaxRoundingMethod)
+    calculateTaxTotal(
+      items,
+      receipt.taxRoundingMethod as TaxRoundingMethod,
+      receipt.currencyCode,
+    )
   );
 }
 
@@ -268,7 +316,7 @@ export function billTipAmount(
 ): number {
   if (receipt.tipType === "percentage") {
     const base = receipt.tipPostTax ? subtotal + taxTotal : subtotal;
-    return roundCents((base * receipt.tipValue) / 100);
+    return roundCents((base * receipt.tipValue) / 100, receipt.currencyCode);
   }
   return receipt.tipValue;
 }
@@ -382,6 +430,11 @@ export function calculateContactBreakdowns(
   assignmentsByItem: Map<string, string[]>,
   receipt: ReceiptPayload,
 ): ContactBreakdown[] {
+  // Quantize every share to the currency's minor unit so zero-decimal
+  // currencies (JPY, KRW, ...) sum in whole units. MUST stay identical
+  // to iOS / shares.
+  const currencyCode = receipt.currencyCode;
+  const scale = minorUnitScale(currencyCode);
   const subtotals = new Map<string, number>();
   const taxWeights = new Map<string, number>();
   // Scaled-integer "exact share" weights for the grand-total split.
@@ -395,7 +448,7 @@ export function calculateContactBreakdowns(
   const byId = (ids: string[]) =>
     [...ids].sort((a, b) => (a.toLowerCase() < b.toLowerCase() ? -1 : 1));
 
-  const rotations = itemLeftoverRotations(items, assignmentsByItem);
+  const rotations = itemLeftoverRotations(items, assignmentsByItem, currencyCode);
 
   for (const item of items) {
     const contactIds = assignmentsByItem.get(item.id) ?? [];
@@ -404,14 +457,14 @@ export function calculateContactBreakdowns(
     const count = ordered.length;
     // Largest-remainder split of the item subtotal and its rounded
     // tax so each item's shares sum EXACTLY to the item totals.
-    const subtotalShares = distributeCents(item.price, new Array(count).fill(1));
+    const subtotalShares = distributeCents(item.price, new Array(count).fill(1), currencyCode);
     const itemTaxTotal =
       item.taxAmount != null
-        ? roundCents(item.taxAmount)
-        : roundCents((item.price * (item.tax ?? 0)) / 100);
-    const taxSplit = distributeCents(itemTaxTotal, new Array(count).fill(1));
-    const priceCents = Math.round(centsOf(item.price));
-    const taxCents = Math.round(centsOf(itemTaxTotal));
+        ? roundCents(item.taxAmount, currencyCode)
+        : roundCents((item.price * (item.tax ?? 0)) / 100, currencyCode);
+    const taxSplit = distributeCents(itemTaxTotal, new Array(count).fill(1), currencyCode);
+    const priceCents = Math.round(centsOf(item.price, scale));
+    const taxCents = Math.round(centsOf(itemTaxTotal, scale));
     const subPartItem = Math.floor(priceCents / count);
     const taxPartItem = Math.floor(taxCents / count);
     ordered.forEach((contactId, index) => {
@@ -434,13 +487,36 @@ export function calculateContactBreakdowns(
     });
   }
 
-  const billSub = billSubtotal(items);
+  // UNASSIGNED items stay out of every pile: their value belongs to the
+  // unassigned section, not to the assigned participants' tax/tip lines
+  // (a whole-bill pile here would smear the unassigned price + tax into
+  // `nonSub` below and over-charge everyone assigned). Fully-assigned
+  // bills keep the exact legacy piles — including the method/baked tax
+  // total — so existing receipts don't shift by a cent. MUST stay
+  // identical to iOS / shares.
+  const assignedItems = items.filter(
+    (i) => (assignmentsByItem.get(i.id)?.length ?? 0) > 0,
+  );
+  const fullyAssigned = assignedItems.length === items.length;
+  const billSub = billSubtotal(assignedItems);
   // Same baked preference as `billTaxTotal` so the reconciliation
   // base equals the sum of the per-item baked amounts (otherwise a
   // cent leaks into the tip line).
-  const taxTotal =
-    bakedTaxTotal(receipt, items) ??
-    calculateTaxTotal(items, receipt.taxRoundingMethod as TaxRoundingMethod);
+  const taxTotal = fullyAssigned
+    ? (bakedTaxTotal(receipt, items) ??
+      calculateTaxTotal(
+        items,
+        receipt.taxRoundingMethod as TaxRoundingMethod,
+        currencyCode,
+      ))
+    : assignedItems.reduce(
+        (acc, i) =>
+          acc +
+          (i.taxAmount != null
+            ? roundCents(i.taxAmount, currencyCode)
+            : roundCents((i.price * (i.tax ?? 0)) / 100, currencyCode)),
+        0,
+      );
   const tipAmount = billTipAmount(receipt, billSub, taxTotal);
 
   const order = Array.from(
@@ -453,8 +529,8 @@ export function calculateContactBreakdowns(
   // still sum to the receipt totals. MUST stay identical to iOS / shares.
   const taxByContact = new Map<string, number>();
   const tipByContact = new Map<string, number>();
-  const taxTotalCents = Math.round(centsOf(taxTotal));
-  const tipTotalCents = Math.round(centsOf(tipAmount));
+  const taxTotalCents = Math.round(centsOf(taxTotal, scale));
+  const tipTotalCents = Math.round(centsOf(tipAmount, scale));
 
   if (taxTotalCents === 0 && tipTotalCents === 0) {
     for (const id of order) {
@@ -466,9 +542,9 @@ export function calculateContactBreakdowns(
     const gtWeights = order.map(
       (id) => (subWeight.get(id) ?? 0) + (taxWeight.get(id) ?? 0),
     );
-    const gshare = distributeCents(grandTotal, gtWeights);
-    const subsCents = order.map((id) => Math.round(centsOf(subtotals.get(id) ?? 0)));
-    const gshareCents = gshare.map((v) => Math.round(centsOf(v)));
+    const gshare = distributeCents(grandTotal, gtWeights, currencyCode);
+    const subsCents = order.map((id) => Math.round(centsOf(subtotals.get(id) ?? 0, scale)));
+    const gshareCents = gshare.map((v) => Math.round(centsOf(v, scale)));
     const nonSub = order.map((_, i) => gshareCents[i]! - subsCents[i]!);
 
     let taxC: number[];
@@ -477,7 +553,8 @@ export function calculateContactBreakdowns(
       const recon = distributeCents(
         taxTotal,
         order.map((id) => taxWeights.get(id) ?? 0),
-      ).map((v) => Math.round(centsOf(v)));
+        currencyCode,
+      ).map((v) => Math.round(centsOf(v, scale)));
       const split = splitNonSub(nonSub, recon);
       taxC = split.recon;
       tipC = split.derived;
@@ -485,14 +562,15 @@ export function calculateContactBreakdowns(
       const recon = distributeCents(
         tipAmount,
         order.map((id) => subtotals.get(id) ?? 0),
-      ).map((v) => Math.round(centsOf(v)));
+        currencyCode,
+      ).map((v) => Math.round(centsOf(v, scale)));
       const split = splitNonSub(nonSub, recon);
       tipC = split.recon;
       taxC = split.derived;
     }
     order.forEach((id, i) => {
-      taxByContact.set(id, (taxC[i] ?? 0) / 100);
-      tipByContact.set(id, (tipC[i] ?? 0) / 100);
+      taxByContact.set(id, (taxC[i] ?? 0) / scale);
+      tipByContact.set(id, (tipC[i] ?? 0) / scale);
     });
   }
 
