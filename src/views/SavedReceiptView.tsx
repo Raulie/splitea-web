@@ -241,14 +241,62 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         settlementState: settlementState(row.contact!),
       }));
 
-  /// Whether the "Pay {payer}" button should render. Requires
-  /// BOTH the payer having a configured provider AND at least
-  /// one non-payer debtor to pay for. Without a candidate the
-  /// PayMenuSheet's identity picker has zero rows and the flow
-  /// dead-ends (the visitor can never reach the provider stage),
-  /// so a payer-only-assignment receipt would otherwise present
-  /// a Pay button that does nothing when tapped.
-  const canPay = () => payerProviders().length > 0 && payCandidates().length > 0;
+  /// Whether the payer can be paid THROUGH the app — they have at
+  /// least one configured provider. Chooses which action the
+  /// bottom bar offers, not whether it appears.
+  const payerIsPayable = () => payerProviders().length > 0;
+
+  /// Candidates who still owe. Settling only means something for
+  /// these; once everyone has claimed or been confirmed there is
+  /// nothing left to mark.
+  const owingCandidates = () =>
+    payCandidates().filter((c) => c.settlementState === "owes");
+
+  /// Whether the bottom bar renders. It always needs a non-payer
+  /// debtor to act on — without one the identity picker has zero
+  /// rows and the flow dead-ends, so a payer-only-assignment
+  /// receipt would show a button that does nothing.
+  ///
+  /// With providers this is the "Pay {payer}" flow. WITHOUT them,
+  /// paying in-app is impossible but settling offline (cash,
+  /// Zelle, a bank transfer) is not — so the bar offers "Mark as
+  /// paid" instead, provided someone still owes. Hiding the bar
+  /// outright (the previous behaviour) silently denied every web
+  /// recipient any way to say they'd settled, because the "Mark as
+  /// paid" row lives inside the provider sheet.
+  const canPay = () =>
+    payCandidates().length > 0 &&
+    (payerIsPayable() || owingCandidates().length > 0);
+
+  /// The contact to claim for when "Mark as paid" can skip the
+  /// identity picker, or null when it must not.
+  ///
+  /// A claim is one-way on this surface — `claimPaid` only ever
+  /// sends `paid: true`, and clearing it is the payer's action on
+  /// iOS — so the bar may only claim without asking when the
+  /// visitor's identity is beyond doubt. Two cases qualify:
+  ///
+  ///   - A per-recipient link (`/r/<id>/c/<shortId>`) named them,
+  ///     the same identity `PayMenuSheet` treats as authoritative.
+  ///   - The receipt has exactly ONE non-payer participant, so
+  ///     there is nobody else the visitor could be.
+  ///
+  /// "Exactly one candidate still OWES" does NOT qualify: on a
+  /// multi-debtor receipt where everyone else has already claimed,
+  /// that last owing candidate is by definition someone other than
+  /// the visitor, and claiming for them would falsely settle a
+  /// stranger's share with a single unlabelled tap.
+  const settleShortcutTarget = () => {
+    const owing = owingCandidates();
+    const forced = props.forContactId
+      ? owing.find((c) => c.contactId === props.forContactId)
+      : undefined;
+    if (forced) return forced.contactId;
+    if (payCandidates().length === 1 && owing.length === 1) {
+      return owing[0]!.contactId;
+    }
+    return null;
+  };
 
   /// Marks the given contact as paid — the recipient's claim (they
   /// paid; the payer confirms later). Wired to the "Mark as paid"
@@ -726,17 +774,31 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           }}
         >
           <div class="flex flex-col gap-2 pointer-events-auto">
-            {/* Pay button — shown only when the payer has a
-                configured provider AND there is a non-payer debtor
-                to pay for (else the identity picker is empty and
-                the flow dead-ends). See `canPay`. */}
+            {/* One button, two meanings — see `canPay`. With
+                providers it opens the pay sheet; without them the
+                only thing left to do is settle offline. That skips
+                the sheet only when `settleShortcutTarget` knows
+                exactly who the visitor is — otherwise it presents
+                the identity picker, because an unattributed claim
+                can't be taken back from here. */}
             <Show when={canPay()}>
               <button
                 type="button"
                 class="block w-full h-12 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity truncate"
-                onClick={() => setShowingPayMenu(true)}
+                onClick={() => {
+                  if (payerIsPayable()) {
+                    setShowingPayMenu(true)
+                    return
+                  }
+                  const target = settleShortcutTarget()
+                  if (target) {
+                    onMarkPaid(target)
+                  } else {
+                    setShowingPayMenu(true)
+                  }
+                }}
               >
-                Pay {senderDisplayName()}
+                {payerIsPayable() ? `Pay ${senderDisplayName()}` : "Mark as paid"}
               </button>
             </Show>
 
@@ -753,10 +815,11 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           payerDisplayName={senderDisplayName()}
           paymentUsernames={payerContact()?.paymentUsernames}
           receiptID={props.snapshot.receipt.id}
-          candidates={payCandidates()}
+          candidates={payerIsPayable() ? payCandidates() : owingCandidates()}
           currencyCode={props.snapshot.receipt.currencyCode}
           merchantName={props.snapshot.receipt.merchantName}
           forcedContactId={props.forContactId ?? null}
+          settleOnly={!payerIsPayable()}
           onMarkPaid={onMarkPaid}
           onProviderTap={armPayConfirm}
           onClose={() => setShowingPayMenu(false)}

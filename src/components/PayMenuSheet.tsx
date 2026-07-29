@@ -69,6 +69,14 @@ export interface PayMenuSheetProps {
   /// values (contact missing from `candidates`) silently fall
   /// through to the regular initial-identity logic.
   forcedContactId?: string | null;
+  /// The payer configured no payment providers, so there is
+  /// nothing to pay THROUGH — this sheet exists only to ask which
+  /// candidate the visitor is before claiming payment. Picking an
+  /// identity marks that contact paid and dismisses; the providers
+  /// stage is never reached, since it would be empty. The host
+  /// presents this sheet whenever it can't already name the
+  /// visitor with certainty — see `settleShortcutTarget`.
+  settleOnly?: boolean;
   /// Marks the given contact as paid — the recipient claims they
   /// paid. Wired to the "Mark as paid" row at the bottom of the
   /// providers stage, mirroring the iOS Pay menu's settlement
@@ -165,9 +173,13 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
   });
 
   /// Stage is derived: identity picker until a candidate
-  /// is selected, providers thereafter.
+  /// is selected, providers thereafter. In settle-only mode the
+  /// providers stage doesn't exist, so the picker is the only
+  /// stage — a cached or forced identity must not silently claim
+  /// payment on the visitor's behalf, and must not land them on
+  /// an empty provider list either.
   const stage = (): "identity" | "providers" =>
-    selectedCandidate() === null ? "identity" : "providers";
+    props.settleOnly || selectedCandidate() === null ? "identity" : "providers";
 
   /// Mount-time animation flags — same two-frame pattern as
   /// `ReceiptViewer` so the browser actually transitions
@@ -187,6 +199,14 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
   }
 
   function chooseIdentity(contactId: string) {
+    // Settle-only: the identity IS the whole interaction. Claim
+    // and close rather than advancing to a providers stage that
+    // would have nothing in it.
+    if (props.settleOnly) {
+      props.onMarkPaid(contactId);
+      handleDismiss();
+      return;
+    }
     setSelectedContactId(contactId);
     try {
       localStorage.setItem(identityCacheKey(props.receiptID), contactId);
@@ -286,7 +306,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
   // via the back button.
 
   return (
-    <Show when={providerEntries().length > 0}>
+    <Show when={props.settleOnly || providerEntries().length > 0}>
       <Portal>
       <div
         class="fixed inset-0 z-[60] bg-black/40 pay-backdrop"
@@ -300,7 +320,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
         classList={{ "pay-sheet-presented": presented() }}
         role="dialog"
         aria-modal="true"
-        aria-label={`Pay ${props.payerDisplayName}`}
+        aria-label={props.settleOnly ? "Mark as paid" : `Pay ${props.payerDisplayName}`}
       >
         {/* Drag-affordance bar — decorative; matches the
             iOS sheet idiom. */}
@@ -314,6 +334,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
             candidates={props.candidates}
             currencyCode={props.currencyCode}
             onPick={chooseIdentity}
+            settleOnly={props.settleOnly}
           />
         </Show>
 
@@ -348,6 +369,10 @@ interface IdentityStageProps {
   candidates: PayCandidate[];
   currencyCode: string;
   onPick: (contactId: string) => void;
+  /// Picking claims payment outright (no providers to move on
+  /// to), so the copy has to promise that instead of prefilling
+  /// an amount.
+  settleOnly?: boolean;
 }
 
 /// Stage 1: "Which contact are you?" with the candidate
@@ -361,8 +386,9 @@ function IdentityStage(props: IdentityStageProps) {
       <div class="px-5 pt-2 pb-1 text-center">
         <h3 class="text-ios-headline text-ios-label">Who are you?</h3>
         <p class="text-ios-footnote text-ios-label-secondary mt-1">
-          Pick yourself so we can prefill the amount you owe{" "}
-          {props.payerDisplayName}.
+          {props.settleOnly
+            ? `Pick yourself to let ${props.payerDisplayName} know you paid.`
+            : `Pick yourself so we can prefill the amount you owe ${props.payerDisplayName}.`}
         </p>
       </div>
       <ul class="px-2 pt-2 pb-3">
