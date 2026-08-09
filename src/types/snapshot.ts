@@ -20,7 +20,7 @@ export interface SnapshotEnvelope {
   ownerUserId?: string;
   /// Epoch ms.
   createdAt: number;
-  /// Epoch ms — the 7-day TTL deadline.
+  /// Epoch ms — the 30-day TTL deadline.
   expiresAt: number;
   /// The relay's mutation-log watermark at the moment the stored
   /// snapshot was last POSTed. Ops with seq <= this are already
