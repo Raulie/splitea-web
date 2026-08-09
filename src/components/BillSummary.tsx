@@ -63,6 +63,19 @@ export function BillSummary(props: BillSummaryProps) {
     return `Tax (${trimmed}%)`;
   };
 
+  /// Tip label — same treatment as the tax rate: "Tip (20%)" when the
+  /// tip was entered as a percentage, plain "Tip" for an amount-typed
+  /// tip (where the dollar value already IS the row). Mirrors iOS
+  /// `BillSummarySection.tipLabel` / `ItemsView.summarySection`.
+  const tipLabel = () => {
+    const { tipType, tipValue } = props.receipt;
+    if (tipType !== "percentage" || !tipValue || tipValue <= 0) return "Tip";
+    const trimmed = Number.isInteger(tipValue)
+      ? tipValue.toString()
+      : tipValue.toFixed(2).replace(/\.?0+$/, "");
+    return `Tip (${trimmed}%)`;
+  };
+
   return (
     // Card chrome + concentric padding:
     //
@@ -83,7 +96,7 @@ export function BillSummary(props: BillSummaryProps) {
       <Show when={!props.receipt.taxInclusive}>
         <Row label={taxLabel()} value={formatCurrency(tax(), currency())} />
       </Show>
-      <Row label="Tip" value={formatCurrency(tip(), currency())} />
+      <Row label={tipLabel()} value={formatCurrency(tip(), currency())} />
       <TotalRow value={formatCurrency(total(), currency())} />
     </section>
   );
