@@ -309,16 +309,27 @@ export function billTaxTotal(receipt: ReceiptPayload, items: ItemPayload[]): num
 /// half-up to cents — matches iOS `BillSplitViewModel.tipAmount`;
 /// `amount` types pass through verbatim — iOS doesn't re-round a
 /// user-typed dollar value.
+/// `amount` types (mandatory service charges in SG/HK/JP and most of
+/// Europe) ride the items the same way a percentage does: pass
+/// `fullSubtotal` — the WHOLE bill's subtotal — and only the assigned
+/// items' share comes back. Omit it and the tip passes through
+/// verbatim, which is what the whole-bill callers (`billGrandTotal`,
+/// `BillSummary`) want: the receipt's own total line must keep showing
+/// the full charge. MUST stay identical to iOS / splitea-shares.
 export function billTipAmount(
   receipt: ReceiptPayload,
   subtotal: number,
   taxTotal: number,
+  fullSubtotal?: number,
 ): number {
   if (receipt.tipType === "percentage") {
     const base = receipt.tipPostTax ? subtotal + taxTotal : subtotal;
     return roundCents((base * receipt.tipValue) / 100, receipt.currencyCode);
   }
-  return receipt.tipValue;
+  if (fullSubtotal === undefined) return receipt.tipValue;
+  if (fullSubtotal <= 0 || subtotal <= 0) return 0;
+  if (subtotal >= fullSubtotal) return receipt.tipValue;
+  return roundCents((receipt.tipValue * subtotal) / fullSubtotal, receipt.currencyCode);
 }
 
 /// Subtotal + Tax + Tip — same as `BillSplitViewModel.grandTotal`.
@@ -499,6 +510,7 @@ export function calculateContactBreakdowns(
   );
   const fullyAssigned = assignedItems.length === items.length;
   const billSub = billSubtotal(assignedItems);
+  const fullSub = billSubtotal(items);
   // Same baked preference as `billTaxTotal` so the reconciliation
   // base equals the sum of the per-item baked amounts (otherwise a
   // cent leaks into the tip line).
@@ -517,7 +529,11 @@ export function calculateContactBreakdowns(
             : roundCents((i.price * (i.tax ?? 0)) / 100, currencyCode)),
         0,
       );
-  const tipAmount = billTipAmount(receipt, billSub, taxTotal);
+  // Fully-assigned bills take the legacy call verbatim, so they can't
+  // pick up so much as a rounding change.
+  const tipAmount = fullyAssigned
+    ? billTipAmount(receipt, billSub, taxTotal)
+    : billTipAmount(receipt, billSub, taxTotal, fullSub);
 
   const order = Array.from(
     new Set<string>([...subtotals.keys(), ...taxWeights.keys()]),
