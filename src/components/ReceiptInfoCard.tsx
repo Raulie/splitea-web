@@ -1,5 +1,6 @@
 import { Show } from "solid-js";
 import { formatReceiptDate, formatReceiptTime } from "../lib/format";
+import { t } from "../lib/i18n";
 
 /// Receipt header card: merchant name on top with an optional
 /// receipt-image trigger trailing it, divider, then "Date"
@@ -42,7 +43,7 @@ export function ReceiptInfoCard(props: ReceiptInfoCardProps) {
           <button
             type="button"
             class="shrink-0 text-ios-blue active:opacity-60 transition-opacity"
-            aria-label="View Receipt"
+            aria-label={t("viewReceiptButtonLabel")}
             onClick={() => props.onOpenReceipt?.()}
           >
             <ReceiptIconGlyph size={22} />
@@ -50,7 +51,7 @@ export function ReceiptInfoCard(props: ReceiptInfoCardProps) {
         </Show>
       </div>
       <div class="px-4 py-3 flex items-center gap-2">
-        <span class="text-ios-label text-ios-body">Date</span>
+        <span class="text-ios-label text-ios-body">{t("receiptDateLabel")}</span>
         {/* Always render the date pills. When `receiptDate` is
             null (the OCR pipeline didn't extract one, or the
             iOS owner hasn't set it yet), fall back to the

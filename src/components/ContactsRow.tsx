@@ -2,6 +2,7 @@ import { createMemo, For, Show } from "solid-js";
 import type { ContactPayload } from "../types/snapshot";
 import { Avatar } from "./Avatar";
 import { formatCurrency } from "../lib/format";
+import { t } from "../lib/i18n";
 
 /// Sticky bottom contacts row. Mirrors the iOS `bottomBar`
 /// block in `ItemsView.swift` including the visual rules the
@@ -103,7 +104,7 @@ export function ContactsRow(props: ContactsRowProps) {
   ///   • `fullName === null` → "Contact" fallback
   const labelFor = (contact: ContactPayload) => {
     const name = contact.fullName?.trim();
-    if (!name) return "Contact";
+    if (!name) return t("contactsRowUnnamedContactFallback");
     const firstSpace = name.search(/\s/);
     return firstSpace === -1 ? name : name.slice(0, firstSpace);
   };
@@ -261,7 +262,9 @@ export function ContactsRow(props: ContactsRowProps) {
               type="button"
               class="shrink-0 flex items-center gap-2 active:opacity-70 transition-opacity"
               onClick={() => handleSelectContact(contact.id)}
-              aria-label={`Select ${labelFor(contact)}`}
+              aria-label={t("contactsRowSelectContactLabel", {
+                name: labelFor(contact),
+              })}
               // `ref` registers this button in `buttonRefs`
               // so the FLIP routine can measure its position
               // before/after the state change. Solid's <For>
@@ -360,7 +363,7 @@ function EveryonePill(props: EveryonePillProps) {
       type="button"
       class="shrink-0 flex items-center gap-2 active:opacity-70 transition-opacity"
       onClick={() => props.onClick()}
-      aria-label="Select Everyone"
+      aria-label={t("contactsRowSelectEveryoneLabel")}
       ref={(el) => props.ref?.(el)}
     >
       <span
@@ -386,7 +389,7 @@ function EveryonePill(props: EveryonePillProps) {
       <Show when={props.active}>
         <div class="flex flex-col leading-tight items-start">
           <span class="text-ios-footnote text-ios-label-secondary">
-            Everyone
+            {t("contactsRowEveryoneLabel")}
           </span>
         </div>
       </Show>

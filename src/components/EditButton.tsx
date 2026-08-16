@@ -1,4 +1,5 @@
 import { PencilGlyph } from "./PencilGlyph";
+import { t } from "../lib/i18n";
 
 /// iOS 26-style circular edit button. Mirrors `BackButton`'s
 /// shape (44×44pt circle with the `ios-card` lifted-dark
@@ -19,7 +20,7 @@ export function EditButton(props: EditButtonProps) {
     <button
       type="button"
       class="w-11 h-11 rounded-full bg-ios-card flex items-center justify-center text-ios-label active:opacity-60 transition-opacity"
-      aria-label={props.ariaLabel ?? "Edit items"}
+      aria-label={props.ariaLabel ?? t("editItemsButton")}
       onClick={() => props.onClick()}
     >
       <PencilGlyph size={17} />

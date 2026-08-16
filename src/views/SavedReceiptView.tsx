@@ -16,6 +16,7 @@ import { formatReceiptDateTime } from "../lib/format";
 import { configuredPayProviders } from "../lib/payProviders";
 import { claimPaid } from "../lib/api";
 import { settlementState } from "../lib/settlement";
+import { t } from "../lib/i18n";
 
 /// Web port of iOS `SavedReceiptDetailView`. Day-3 scope is
 /// the read-only summary surface: per-contact breakdown rows
@@ -205,7 +206,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     configuredPayProviders(payerContact()?.paymentUsernames);
 
   const payerDisplayName = () =>
-    payerContact()?.fullName?.trim() || "the payer";
+    payerContact()?.fullName?.trim() || t("payerFallbackName");
 
   /// Compatibility alias — many existing call sites use
   /// `senderDisplayName` for the Pay button label ("Pay
@@ -235,7 +236,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
       )
       .map((row) => ({
         contactId: row.breakdown.contactId,
-        displayName: row.contact!.fullName?.trim() || "Someone",
+        displayName: row.contact!.fullName?.trim() || t("unnamedContactFallback"),
         amount: row.total,
         avatarUrl: row.contact!.avatarUrl ?? null,
         settlementState: settlementState(row.contact!),
@@ -476,7 +477,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         }}
       >
         <NavBar
-          title={props.snapshot.receipt.merchantName ?? "Receipt"}
+          title={props.snapshot.receipt.merchantName ?? t("receiptNavTitleFallback")}
           leading={
             props.onBack ? (
               <BackButton onClick={() => props.onBack!()} />
@@ -513,12 +514,12 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
               <button
                 type="button"
                 class="block max-w-full active:opacity-80 transition-opacity"
-                aria-label="View full receipt"
+                aria-label={t("viewFullReceiptLabel")}
                 onClick={() => setShowingReceipt(true)}
               >
                 <img
                   src={`data:${props.snapshot.receipt.receiptMimeType};base64,${b64()}`}
-                  alt="Receipt"
+                  alt={t("receiptNavTitleFallback")}
                   class="max-h-60 w-auto rounded-ios-card-inner"
                   style={{
                     // iOS shadow: `.shadow(color: .black.opacity(0.2),
@@ -549,7 +550,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         <Show when={breakdowns().length > 0}>
           <section>
             <div class="flex items-center justify-between px-2 mb-2">
-              <h2 class="text-ios-title-3 text-ios-label">Breakdown</h2>
+              <h2 class="text-ios-title-3 text-ios-label">{t("breakdownSectionTitle")}</h2>
               {/* iOS Expand/Collapse uses `.subheadline`
                   (15pt) per `BreakdownSectionsView.swift:93`.
                   We were one tier large at 17pt. */}
@@ -559,7 +560,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                 onClick={toggleAll}
                 aria-pressed={allExpanded()}
               >
-                {allExpanded() ? "Collapse" : "Expand"}
+                {allExpanded() ? t("collapseAllButton") : t("expandAllButton")}
               </button>
             </div>
             {/* One card PER CONTACT — mirrors the iOS
@@ -798,7 +799,9 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                   }
                 }}
               >
-                {payerIsPayable() ? `Pay ${senderDisplayName()}` : "Mark as paid"}
+                {payerIsPayable()
+                  ? t("payPersonButton", { name: senderDisplayName() })
+                  : t("markAsPaidButton")}
               </button>
             </Show>
 
@@ -830,9 +833,11 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           the visitor returns after tapping a payment provider. */}
       <IOSAlert
         open={payConfirm() !== null}
-        title={`Did you pay ${payConfirm()?.payerName ?? "the payer"}?`}
-        confirmLabel="Yes"
-        cancelLabel="No"
+        title={t("didYouPayAlertTitle", {
+          name: payConfirm()?.payerName ?? t("payerFallbackName"),
+        })}
+        confirmLabel={t("didYouPayConfirmYes")}
+        cancelLabel={t("didYouPayConfirmNo")}
         onConfirm={() => {
           const c = payConfirm();
           if (c) onMarkPaid(c.contactId);

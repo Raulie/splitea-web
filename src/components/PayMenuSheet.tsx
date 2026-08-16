@@ -8,6 +8,7 @@ import {
   type PayProvider,
 } from "../lib/payProviders";
 import { formatCurrency } from "../lib/format";
+import { t } from "../lib/i18n";
 
 /// "Pay <Sender>" provider-picker sheet shown when the
 /// recipient taps the Pay button on `SavedReceiptView`.
@@ -320,7 +321,13 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
         classList={{ "pay-sheet-presented": presented() }}
         role="dialog"
         aria-modal="true"
-        aria-label={props.settleOnly ? "Mark as paid" : `Pay ${props.payerDisplayName}`}
+        aria-label={
+          props.settleOnly
+            ? t("markAsPaidButton")
+            : t("payMenuPayPayerDialogLabel", {
+                payerName: props.payerDisplayName,
+              })
+        }
       >
         {/* Drag-affordance bar — decorative; matches the
             iOS sheet idiom. */}
@@ -384,11 +391,17 @@ function IdentityStage(props: IdentityStageProps) {
   return (
     <>
       <div class="px-5 pt-2 pb-1 text-center">
-        <h3 class="text-ios-headline text-ios-label">Who are you?</h3>
+        <h3 class="text-ios-headline text-ios-label">
+          {t("payMenuIdentityTitle")}
+        </h3>
         <p class="text-ios-footnote text-ios-label-secondary mt-1">
           {props.settleOnly
-            ? `Pick yourself to let ${props.payerDisplayName} know you paid.`
-            : `Pick yourself so we can prefill the amount you owe ${props.payerDisplayName}.`}
+            ? t("payMenuIdentitySubtitleSettleOnly", {
+                payerName: props.payerDisplayName,
+              })
+            : t("payMenuIdentitySubtitlePrefill", {
+                payerName: props.payerDisplayName,
+              })}
         </p>
       </div>
       <ul class="px-2 pt-2 pb-3">
@@ -477,7 +490,9 @@ function ProvidersStage(props: ProvidersStageProps) {
     <>
       <div class="px-5 pt-2 pb-1 text-center">
         <h3 class="text-ios-headline text-ios-label">
-          Pay {formatCurrency(props.candidate.amount, props.currencyCode)}
+          {t("payMenuProvidersTitle", {
+            amount: formatCurrency(props.candidate.amount, props.currencyCode),
+          })}
         </h3>
         <Show when={props.onChangeIdentity}>
           <button
@@ -485,7 +500,7 @@ function ProvidersStage(props: ProvidersStageProps) {
             class="text-ios-footnote text-ios-blue mt-1 active:opacity-60 transition-opacity"
             onClick={() => props.onChangeIdentity?.()}
           >
-            Not {props.candidate.displayName}?
+            {t("payMenuNotYouSwitch", { name: props.candidate.displayName })}
           </button>
         </Show>
       </div>
@@ -569,7 +584,7 @@ function ProvidersStage(props: ProvidersStageProps) {
               props.onDismiss();
             }}
           >
-            Mark as paid
+            {t("markAsPaidButton")}
           </button>
         </div>
       </Show>

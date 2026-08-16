@@ -6,6 +6,7 @@ import { ChevronGlyph } from "./ChevronGlyph";
 import { DisclosureGroup } from "./DisclosureGroup";
 import { settlementState } from "../lib/settlement";
 import { formatCurrency, formatPhoneNumber } from "../lib/format";
+import { t } from "../lib/i18n";
 
 /// Single contact's row on the post-split summary screen.
 /// Mirrors `Splitea/Views/BillSplit/Components/ContactBreakdownRow.swift`
@@ -74,7 +75,7 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
           <div class="flex-1 min-w-0">
             {/* Name — iOS `.subheadline .semibold`. */}
             <div class="text-ios-subheadline font-semibold text-ios-label truncate">
-              {props.contact.fullName ?? "Contact"}
+              {props.contact.fullName ?? t("contactsRowUnnamedContactFallback")}
             </div>
             {/* Mirrors iOS `ContactBreakdownRow.settlementSubtitleInfo`
                 (swift:130-141): the settlement status REPLACES the
@@ -99,7 +100,9 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
                   "text-ios-orange": state() === "pending",
                 }}
               >
-                {state() === "settled" ? "Paid" : "Marked as paid"}
+                {state() === "settled"
+                  ? t("breakdownSettledSubtitle")
+                  : t("breakdownPendingSubtitle")}
               </div>
             </Show>
           </div>
@@ -182,7 +185,9 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
                       (.tertiarySystemBackground))` with
                       `.caption2` text. Padding 6h/2v. */}
                   <span class="px-1.5 py-0.5 rounded-full bg-ios-card-hi text-[11px] leading-none">
-                    ÷{share.splitCount}
+                    {t("breakdownItemSplitCountBadge", {
+                      count: share.splitCount,
+                    })}
                   </span>
                 </Show>
                 {/* Amount inherits the row's
@@ -216,19 +221,19 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
         <div class="space-y-1">
           <Show when={props.subtotal > 0}>
             <BreakdownLine
-              label="Subtotal"
+              label={t("summarySubtotalLabel")}
               value={formatCurrency(props.subtotal, props.currencyCode)}
             />
           </Show>
           <Show when={props.tax > 0}>
             <BreakdownLine
-              label="Tax"
+              label={t("summaryTaxLabel")}
               value={formatCurrency(props.tax, props.currencyCode)}
             />
           </Show>
           <Show when={props.tip > 0}>
             <BreakdownLine
-              label="Tip"
+              label={t("summaryTipLabel")}
               value={formatCurrency(props.tip, props.currencyCode)}
             />
           </Show>

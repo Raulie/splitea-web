@@ -8,6 +8,7 @@ import {
   uniformItemRate,
 } from "../lib/moneyMath";
 import { formatCurrency } from "../lib/format";
+import { t } from "../lib/i18n";
 
 /// Subtotal / Tax / Tip / Total card. Mirrors the iOS
 /// `summarySection` block in `ItemsView.swift` and uses the
@@ -56,11 +57,11 @@ export function BillSummary(props: BillSummaryProps) {
 
   const taxLabel = () => {
     const rate = effectiveRate();
-    if (rate === null || rate === undefined) return "Tax";
+    if (rate === null || rate === undefined) return t("summaryTaxLabel");
     const trimmed = Number.isInteger(rate)
       ? rate.toString()
       : rate.toFixed(2).replace(/\.?0+$/, "");
-    return `Tax (${trimmed}%)`;
+    return t("summaryTaxLabelWithRate", { rate: trimmed });
   };
 
   /// Tip label — same treatment as the tax rate: "Tip (20%)" when the
@@ -69,11 +70,12 @@ export function BillSummary(props: BillSummaryProps) {
   /// `BillSummarySection.tipLabel` / `ItemsView.summarySection`.
   const tipLabel = () => {
     const { tipType, tipValue } = props.receipt;
-    if (tipType !== "percentage" || !tipValue || tipValue <= 0) return "Tip";
+    if (tipType !== "percentage" || !tipValue || tipValue <= 0)
+      return t("summaryTipLabel");
     const trimmed = Number.isInteger(tipValue)
       ? tipValue.toString()
       : tipValue.toFixed(2).replace(/\.?0+$/, "");
-    return `Tip (${trimmed}%)`;
+    return t("summaryTipLabelWithRate", { rate: trimmed });
   };
 
   return (
@@ -92,7 +94,10 @@ export function BillSummary(props: BillSummaryProps) {
     //     Middle rows (Tax, Tip) keep their tighter `py-3`
     //     between hairlines.
     <section class="bg-ios-card rounded-ios-card ios-list-divide overflow-hidden pt-[6px] pb-[6px]">
-      <Row label="Subtotal" value={formatCurrency(subtotal(), currency())} />
+      <Row
+        label={t("summarySubtotalLabel")}
+        value={formatCurrency(subtotal(), currency())}
+      />
       <Show when={!props.receipt.taxInclusive}>
         <Row label={taxLabel()} value={formatCurrency(tax(), currency())} />
       </Show>
@@ -139,7 +144,7 @@ function TotalRow(props: { value: string }) {
   return (
     <div class="px-[18px] py-3 flex items-center">
       <span class="text-ios-subheadline font-bold text-ios-label">
-        Total
+        {t("summaryTotalLabel")}
       </span>
       <span class="ml-auto text-ios-title-3 font-bold text-ios-label">
         {props.value}

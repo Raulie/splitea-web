@@ -7,6 +7,7 @@ import {
   receiptDownloadBasename,
   receiptDownloadExtension,
 } from "../lib/format";
+import { t } from "../lib/i18n";
 
 /// Full-screen overlay that renders the captured receipt
 /// image or PDF. Mirrors iOS `ReceiptFullscreenView`:
@@ -183,7 +184,7 @@ export function ReceiptViewer(props: ReceiptViewerProps) {
       classList={{ "ios-nav-cover-presented": presented() }}
       role="dialog"
       aria-modal="true"
-      aria-label="Receipt viewer"
+      aria-label={t("receiptViewerDialogLabel")}
     >
       {/* Top chrome — uses the shared `NavBar` component for
           pixel-identical layout with the SavedReceiptView's
@@ -200,7 +201,7 @@ export function ReceiptViewer(props: ReceiptViewerProps) {
           we'll wire up in a follow-up; for now the close
           button alone matches the read-only web feature set. */}
       <NavBar
-        title="Receipt"
+        title={t("receiptNavTitleFallback")}
         leading={<DownloadButton onClick={handleDownload} />}
         trailing={<CloseButton onClick={handleDismiss} />}
       />
@@ -221,7 +222,7 @@ export function ReceiptViewer(props: ReceiptViewerProps) {
             >
               <img
                 src={dataURL()}
-                alt="Receipt"
+                alt={t("receiptNavTitleFallback")}
                 class="max-w-full h-auto select-none"
                 draggable={false}
               />
@@ -230,7 +231,7 @@ export function ReceiptViewer(props: ReceiptViewerProps) {
         >
           <iframe
             src={dataURL()}
-            title="Receipt PDF"
+            title={t("receiptPdfFrameTitle")}
             class="absolute inset-0 w-full h-full bg-white"
           />
         </Show>

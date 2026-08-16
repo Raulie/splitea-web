@@ -1,4 +1,5 @@
 import { ChevronGlyph } from "./ChevronGlyph";
+import { t } from "../lib/i18n";
 
 /// iOS 26-style circular back button. 44×44pt is Apple's
 /// minimum tap target and matches the canonical iOS 26
@@ -26,7 +27,7 @@ export function BackButton(props: BackButtonProps) {
     <button
       type="button"
       class="w-11 h-11 rounded-full bg-ios-card flex items-center justify-center text-ios-label active:opacity-60 transition-opacity"
-      aria-label={props.ariaLabel ?? "Back"}
+      aria-label={props.ariaLabel ?? t("backButton")}
       onClick={() => props.onClick()}
     >
       <ChevronGlyph size={17} />

@@ -214,6 +214,44 @@ body {
   overflow: hidden;
 }
 
+/* Per-language CJK stacks.
+
+   Han characters are unified in Unicode but drawn differently by
+   region, so one merged stack ending in a Japanese face would render
+   Chinese text with Japanese glyph forms. `<html lang>` is set by
+   `applyDocumentLanguage()` in `lib/i18n.ts`, and each stack keeps
+   the Latin faces first so digits and prices hold SF Pro's metrics.
+
+   These stacks deliberately do NOT lead with `-apple-system` or
+   `system-ui`, even though the Latin stack above does. Those two
+   keywords resolve to the system font, and WebKit then services
+   missing glyphs from the system font's OWN fallback chain instead of
+   continuing down the CSS list — so a CJK family named after them is
+   never reached and the text renders as tofu. Naming the real family
+   ("SF Pro Text") keeps per-character fallback walking the list, which
+   is what puts Latin digits in SF Pro and kanji in Hiragino. The
+   system keywords stay at the tail as a last resort. */
+body:lang(ja) {
+  font-family: "SF Pro Text", "SF Pro Display", "Hiragino Sans",
+               "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo,
+               Inter, -apple-system, system-ui, sans-serif;
+}
+body:lang(ko) {
+  font-family: "SF Pro Text", "SF Pro Display", "Apple SD Gothic Neo",
+               "Noto Sans KR", "Malgun Gothic",
+               Inter, -apple-system, system-ui, sans-serif;
+}
+body:lang(zh-Hans) {
+  font-family: "SF Pro Text", "SF Pro Display", "PingFang SC",
+               "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei",
+               Inter, -apple-system, system-ui, sans-serif;
+}
+body:lang(zh-Hant) {
+  font-family: "SF Pro Text", "SF Pro Display", "PingFang TC",
+               "Heiti TC", "Noto Sans TC", "Microsoft JhengHei",
+               Inter, -apple-system, system-ui, sans-serif;
+}
+
 /* iOS-style scrolling: bounce on overscroll where supported,
    smooth-scroll the rest. */
 html { scroll-behavior: smooth; }

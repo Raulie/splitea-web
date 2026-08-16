@@ -38,6 +38,7 @@ import {
   calculateContactBreakdowns,
   totalsByContactFromBreakdowns,
 } from "../lib/moneyMath";
+import { t } from "../lib/i18n";
 
 /// Day-3 read+write render. Shape mirrors the iOS `ItemsView`
 /// from the App Store preview: header chrome, receipt-info
@@ -110,9 +111,9 @@ export function ItemsView() {
   createEffect(() => {
     const err = snapshot.error;
     if (err instanceof ShareFetchError && err.kind === "expired") {
-      document.title = "Splitea | Expired split";
+      document.title = t("docTitleExpiredSplit");
     } else if (err) {
-      document.title = "Splitea | Couldn't load split";
+      document.title = t("docTitleCouldntLoadSplit");
     } else if (snapshot.loading) {
       document.title = "Splitea";
     }
@@ -173,7 +174,7 @@ function Loaded(props: {
   // when no merchant is known.
   createEffect(() => {
     const merchant = store.snapshot.receipt.merchantName?.trim();
-    document.title = merchant ? `Splitea | ${merchant}` : "Splitea";
+    document.title = merchant ? t("docTitleMerchant", { merchant }) : "Splitea";
   });
 
   // Active contact — the "tap a contact, then tap their items"
@@ -699,19 +700,19 @@ function Loaded(props: {
     <>
       <Show when={showHeaderNavBar}>
         <NavBar
-          title="Edit Items"
+          title={t("editItemsNavTitle")}
           leading={<BackButton onClick={() => popSummary()} />}
         />
       </Show>
       <div class="safe-px pt-6">
-        <h1 class="text-ios-title-3 text-ios-label">Assign Items</h1>
+        <h1 class="text-ios-title-3 text-ios-label">{t("assignItemsTitle")}</h1>
         {/* `text-ios-subheadline` (15pt) matches iOS
             `.subheadline` — the font size `ItemsView.swift`
             uses for the same instructions line. The
             previous `text-ios-body` (17pt) read too large
             and competed visually with the title. */}
         <p class="text-ios-subheadline text-ios-label-secondary mt-1">
-          Tap a contact, then tap their items to assign them.
+          {t("assignItemsInstructions")}
         </p>
       </div>
 
@@ -835,7 +836,7 @@ function Loaded(props: {
             else pushSummary();
           }}
         >
-          {summaryFirst() ? "Done" : "Continue"}
+          {summaryFirst() ? t("bottomBarDoneButton") : t("bottomBarContinueButton")}
         </button>
       </div>
     </div>
@@ -993,7 +994,7 @@ function Loaded(props: {
 function LoadingState() {
   return (
     <div class="min-h-dvh flex items-center justify-center pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      <div class="text-ios-label-secondary text-ios-body">Loading…</div>
+      <div class="text-ios-label-secondary text-ios-body">{t("loadingStateLabel")}</div>
     </div>
   );
 }
@@ -1015,9 +1016,9 @@ function ExpiredState() {
         height={96}
         class="w-24 h-24 rounded-[22.37%]"
       />
-      <h1 class="text-ios-title-2">This link has expired</h1>
+      <h1 class="text-ios-title-2">{t("expiredLinkTitle")}</h1>
       <p class="text-ios-body text-ios-label-secondary max-w-xs">
-        Splitea share links expire after 30 days. Ask your friend to send a new one — or get Splitea to create your own.
+        {t("expiredLinkBody")}
       </p>
       {/*
         App Store CTA on the expired state. Earlier this was
@@ -1042,7 +1043,7 @@ function ExpiredState() {
         class="mt-4 px-6 py-3 rounded-full bg-ios-blue text-white font-semibold no-underline"
         href="https://apps.apple.com/app/splitea/id6760237781"
       >
-        Get Splitea
+        {t("getSpliteaAppStoreButton")}
       </a>
     </div>
   );
@@ -1051,10 +1052,9 @@ function ExpiredState() {
 function ErrorState() {
   return (
     <div class="min-h-dvh flex flex-col items-center justify-center px-6 text-center gap-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      <h1 class="text-ios-title-2">Couldn't load this receipt</h1>
+      <h1 class="text-ios-title-2">{t("loadErrorTitle")}</h1>
       <p class="text-ios-body text-ios-label-secondary max-w-xs">
-        Try again in a moment. If the problem persists, ask your friend to
-        send a new share link.
+        {t("loadErrorBody")}
       </p>
     </div>
   );

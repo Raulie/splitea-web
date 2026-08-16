@@ -20,6 +20,8 @@
 /// need to know which contact the recipient is to construct
 /// a per-recipient amount.
 
+import { t } from "./i18n";
+
 /// Raw values matching `PaymentProvider.rawValue` on iOS.
 /// These are the keys used in `ContactPayload.paymentUsernames`.
 export const PAY_PROVIDER_RAW_VALUES = [
@@ -127,8 +129,8 @@ function asciiFold(s: string): string {
 function paymentNote(merchantName: string | null | undefined): string {
   const raw =
     merchantName && merchantName.trim().length > 0
-      ? `My share at ${merchantName.trim()} - sent via Splitea`
-      : "My share of the bill - sent via Splitea";
+      ? t("payNoteShareAtMerchant", { merchantName: merchantName.trim() })
+      : t("payNoteShareOfBill");
   return asciiFold(raw);
 }
 

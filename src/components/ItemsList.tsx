@@ -4,6 +4,7 @@ import { Avatar } from "./Avatar";
 import { EVERYONE_ID } from "./ContactsRow";
 import { formatCurrency, formatTaxRate } from "../lib/format";
 import { uniformItemRate } from "../lib/moneyMath";
+import { t } from "../lib/i18n";
 
 /// Items section header ("Items" + "Reset" right-aligned) plus
 /// the rounded-card list of items. Each row shows the assigned
@@ -56,7 +57,7 @@ export function ItemsList(props: ItemsListProps) {
           screenshot lands on. */}
       <div class="flex items-center justify-between px-4 mb-2">
         <h2 class="text-ios-subheadline font-semibold text-ios-label-secondary">
-          Items
+          {t("itemsSectionTitle")}
         </h2>
       </div>
       <ul class="bg-ios-card rounded-ios-card ios-list-divide overflow-hidden">

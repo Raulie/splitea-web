@@ -2,6 +2,7 @@ import { For } from "solid-js";
 import type { ItemPayload } from "../types/snapshot";
 import { formatCurrency } from "../lib/format";
 import { WarningTriangleGlyph } from "./WarningTriangleGlyph";
+import { t } from "../lib/i18n";
 
 /// Web port of iOS `UnassignedItemsSection`
 /// (`Splitea/Views/BillSplit/Components/UnassignedItemsSection.swift`).
@@ -27,7 +28,7 @@ export function UnassignedItemsSection(props: UnassignedItemsSectionProps) {
           row inside the list. iOS uses `.title3` (20pt) bold. */}
       <div class="flex items-center px-2">
         <h2 class="text-ios-title-3 font-bold text-ios-label">
-          Unassigned Items
+          {t("unassignedItemsTitle")}
         </h2>
         <span class="ml-auto">
           <WarningTriangleGlyph size={20} />

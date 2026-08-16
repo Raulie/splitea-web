@@ -1,6 +1,7 @@
 import { createEffect, createSignal, Match, Switch } from "solid-js";
 import { CheckmarkGlyph } from "./CheckmarkGlyph";
 import { WifiSlashGlyph } from "./WifiSlashGlyph";
+import { t } from "../lib/i18n";
 
 /// Status pill that surfaces the WebSocket connection state.
 /// Visible while connecting / reconnecting / offline; flashes a
@@ -57,13 +58,13 @@ export function ConnectingPill(props: ConnectingPillProps) {
   const label = () => {
     switch (lastVisibleState()) {
       case "connecting":
-        return "Connecting…";
+        return t("connectingPill");
       case "reconnecting":
-        return "Reconnecting…";
+        return t("reconnectingPill");
       case "connected":
-        return "Connected";
+        return t("connectedPill");
       case "offline":
-        return "Offline";
+        return t("offlinePill");
     }
   };
 
