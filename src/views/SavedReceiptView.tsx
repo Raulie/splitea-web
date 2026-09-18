@@ -1,3 +1,4 @@
+import { convertBill } from "../lib/currencyConversion";
 import { createSignal, For, Show, onMount, onCleanup } from "solid-js";
 import type { ReceiptSnapshot } from "../types/snapshot";
 import { ContactBreakdownRow } from "../components/ContactBreakdownRow";
@@ -54,6 +55,13 @@ export interface SavedReceiptViewProps {
   /// identity (skipping the "which one are you?" picker) and
   /// the breakdown UI auto-expands the matching row.
   forContactId?: string | null;
+  /// Landing-page hero mount (see `ItemsViewDemo`). Suppresses
+  /// the bottom Pay bar, which is the only path to `PayMenuSheet`
+  /// / `IOSAlert` — both `<Portal>` to `document.body`, so they
+  /// would escape the fake phone and cover the whole marketing
+  /// page — and the only path to the `claimPaid` POST against the
+  /// production relay. Undefined on every `/r/<shareID>` mount.
+  demo?: boolean;
 }
 
 export function SavedReceiptView(props: SavedReceiptViewProps) {
@@ -93,6 +101,21 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         if (lhs.total !== rhs.total) return rhs.total - lhs.total;
         return lhs.breakdown.contactId.localeCompare(rhs.breakdown.contactId);
       });
+  };
+
+  const converted = () =>
+    convertBill(
+      props.snapshot.receipt,
+      props.snapshot.items,
+      breakdowns().map((r) => r.breakdown),
+    );
+  const displayCurrency = () =>
+    converted()?.currencyCode ?? props.snapshot.receipt.currencyCode;
+  const displayBreakdown = (contactId: string) =>
+    converted()?.breakdowns.find((b) => b.contactId === contactId) ?? null;
+  const displayTotal = (row: { breakdown: { contactId: string }; total: number }) => {
+    const b = displayBreakdown(row.breakdown.contactId);
+    return b ? b.subtotal + b.tax + b.tip : row.total;
   };
 
   /// Items with no contact assignment. Used to surface the
@@ -237,7 +260,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
       .map((row) => ({
         contactId: row.breakdown.contactId,
         displayName: row.contact!.fullName?.trim() || t("unnamedContactFallback"),
-        amount: row.total,
+        amount: displayTotal(row),
         avatarUrl: row.contact!.avatarUrl ?? null,
         settlementState: settlementState(row.contact!),
       }));
@@ -266,6 +289,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   /// recipient any way to say they'd settled, because the "Mark as
   /// paid" row lives inside the provider sheet.
   const canPay = () =>
+    !props.demo &&
     payCandidates().length > 0 &&
     (payerIsPayable() || owingCandidates().length > 0);
 
@@ -377,6 +401,10 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   };
 
   onMount(() => {
+    // Demo: nothing can arm a pay-confirm record (the Pay bar
+    // never renders), so skip the sessionStorage read and the two
+    // global listeners entirely.
+    if (props.demo) return;
     checkPayConfirm();
     const onVisible = () => {
       if (document.visibilityState === "visible") checkPayConfirm();
@@ -613,13 +641,13 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                     <div class="bg-ios-card has-[button:active]:bg-ios-card-hi transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] rounded-ios-card overflow-hidden">
                       <ContactBreakdownRow
                         contact={row.contact!}
-                        amount={row.total}
+                        amount={displayTotal(row)}
                         isPayer={isPayer(row.contact!.phoneNumber)}
-                        currencyCode={props.snapshot.receipt.currencyCode}
-                        items={row.breakdown.items}
-                        subtotal={row.breakdown.subtotal}
-                        tax={row.breakdown.tax}
-                        tip={row.breakdown.tip}
+                        currencyCode={displayCurrency()}
+                        items={(displayBreakdown(row.breakdown.contactId) ?? row.breakdown).items}
+                        subtotal={(displayBreakdown(row.breakdown.contactId) ?? row.breakdown).subtotal}
+                        tax={(displayBreakdown(row.breakdown.contactId) ?? row.breakdown).tax}
+                        tip={(displayBreakdown(row.breakdown.contactId) ?? row.breakdown).tip}
                         open={isRowExpanded(row.breakdown.contactId)}
                         onOpenChange={(next) =>
                           setRowExpanded(row.breakdown.contactId, next)
@@ -654,6 +682,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         <BillSummary
           receipt={props.snapshot.receipt}
           items={props.snapshot.items}
+          converted={converted()}
         />
 
         {/* When the receipt has no captured image, the date
@@ -819,7 +848,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           paymentUsernames={payerContact()?.paymentUsernames}
           receiptID={props.snapshot.receipt.id}
           candidates={payerIsPayable() ? payCandidates() : owingCandidates()}
-          currencyCode={props.snapshot.receipt.currencyCode}
+          currencyCode={displayCurrency()}
           merchantName={props.snapshot.receipt.merchantName}
           forcedContactId={props.forContactId ?? null}
           settleOnly={!payerIsPayable()}

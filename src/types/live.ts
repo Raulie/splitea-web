@@ -170,6 +170,13 @@ export interface ReceiptUpdatePayload {
   merchantName?: string;
   /// Empty string = clear; ISO string or epoch-ms number = set.
   receiptDate?: string | number;
+  currencyCode?: string;
+  /// Empty string = conversion removed.
+  settlementCurrencyCode?: string;
+  settlementTotal?: string;
+  fxRate?: string;
+  fxRateDate?: string;
+  fxSource?: string;
 }
 
 export interface TipUpdatePayload {

@@ -60,6 +60,7 @@ export const ko: Messages = {
   summaryTipLabel: "팁",
   summaryTipLabelWithRate: "팁 ({rate}%)",
   summaryTotalLabel: "합계",
+  summaryConvertedAtNote: "{rate}로 환산됨",
   unassignedItemsTitle: "미할당 항목",
   unnamedContactFallback: "누군가",
   viewFullReceiptLabel: "영수증 보기",

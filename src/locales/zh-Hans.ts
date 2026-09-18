@@ -60,6 +60,7 @@ export const zh_Hans: Messages = {
   summaryTipLabel: "小费",
   summaryTipLabelWithRate: "小费 ({rate}%)",
   summaryTotalLabel: "总计",
+  summaryConvertedAtNote: "按 {rate} 换算",
   unassignedItemsTitle: "未分配项目",
   unnamedContactFallback: "某人",
   viewFullReceiptLabel: "查看收据",

@@ -60,6 +60,7 @@ export const it: Messages = {
   summaryTipLabel: "Mancia",
   summaryTipLabelWithRate: "Mancia ({rate}%)",
   summaryTotalLabel: "Totale",
+  summaryConvertedAtNote: "Convertito a {rate}",
   unassignedItemsTitle: "Articoli non assegnati",
   unnamedContactFallback: "Qualcuno",
   viewFullReceiptLabel: "Visualizza scontrino",

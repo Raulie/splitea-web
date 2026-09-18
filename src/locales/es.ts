@@ -60,6 +60,7 @@ export const es: Messages = {
   summaryTipLabel: "Propina",
   summaryTipLabelWithRate: "Propina ({rate}%)",
   summaryTotalLabel: "Total",
+  summaryConvertedAtNote: "Convertido a {rate}",
   unassignedItemsTitle: "Artículos sin asignar",
   unnamedContactFallback: "Alguien",
   viewFullReceiptLabel: "Ver recibo",

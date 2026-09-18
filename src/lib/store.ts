@@ -502,6 +502,27 @@ function applyReceiptUpdate(
   snap: ReceiptSnapshot,
   payload: ReceiptUpdatePayload,
 ) {
+  if (payload.currencyCode) {
+    snap.receipt.currencyCode = payload.currencyCode;
+  }
+  if (payload.settlementCurrencyCode !== undefined) {
+    if (payload.settlementCurrencyCode === "") {
+      snap.receipt.settlementCurrencyCode = null;
+      snap.receipt.settlementTotal = null;
+      snap.receipt.fxRate = null;
+      snap.receipt.fxRateDate = null;
+      snap.receipt.fxSource = null;
+    } else {
+      snap.receipt.settlementCurrencyCode = payload.settlementCurrencyCode;
+      const total = payload.settlementTotal != null ? Number(payload.settlementTotal) : NaN;
+      const rate = payload.fxRate != null ? Number(payload.fxRate) : NaN;
+      snap.receipt.settlementTotal = Number.isFinite(total) ? total : null;
+      snap.receipt.fxRate = Number.isFinite(rate) ? rate : null;
+      const ts = payload.fxRateDate ? Date.parse(payload.fxRateDate) : NaN;
+      snap.receipt.fxRateDate = Number.isFinite(ts) ? ts : null;
+      snap.receipt.fxSource = payload.fxSource ?? null;
+    }
+  }
   if (payload.merchantName !== undefined) {
     snap.receipt.merchantName = payload.merchantName || null;
   }

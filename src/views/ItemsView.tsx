@@ -1,3 +1,4 @@
+import { convertBill, displayTotals } from "../lib/currencyConversion";
 import { useParams, useSearchParams } from "@solidjs/router";
 import {
   createEffect,
@@ -159,6 +160,17 @@ function Loaded(props: {
   /// contact preselected as the visitor's identity. Comes from
   /// `?for=<contactId>` on the URL.
   forContactId: string | null;
+  /// Landing-page hero mount: the real editor rendered from a
+  /// fixture instead of a network fetch. No WebSocket, no guest
+  /// identity minted, no document.title takeover, no history
+  /// entry, no settlement POST. Taps still mutate the local
+  /// store, so the hero is genuinely interactive.
+  ///
+  /// Undefined on every `/r/<shareID>` mount, and every branch
+  /// below is either a ternary against the existing literal or
+  /// an early return, so the live path is behaviourally
+  /// identical with the prop absent.
+  demo?: boolean;
 }) {
   const isReadOnly = () => props.forContactId !== null || store.editLocked;
   // The store owns the live snapshot. After this point we
@@ -173,6 +185,9 @@ function Loaded(props: {
   // name once the snapshot is in. Falls back to plain "Splitea"
   // when no merchant is known.
   createEffect(() => {
+    // The landing page owns its own <title>. Returning BEFORE the
+    // snapshot read means the effect never even subscribes.
+    if (props.demo) return;
     const merchant = store.snapshot.receipt.merchantName?.trim();
     document.title = merchant ? t("docTitleMerchant", { merchant }) : "Splitea";
   });
@@ -260,7 +275,18 @@ function Loaded(props: {
   /// 3-second timeout fallback covers slow networks where the
   /// WebSocket hasn't connected yet — we capture from whatever
   /// state we have and let live updates trickle in normally.
-  const [modeCaptured, setModeCaptured] = createSignal<boolean | null>(null);
+  /// Demo: lock items-first before first paint. `captureMode()`
+  /// is otherwise reachable only from `onHello` / `onMutation`
+  /// (no socket) or the 3s safety-net timer, so an unseeded hero
+  /// would show a centered "Loading…" for three full seconds on
+  /// every landing visit. Seeding here (rather than calling
+  /// `captureMode()` in `onMount`) also means the mode cannot
+  /// silently flip to the breakdown if the fixture is ever edited
+  /// to assign every item. `captureMode()` becomes a no-op: it
+  /// early-returns when `modeCaptured() !== null`.
+  const [modeCaptured, setModeCaptured] = createSignal<boolean | null>(
+    props.demo ? false : null,
+  );
   /// `latestSeq` reported by the relay's hello; once we've
   /// applied a mutation with `seq >= helloLatestSeq` we know
   /// replay has caught up and the snapshot is current.
@@ -320,6 +346,11 @@ function Loaded(props: {
   const pushSummary = () => {
     if (pushPhase() !== "closed") return;
     setPushPhase("open");
+    // Demo: the overlay still opens (a dead primary CTA is worse
+    // on a landing page than no CTA), but it must not push a
+    // history entry — the browser Back button would then close
+    // the hero's overlay instead of leaving the site.
+    if (props.demo) return;
     history.pushState({ view: "overlay" }, "");
   };
   const closeSummaryAnimated = () => {
@@ -336,6 +367,13 @@ function Loaded(props: {
   /// and the next browser-back press would no-op.
   const popSummary = () => {
     if (pushPhase() !== "open") return;
+    // Demo: no history entry was pushed, so `history.back()`
+    // would navigate the visitor off the marketing page. Drive
+    // the same close animation directly instead.
+    if (props.demo) {
+      closeSummaryAnimated();
+      return;
+    }
     history.back();
   };
   const onPopState = (e: PopStateEvent) => {
@@ -376,6 +414,12 @@ function Loaded(props: {
     }
   };
   onMount(() => {
+    // Demo: no popstate listener (the landing page owns its own
+    // history) and no 3s capture timer (the mode is already
+    // locked to items-first above). The paired
+    // `removeEventListener` in `onCleanup` is a harmless no-op
+    // for a listener that was never added.
+    if (props.demo) return;
     window.addEventListener("popstate", onPopState);
     // Read-only Request link — capture mode immediately
     // (summary-first) so we don't wait on a WebSocket that
@@ -403,14 +447,28 @@ function Loaded(props: {
   /// `ConnectingPill` and the gate around user actions
   /// (taps no-op when the WebSocket isn't open, so the user
   /// can't make changes that silently fall on the floor).
-  const [liveStatus, setLiveStatus] = createSignal<LiveStatus>("connecting");
+  /// Demo: no socket will ever report "open", but BOTH
+  /// interaction gates read this signal — `onToggleItem` and
+  /// `ContactsRow.onSelectContact` each hard-return on
+  /// `liveStatus() !== "open"`. Seed it open so the hero is
+  /// actually tappable. Sends stay inert independently: the
+  /// session is never opened, so `LiveSession.send()` drops on
+  /// its `!this.ws` guard.
+  const [liveStatus, setLiveStatus] = createSignal<LiveStatus>(
+    props.demo ? "open" : "connecting",
+  );
 
   /// Pill display state — strictly a function of liveStatus
   /// EXCEPT that "open" doesn't immediately hide the pill;
   /// we briefly flash a green "Connected" confirmation for
   /// 800ms so the user sees the resolution rather than the
   /// pill silently disappearing.
-  const [pillState, setPillState] = createSignal<ConnectingPillState>("connecting");
+  /// Demo: `onStatus` is the only other writer and it never
+  /// fires without a socket, so an unseeded pill would sit at
+  /// "Connecting…" forever, pinned over the top of the hero.
+  const [pillState, setPillState] = createSignal<ConnectingPillState>(
+    props.demo ? "hidden" : "connecting",
+  );
   let connectedFlashTimer: ReturnType<typeof setTimeout> | null = null;
   /// Tracks how long we've been in a non-open state so we
   /// can promote the pill to "Offline" after a meaningful
@@ -453,8 +511,13 @@ function Loaded(props: {
   const seededResumeSeq = store.lastSeenSeq;
   const session = new LiveSession({
     shareID: props.shareID,
-    userId: getGuestUserId(),
-    displayName: getGuestDisplayName(),
+    // `getGuestUserId()` WRITES `splitea.guestUserId` into a
+    // first-time visitor's localStorage (identity.ts:30). It is
+    // the only real storage pollution in this tree and the
+    // options literal is evaluated eagerly, so it has to be
+    // branched even though the session below is never opened.
+    userId: props.demo ? "web-demo" : getGuestUserId(),
+    displayName: props.demo ? undefined : getGuestDisplayName(),
     initialResumeSeq: store.lastSeenSeq,
     receiveOnly,
     onHello: (msg) => {
@@ -539,7 +602,14 @@ function Loaded(props: {
   // owner's settlement confirmation live instead of only on
   // reload. The ConnectingPill stays hidden for them via the
   // `onStatus` guard above and the explicit set below.
-  session.open();
+  // Demo: constructed but never opened. The constructor is
+  // side-effect free (socket.ts:98-101 — two field assignments);
+  // `open()` is what installs the visibilitychange / online
+  // listeners and dials the relay. `sendMutation` on an unopened
+  // session falls through `send()`'s `!this.ws` guard and
+  // `close()` on it is a no-op, so the three `sendMutation` call
+  // sites and `onCleanup` need no demo branch.
+  if (!props.demo) session.open();
   if (receiveOnly) {
     setPillState("hidden");
   }
@@ -593,8 +663,17 @@ function Loaded(props: {
       idsByItem,
       store.snapshot.receipt,
     );
-    return totalsByContactFromBreakdowns(breakdowns);
+    return displayTotals(
+      convertBill(store.snapshot.receipt, store.snapshot.items, breakdowns),
+      totalsByContactFromBreakdowns(breakdowns),
+    );
   });
+
+  const convertedSummary = createMemo(() =>
+    convertBill(store.snapshot.receipt, store.snapshot.items, []),
+  );
+  const displayCurrency = () =>
+    convertedSummary()?.currencyCode ?? store.snapshot.receipt.currencyCode;
 
   // MARK: - Tap handlers
 
@@ -751,6 +830,7 @@ function Loaded(props: {
         <BillSummary
           receipt={store.snapshot.receipt}
           items={store.snapshot.items}
+          converted={convertedSummary()}
         />
       </div>
     </>
@@ -810,7 +890,7 @@ function Loaded(props: {
         <ContactsRow
           contacts={store.snapshot.contacts}
           totalsByContact={totalsByContact()}
-          currencyCode={store.snapshot.receipt.currencyCode}
+          currencyCode={displayCurrency()}
           payerPhoneNumber={store.snapshot.receipt.payerPhoneNumber}
           activeContactId={activeContactId()}
           onSelectContact={(id) => {
@@ -901,6 +981,7 @@ function Loaded(props: {
                     shareID={props.shareID}
                     onBack={() => popSummary()}
                     forContactId={props.forContactId}
+                    demo={props.demo}
                   />
                 </div>
               </Show>
@@ -929,6 +1010,7 @@ function Loaded(props: {
               // they can't use.
               onEdit={isReadOnly() ? undefined : () => pushSummary()}
               forContactId={props.forContactId}
+              demo={props.demo}
             />
           </div>
           <Show when={pushPhase() !== "closed"}>
@@ -1056,6 +1138,38 @@ function ErrorState() {
       <p class="text-ios-body text-ios-label-secondary max-w-xs">
         {t("loadErrorBody")}
       </p>
+    </div>
+  );
+}
+
+/// Landing-page hero: the real recipient editor, mounted from a
+/// fixture instead of a network fetch. Deliberately the SAME
+/// component tree a share-link visitor renders.
+///
+/// If you ever find yourself copying layout out of here into a
+/// mock for the marketing page, stop — the entire point is that
+/// splitea.app cannot drift from the shipped product.
+///
+/// `forContactId` MUST stay null: a non-null value flips
+/// `isReadOnly()` and forces summary-first, which would land the
+/// hero on the breakdown instead of the item-assignment editor.
+///
+/// Pass a FRESH snapshot object (`demoSnapshot()`, not the
+/// module const): `createSnapshotStore` hands it straight to
+/// Solid's `createStore`, whose proxy writes THROUGH to the
+/// object it was given.
+export function ItemsViewDemo(props: { snapshot: ReceiptSnapshot }) {
+  return (
+    // Mirrors the route component's own wrapper (line 128) so
+    // Landing's `text-white` doesn't leak into the app's
+    // inherited color.
+    <div class="bg-ios-bg text-ios-label">
+      <Loaded
+        snapshot={props.snapshot}
+        shareID="demo"
+        forContactId={null}
+        demo
+      />
     </div>
   );
 }

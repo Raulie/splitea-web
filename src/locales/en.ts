@@ -61,6 +61,7 @@ export const en = {
   summaryTipLabel: "Tip",
   summaryTipLabelWithRate: "Tip ({rate}%)",
   summaryTotalLabel: "Total",
+  summaryConvertedAtNote: "Converted at {rate}",
   unassignedItemsTitle: "Unassigned Items",
   unnamedContactFallback: "Someone",
   viewFullReceiptLabel: "View full receipt",

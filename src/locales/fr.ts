@@ -60,6 +60,7 @@ export const fr: Messages = {
   summaryTipLabel: "Pourboire",
   summaryTipLabelWithRate: "Pourboire ({rate}%)",
   summaryTotalLabel: "Total",
+  summaryConvertedAtNote: "Converti à {rate}",
   unassignedItemsTitle: "Articles non attribués",
   unnamedContactFallback: "Quelqu'un",
   viewFullReceiptLabel: "Voir le reçu",

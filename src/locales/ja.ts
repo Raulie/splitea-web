@@ -60,6 +60,7 @@ export const ja: Messages = {
   summaryTipLabel: "チップ",
   summaryTipLabelWithRate: "チップ ({rate}%)",
   summaryTotalLabel: "合計",
+  summaryConvertedAtNote: "{rate}で換算",
   unassignedItemsTitle: "未割り当ての項目",
   unnamedContactFallback: "誰か",
   viewFullReceiptLabel: "レシートを表示",

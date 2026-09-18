@@ -50,6 +50,15 @@ export interface ReceiptPayload {
   /// Optional — older snapshots omit it; absent means pre-tax.
   tipPostTax?: boolean;
   currencyCode: string;
+  /// Settlement currency chosen by the payer, with either the amount
+  /// their card charged (`settlementTotal`, source "card") or a market
+  /// rate (`fxRate`, source "market"). All optional: older snapshots
+  /// omit them and amounts stay in `currencyCode`.
+  settlementCurrencyCode?: string | null;
+  settlementTotal?: number | null;
+  fxRate?: number | null;
+  fxRateDate?: number | null;
+  fxSource?: string | null;
   receiptImageBase64: string | null;
   receiptMimeType: string;
   warningCodes: string[];

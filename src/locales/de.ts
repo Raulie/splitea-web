@@ -60,6 +60,7 @@ export const de: Messages = {
   summaryTipLabel: "Trinkgeld",
   summaryTipLabelWithRate: "Trinkgeld ({rate}%)",
   summaryTotalLabel: "Gesamt",
+  summaryConvertedAtNote: "Umgerechnet zu {rate}",
   unassignedItemsTitle: "Nicht zugewiesene Artikel",
   unnamedContactFallback: "Jemand",
   viewFullReceiptLabel: "Beleg anzeigen",

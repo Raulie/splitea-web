@@ -9,6 +9,7 @@ import {
 } from "../lib/moneyMath";
 import { formatCurrency } from "../lib/format";
 import { t } from "../lib/i18n";
+import type { ConvertedBill } from "../lib/currencyConversion";
 
 /// Subtotal / Tax / Tip / Total card. Mirrors the iOS
 /// `summarySection` block in `ItemsView.swift` and uses the
@@ -31,14 +32,32 @@ import { t } from "../lib/i18n";
 export interface BillSummaryProps {
   receipt: ReceiptPayload;
   items: ItemPayload[];
+  converted?: ConvertedBill | null;
 }
 
 export function BillSummary(props: BillSummaryProps) {
-  const subtotal = () => billSubtotal(props.items);
-  const tax = () => billTaxTotal(props.receipt, props.items);
-  const tip = () => billTipAmount(props.receipt, subtotal(), tax());
-  const total = () => billGrandTotal(props.receipt, props.items);
-  const currency = () => props.receipt.currencyCode;
+  const subtotal = () => props.converted?.subtotal ?? billSubtotal(props.items);
+  const tax = () =>
+    props.converted?.tax ?? billTaxTotal(props.receipt, props.items);
+  const tip = () =>
+    props.converted?.tip ??
+    billTipAmount(props.receipt, billSubtotal(props.items), billTaxTotal(props.receipt, props.items));
+  const total = () => props.converted?.grandTotal ?? billGrandTotal(props.receipt, props.items);
+  const currency = () => props.converted?.currencyCode ?? props.receipt.currencyCode;
+  const rateText = () => {
+    const c = props.converted;
+    if (!c || !(c.rate > 0)) return null;
+    const flipped = c.rate < 1;
+    const unit = flipped ? c.currencyCode : c.originalCurrencyCode;
+    const quote = flipped ? c.originalCurrencyCode : c.currencyCode;
+    const value = flipped ? 1 / c.rate : c.rate;
+    const number = value.toLocaleString(undefined, { maximumSignificantDigits: 4, useGrouping: false });
+    return `1 ${unit} = ${number} ${quote}`;
+  };
+  const originalText = () => {
+    const c = props.converted;
+    return c ? formatCurrency(c.originalTotal, c.originalCurrencyCode) : null;
+  };
 
   /// Tax label — iOS appends `(rate%)` when the parsed tax
   /// rate is known. Format the rate without trailing zeros
@@ -79,6 +98,7 @@ export function BillSummary(props: BillSummaryProps) {
   };
 
   return (
+    <>
     // Card chrome + concentric padding:
     //
     //   • `rounded-ios-card` (22pt) matches every other card
@@ -102,8 +122,14 @@ export function BillSummary(props: BillSummaryProps) {
         <Row label={taxLabel()} value={formatCurrency(tax(), currency())} />
       </Show>
       <Row label={tipLabel()} value={formatCurrency(tip(), currency())} />
-      <TotalRow value={formatCurrency(total(), currency())} />
+      <TotalRow value={formatCurrency(total(), currency())} secondary={originalText()} />
     </section>
+    <Show when={rateText()}>
+      <p class="px-[18px] pt-2 text-ios-footnote text-ios-label-secondary">
+        {t("summaryConvertedAtNote", { rate: rateText()! })}
+      </p>
+    </Show>
+    </>
   );
 }
 
@@ -134,7 +160,7 @@ function Row(props: RowProps) {
   );
 }
 
-function TotalRow(props: { value: string }) {
+function TotalRow(props: { value: string; secondary?: string | null }) {
   // iOS Total row from `ItemsView.swift:446-455`:
   //   Label:  .subheadline (15pt)  .bold      .primary
   //   Value:  .title3      (20pt)  .bold      .primary
@@ -146,8 +172,11 @@ function TotalRow(props: { value: string }) {
       <span class="text-ios-subheadline font-bold text-ios-label">
         {t("summaryTotalLabel")}
       </span>
-      <span class="ml-auto text-ios-title-3 font-bold text-ios-label">
-        {props.value}
+      <span class="ml-auto flex flex-col items-end">
+        <span class="text-ios-title-3 font-bold text-ios-label">{props.value}</span>
+        <Show when={props.secondary}>
+          <span class="text-ios-subheadline text-ios-label-secondary">{props.secondary}</span>
+        </Show>
       </span>
     </div>
   );
