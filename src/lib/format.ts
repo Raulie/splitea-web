@@ -3,11 +3,29 @@
 /// iOS app uses via `formatCurrency` underneath
 /// `NumberFormatter.currency`. Result is "$8.95" for USD,
 /// "€8,95" for EUR-de, etc., locale-aware automatically.
+///
+/// `currencyDisplay: "narrowSymbol"` is load-bearing. The
+/// default is "symbol", which only yields a bare "$" when the
+/// browser's locale owns that currency; everywhere else it
+/// disambiguates to "US$8.95" or, on locales with no symbol
+/// mapping at all, "USD 8.95". A share link is opened by
+/// whoever was at the table, on whatever locale their phone is
+/// set to, so the default made the same receipt read
+/// differently per recipient. "narrowSymbol" pins it to "$".
 export function formatCurrency(amount: number, currencyCode: string): string {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: currencyCode,
-  }).format(amount);
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currencyCode,
+      currencyDisplay: "narrowSymbol",
+    }).format(amount);
+  } catch {
+    // Pre-2020 engines reject `narrowSymbol` with a RangeError.
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currencyCode,
+    }).format(amount);
+  }
 }
 
 /// Tax-rate label like "7%" or "11.5%". Keeps trailing zeros

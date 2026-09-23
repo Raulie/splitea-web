@@ -758,14 +758,21 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           // parent (see h-dvh comment above).
           class="absolute inset-x-0 bottom-0 px-4 pointer-events-none"
           style={{
-            // Frame height: ~64px gradient fade above the
-            // button + button row + safe-area inset. The
-            // gradient region overlaps the scroll content
-            // intentionally — content scrolling up FADES
-            // behind the bar rather than abruptly stopping
-            // at a hard edge.
             "padding-top": "64px",
             "padding-bottom": "calc(env(safe-area-inset-bottom) + 12px)",
+          }}
+        >
+          {/* The scrim is its own layer BEHIND the button, not the
+              bar itself. `mask-image` applies to an element's
+              descendants, so with the mask on the bar the gradient
+              ramped across the button too: the bar is ~158px tall,
+              the button starts 64px down, and the mask only reaches
+              full opacity at 55% (~87px) — so the button's top half
+              was being faded out along with the backdrop. */}
+          <div
+            aria-hidden="true"
+            class="absolute inset-0"
+            style={{
             // Solid scrim fill via `--ios-scrim` (light ≈
             // white@92%, dark ≈ black@92%). The smooth
             // fade-in is handled by `mask-image` below, NOT
@@ -801,9 +808,9 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
               " transparent 0%," +
               " rgba(0,0,0,0.4) 30%," +
               " black 55%)",
-          }}
-        >
-          <div class="flex flex-col gap-2 pointer-events-auto">
+            }}
+          />
+          <div class="relative flex flex-col gap-2 pointer-events-auto">
             {/* One button, two meanings — see `canPay`. With
                 providers it opens the pay sheet; without them the
                 only thing left to do is settle offline. That skips

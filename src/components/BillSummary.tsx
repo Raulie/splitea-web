@@ -97,22 +97,22 @@ export function BillSummary(props: BillSummaryProps) {
     return t("summaryTipLabelWithRate", { rate: trimmed });
   };
 
+  // Card chrome + concentric padding:
+  //
+  //   • `rounded-ios-card` (22pt) matches every other card
+  //     on this view — breakdown rows, ReceiptInfoCard,
+  //     ItemsList — so the stack reads as one consistent
+  //     surface. iOS app uses `cornerRadius: 22` on its
+  //     equivalent prominent cards, so the web matches.
+  //   • Vertical padding 6+12=18px above the first row's
+  //     text and below the last row's text. The horizontal
+  //     padding (rows' `px-[18px]`) is unchanged from the
+  //     previous design because it doesn't depend on the
+  //     card radius — it's just visually pleasant gutter.
+  //     Middle rows (Tax, Tip) keep their tighter `py-3`
+  //     between hairlines.
   return (
     <>
-    // Card chrome + concentric padding:
-    //
-    //   • `rounded-ios-card` (22pt) matches every other card
-    //     on this view — breakdown rows, ReceiptInfoCard,
-    //     ItemsList — so the stack reads as one consistent
-    //     surface. iOS app uses `cornerRadius: 22` on its
-    //     equivalent prominent cards, so the web matches.
-    //   • Vertical padding 6+12=18px above the first row's
-    //     text and below the last row's text. The horizontal
-    //     padding (rows' `px-[18px]`) is unchanged from the
-    //     previous design because it doesn't depend on the
-    //     card radius — it's just visually pleasant gutter.
-    //     Middle rows (Tax, Tip) keep their tighter `py-3`
-    //     between hairlines.
     <section class="bg-ios-card rounded-ios-card ios-list-divide overflow-hidden pt-[6px] pb-[6px]">
       <Row
         label={t("summarySubtotalLabel")}
