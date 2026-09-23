@@ -1,5 +1,6 @@
 import { Router, Route } from "@solidjs/router";
 import { ItemsView } from "./views/ItemsView";
+import { Landing } from "./views/Landing";
 import { NotFound } from "./views/NotFound";
 
 /// Top-level routing.
@@ -26,6 +27,7 @@ import { NotFound } from "./views/NotFound";
 function App() {
   return (
     <Router>
+      <Route path="/" component={Landing} />
       <Route path="/r/:shareID" component={ItemsView} />
       <Route path="/r/:shareID/c/:contactShortId" component={ItemsView} />
       <Route path="*" component={NotFound} />

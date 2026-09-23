@@ -141,6 +141,23 @@ export function ContactsRow(props: ContactsRowProps) {
   /// edge after a contact is promoted to active.
   let scrollEl: HTMLDivElement | undefined;
 
+  /// Effective CSS zoom at `el`, as the product of every `zoom`
+  /// on its ancestor chain. Returns exactly 1 outside a zoomed
+  /// subtree. Preferred over `Element.currentCSSZoom`, which is
+  /// Chromium-only (so it would silently no-op in Firefox, which
+  /// DOES support `zoom`) and is absent from TypeScript 5.6.3's
+  /// lib.dom.d.ts. Also preferred over `rect.width / offsetWidth`,
+  /// which is lossy because `offsetWidth` is a rounded integer
+  /// (measured 0.7194 against a true 0.71699).
+  const effectiveZoom = (el: Element): number => {
+    let z = 1;
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const v = parseFloat(getComputedStyle(n).zoom);
+      if (v && v !== 1) z *= v;
+    }
+    return z;
+  };
+
   const flipReorder = (mutate: () => void) => {
     // FIRST: capture old positions. Cancel any in-flight
     // animations first so the rect we read is the settled
@@ -176,9 +193,18 @@ export function ContactsRow(props: ContactsRowProps) {
       // jitter shouldn't trigger a 450ms animation.
       if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
 
+      // `getBoundingClientRect()` reports POST-zoom viewport px,
+      // but a CSS transform inside a zoomed subtree is applied in
+      // the element's own PRE-zoom space — so an uncorrected delta
+      // paints at `dx * zoom` and the chip lands short of its slot
+      // (measured in the landing hero: a 141.4px gap travelled
+      // 101.4px at zoom 0.717, stopping 28% shy). Outside a zoomed
+      // subtree this walk returns exactly 1, so `/r/<shareID>`
+      // divides by 1 and its arithmetic is unchanged.
+      const zoom = effectiveZoom(el);
       const anim = el.animate(
         [
-          { transform: `translate(${dx}px, ${dy}px)` },
+          { transform: `translate(${dx / zoom}px, ${dy / zoom}px)` },
           { transform: "translate(0, 0)" },
         ],
         {

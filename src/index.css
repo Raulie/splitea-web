@@ -198,6 +198,24 @@ html {
   min-height: 100%;
 }
 
+/* Full-viewport scroller for non-app pages (Landing, and any
+   future marketing route rendered inside the SPA). The app-column
+   equivalent is `.ios-nav-page` below, which clamps to a 440px
+   phone column — wrong for a full-bleed marketing page.
+
+   REQUIRED on any page-level root. `body` above is
+   `overflow: hidden`, which is still scrollable PROGRAMMATICALLY
+   (`scrollTop` / `scrollTo` both work) but not by wheel or touch.
+   A page that omits this class passes a scripted scroll check and
+   is completely unscrollable for a real visitor. */
+.page-scroll {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
                "SF Pro Text", Inter, system-ui, sans-serif;
@@ -720,3 +738,582 @@ html { scroll-behavior: smooth; }
   to { opacity: 1; }
 }
 
+/* ============================================================
+   LANDING HERO — iPhone shell + the REAL recipient UI inside it
+
+   `Landing` mounts `ItemsViewDemo`, i.e. the exact component
+   tree `/r/<shareID>` renders, driven by a fixture. So every
+   rule that tree depends on applies verbatim in here, including
+   `.ios-nav-page`, `.ios-nav-page-bottom` and `.ios-nav-pushed`
+   — all three `position: fixed` — plus `.ios-nav-stack`'s
+   `100dvh` and its 431px column `clip-path`. Left alone they
+   resolve against the BROWSER viewport and the "phone" UI fills
+   the whole window.
+
+   Every selector here is prefixed `.device-*`, classes that
+   exist only on the marketing route, so `/r/<shareID>` output is
+   byte-for-byte unaffected. The scoped app-rule overrides at the
+   bottom are all descendant selectors (specificity 0,2,0) under
+   `.device-app`; the live path cannot match them.
+
+   ONE KNOB: `--dw`, the screen's width in CSS px. Rail, bezel,
+   radii, button offsets, chrome height and the substituted
+   viewport height are all calc()s off it. No `transform:
+   scale()` anywhere — scaling would render the app's 15px body
+   text at ~9px, freeze layout at one hard-coded width, and
+   defeat browser zoom. The app lays out at the real width it is
+   given, exactly as it would on a narrow phone.
+   ============================================================ */
+
+.device-stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  isolation: isolate;
+}
+
+/* The page is `#000` (index.css:176) and so is `--ios-bg`, so a
+   black drop-shadow is literally invisible — the usual "float
+   the device off the page" trick contributes nothing here. A
+   soft light bloom BEHIND the phone is what separates it from
+   the page instead. Kept low-alpha so it reads as ambience, not
+   as a glow effect. */
+.device-stage::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: 150%;
+  height: 108%;
+  translate: -50% -50%;
+  background: radial-gradient(
+    55% 45% at 50% 42%,
+    rgba(120, 145, 200, 0.20),
+    rgba(90, 110, 165, 0.07) 45%,
+    transparent 72%
+  );
+  pointer-events: none;
+}
+
+.device-frame {
+  /* Screen width. Capped at 390 (iPhone 14/16 logical width) and
+     shrunk to fit a narrow viewport. Any value <= 440px makes
+     `.ios-nav-page`'s `left/right: max(0px, calc(50% - 220px))`
+     resolve to 0, so the app renders edge-to-edge with no
+     letterboxing at every size this can take.
+
+     No viewport-HEIGHT clamp below `lg`: there the phone is
+     stacked under the copy, so "fit the fold" buys nothing and
+     costs visible rows. The clamp is added back at `lg` (below),
+     where the grid goes side-by-side and a phone taller than the
+     window does look broken.
+
+     402x874pt is Apple's framebuffer mask (1206x2622 @3x),
+     shared unchanged by iPhone 16 Pro / 17 / 17 Pro.
+
+     CONSTANT, never responsive. The app inside always lays out
+     at a real iPhone's logical viewport, and `zoom` below scales
+     the whole device to fit. Making this responsive instead is
+     what produced the bug the owner reported: the app type is
+     fixed at 15px, so a 313px screen gave the text proportionally
+     MORE room than a 402px one — 2 item rows on a phone against 6
+     on desktop. A scale model has to reflow at NO size. */
+  --dw: 402px;
+  --dh: calc(var(--dw) * 874 / 402);
+
+  /* Apple's own dimensional drawing for the 17 Pro: 1.20mm of
+     metal rail + 1.44mm of black bezel, against a 66.57mm-wide
+     active area. As fractions of screen width that is 0.0180 and
+     0.0216. Display corner radius is 62pt on a 402pt-wide screen
+     = 0.1542 of screen width. Corners are concentric. */
+  --rail: calc(var(--dw) * 0.018);
+  --bezel: calc(var(--dw) * 0.0216);
+  --r-screen: calc(var(--dw) * 0.15423);   /* 62pt / 402pt */
+  --r-bezel: calc(var(--r-screen) + var(--bezel));
+  --r-frame: calc(var(--r-bezel) + var(--rail));
+  /* Body height. Button offsets key off this, NOT `--dh`. */
+  --body-h: calc(var(--dh) + 2 * (var(--rail) + var(--bezel)));
+
+  /* Browser chrome: status bar + address pill. Also the reason
+     the Dynamic Island does not sit on top of the app's first
+     line of text. */
+  --ch: calc(var(--dw) * 0.2836);   /* 114pt: 62pt safe area + 52pt address bar */
+  /* What `100dvh` MEANS inside the bezel. Absolute length, so it
+     needs no percentage height chain and no container units. */
+  --app-h: calc(var(--dh) - var(--ch));
+
+  --metal-hi: #f4f5f7;
+  --metal-lit: #c9cbd2;
+  --metal-mid: #8f9199;
+  --metal-dim: #5c5e66;
+  --metal-deep: #303239;
+
+  /* Fit-to-space. A zoomed element claims its POST-zoom size in
+     the parent's layout (measured: a 400px child at zoom .5 gives
+     its parent 200px), so this cannot overflow the grid column.
+     Body width at zoom 1 is 402 x 1.079 = 433.76px.
+
+     `tan(atan2(a, b))` IS a / b as a unitless number, and needs
+     only CSS trig (Chrome 111 / Safari 15.4 / Firefox 108). The
+     obvious `calc(a / b)` spelling needs typed division, which is
+     Chrome 140 / Safari 26 / Firefox never — and where it fails to
+     parse the whole declaration is dropped, so the frame paints
+     433.76px into a 375px viewport and `.page-scroll`'s
+     `overflow-x: hidden` slices ~22px off each edge. Measured
+     identical at 375px: both forms give 0.716986.
+
+     The 0.05 is an invalid-value guard, not a design floor: below
+     an ~86px viewport the numerator crosses zero, and a computed
+     zoom of 0 would reset to 1 and crop the phone. */
+  zoom: max(0.05, min(1, tan(atan2(calc(100vw - 4rem), 433.76px))));
+
+  position: relative;
+  /* Tailwind sets `box-sizing: border-box` globally, so `width`
+     is the BORDER box. `width: var(--dw)` therefore made --dw the
+     body width and left the screen 8.6% narrower than every
+     ratio assumed. Add the surround explicitly so --dw means the
+     screen, exactly as the comments above claim. */
+  width: calc(var(--dw) + 2 * (var(--rail) + var(--bezel)));
+  padding: var(--rail);
+  border-radius: var(--r-frame);
+  /* Bead-blasted anodised aluminium. The realism is in the
+     CROSS-RAIL specular ramp (deep -> hot highlight inside the
+     rail -> mid -> dark at the glass seam, mirrored), not in a
+     brushed texture: the 17 Pro rail is blasted, not brushed,
+     and a visible grain reads as a metallic mousepad. Layer 1 is
+     the diagonal polished band, layer 2 the top-bright /
+     bottom-dark vertical pass, layer 3 the cross-rail ramp. */
+  background:
+    linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.34) 0%,
+      rgba(255, 255, 255, 0) 18%,
+      rgba(0, 0, 0, 0.12) 46%,
+      rgba(255, 255, 255, 0) 62%,
+      rgba(255, 255, 255, 0.28) 78%,
+      rgba(255, 255, 255, 0) 92%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.45) 0,
+      rgba(255, 255, 255, 0) calc(var(--rail) * 1.6),
+      rgba(0, 0, 0, 0) calc(100% - var(--rail) * 1.6),
+      rgba(0, 0, 0, 0.42) 100%
+    ),
+    linear-gradient(
+      90deg,
+      var(--metal-deep) 0,
+      var(--metal-hi) calc(var(--rail) * 0.32),
+      var(--metal-lit) calc(var(--rail) * 0.55),
+      var(--metal-mid) calc(var(--rail) * 0.8),
+      var(--metal-dim) var(--rail),
+      var(--metal-dim) calc(100% - var(--rail)),
+      var(--metal-mid) calc(100% - var(--rail) * 0.8),
+      var(--metal-lit) calc(100% - var(--rail) * 0.55),
+      var(--metal-hi) calc(100% - var(--rail) * 0.32),
+      var(--metal-deep) 100%
+    );
+  /* The 1px inset white hairline IS the chamfer. The outer
+     shadows are keyed off `--dw` so they scale with the device;
+     they do almost nothing on a black page, which is what the
+     bloom above is for. */
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+    0 calc(var(--dw) * 0.01) calc(var(--dw) * 0.03) rgba(0, 0, 0, 0.75),
+    0 calc(var(--dw) * 0.09) calc(var(--dw) * 0.18) rgba(0, 0, 0, 0.55);
+}
+
+/* Black glass ring between the rail and the pixels. */
+.device-bezel {
+  padding: var(--bezel);
+  border-radius: var(--r-bezel);
+  background: #05060a;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+}
+
+.device-screen {
+  position: relative;
+  height: var(--dh);
+  /* No padding, ever. Per CSS 2.1 §10.1 the containing block for
+     positioned descendants is the PADDING box, so padding here
+     would silently inset the whole app. Bezel thickness lives on
+     the two wrappers above. */
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--r-screen);
+  background: var(--ios-bg, #000);
+}
+
+/* ---- Browser furniture (NOT product UI) -------------------- */
+
+.device-chrome {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--ch);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: calc(var(--dw) * 0.0576) calc(var(--dw) * 0.038) calc(var(--dw) * 0.0239);
+  background: #101012;
+  color: rgba(235, 235, 245, 0.92);
+  font-size: calc(var(--dw) * 0.036);
+  pointer-events: none;
+}
+.device-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(var(--dw) * 0.0473);            /* 19pt */
+  /* The corner arc intrudes to 0.0321 x screen width at the time's
+     line-box top, which clipped the "9" by 9.2px at the old 0.035
+     chrome inset. These land the time's ink 0.14096 from the screen
+     edge, matching iOS. */
+  padding-left: calc(var(--dw) * 0.10296);
+  padding-right: calc(var(--dw) * 0.04989);
+}
+.device-time {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  font-size: calc(var(--dw) * 0.04229);        /* 17pt */
+  line-height: 1;   /* `normal` gives a 20.4pt box in a 19pt row */
+}
+.device-status-icons {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--dw) * 0.014);
+}
+.device-glyph {
+  height: calc(var(--dw) * 0.029);
+  width: auto;
+}
+.device-glyph--battery {
+  height: calc(var(--dw) * 0.031);
+}
+.device-urlbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--dw) * 0.014);
+  height: calc(var(--dw) * 0.1032);
+  border-radius: calc(var(--dw) * 0.0304);
+  background: #2a2a2e;
+  color: rgba(235, 235, 245, 0.85);
+  font-size: calc(var(--dw) * 0.038);
+}
+.device-lock {
+  height: calc(var(--dw) * 0.031);
+  width: auto;
+  opacity: 0.55;
+}
+.device-url {
+  letter-spacing: -0.01em;
+}
+
+/* True capsule, Apple's dimensions: 20.76 x 6.07mm against a
+   66.57mm active area, 1.92mm below the top of the screen. */
+.device-island {
+  position: absolute;
+  z-index: 30;
+  left: 50%;
+  top: calc(var(--dw) * 0.0288);
+  translate: -50% 0;
+  width: calc(var(--dw) * 0.3119);
+  height: calc(var(--dw) * 0.0912);
+  border-radius: calc(var(--dw) * 0.0456);
+  background: #000;
+  pointer-events: none;
+}
+
+/* Screen glare + the inner edge of the glass. Capped low: this
+   sits over a dark-only UI and anything stronger hazes the
+   merchant name and the first rows. */
+.device-glare {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.055),
+    inset 0 0 calc(var(--dw) * 0.03) rgba(0, 0, 0, 0.5);
+  background: linear-gradient(
+    148deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.012) 16%,
+    rgba(255, 255, 255, 0) 34%
+  );
+}
+
+/* ---- Side controls ---------------------------------------- */
+
+/* Offsets are Apple's button-centre callouts as a fraction of
+   the 150.01mm body length: Action 22.9%, Vol+ 32.3%, Vol-
+   41.8%, Side 37.3%. Drawn wider than a hairline and overlapping
+   the rail, otherwise they render as 2px slivers that read as
+   stray light ticks rather than hardware. */
+.device-btn {
+  --centre: 0;
+  --len: 0;
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--centre) * var(--body-h) - var(--len) * var(--body-h) / 2);
+  height: calc(var(--len) * var(--body-h));
+  width: calc(var(--rail) * 1.6);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.32),
+    rgba(255, 255, 255, 0.04) 30%,
+    rgba(0, 0, 0, 0.28)
+  ),
+  linear-gradient(90deg, var(--metal-dim), var(--metal-lit) 60%, var(--metal-hi));
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.4);
+}
+.device-btn--left {
+  left: calc(var(--rail) * -0.55);
+  border-radius: calc(var(--rail) * 0.8) 0 0 calc(var(--rail) * 0.8);
+}
+.device-btn--right {
+  right: calc(var(--rail) * -0.55);
+  border-radius: 0 calc(var(--rail) * 0.8) calc(var(--rail) * 0.8) 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.32),
+    rgba(255, 255, 255, 0.04) 30%,
+    rgba(0, 0, 0, 0.28)
+  ),
+  linear-gradient(270deg, var(--metal-dim), var(--metal-lit) 60%, var(--metal-hi));
+}
+.device-btn--action   { --centre: 0.229; --len: 0.048; }
+.device-btn--vol-up   { --centre: 0.323; --len: 0.078; }
+.device-btn--vol-down { --centre: 0.418; --len: 0.078; }
+.device-btn--side     { --centre: 0.373; --len: 0.122; }
+
+/* Side-by-side hero: now the phone has to fit the window, or it
+   runs past the fold next to a paragraph that does not. Matches
+   Tailwind's `lg` breakpoint, i.e. exactly where Landing's grid
+   becomes two columns. */
+@media (min-width: 1024px) {
+  .device-frame {
+    /* 875 = the FRAME's height at --dw 390, not the screen's:
+       844 + 2 x (390 x (rail 0.018 + bezel 0.0216)) = 874.9. The
+       10.5rem is the header (72) + the section's `lg:pt-16` (64)
+       + ~32px of air under the phone. */
+    /* Side-by-side here, so a phone taller than the window looks
+       broken — add the height term. Body height at zoom 1 is
+       402 x 2.2531 = 905.75px.
+
+       The 0.72 floor replaces the JOB of the old 320px `--dw`
+       floor (its mechanism is gone; a constant --dw means the app
+       never reflows). At >=1024px wide only the height term ever
+       binds, and unfloored a short window shrinks the phone to a
+       thumbnail. Measured at 1280x700 — unfloored: zoom 0.587, a
+       255px phone, 15px body text painting at 8.8px. At 0.72:
+       312px and 10.8px, with the Continue bar still above the
+       fold at y=660. A larger 0.796 floor pushes that bar to
+       y=714, below a 700px fold. 0.72 is also exactly the zoom a
+       375px iPhone gets, so the desktop hero never renders
+       smaller than the phone one. */
+    zoom: max(0.72,
+              min(1,
+                  tan(atan2(calc(100vw - 4rem), 433.76px)),
+                  tan(atan2(calc(100dvh - 10.5rem), 905.75px))));
+  }
+}
+
+/* Apple's corners are continuous, not circular arcs, and this
+   codebase already ships the primitive (`.squircle`,
+   index.css:360). Progressive enhancement only — a plain
+   border-radius is the fallback.
+
+   The radii MUST be recomputed here. `r_outer = r_inner + gap`
+   holds for circular arcs; a constant offset of a superellipse
+   is not a superellipse, so the naive chain renders a frame that
+   is ~42% thicker at the corners than along the edges. For
+   superellipse(n), a uniform offset t needs
+   R_out = R_in + t * (1 - 1/sqrt(2)) / (1 - 2^(-1/n)); at n = 3
+   that factor is 1.4197 (and the same formula returns exactly
+   1.0 at n = 2, i.e. the circular case, which is the check). */
+/* No `corner-shape` here, deliberately. Its argument is LOG2 of
+   the Lame exponent, not the exponent: `superellipse(3)` renders
+   exponent 8.53 — a near-square corner — where Apple's real
+   corner, fitted from their display mask, is exponent 2.89. The
+   block that used to live here made Chromium's corners visibly
+   squarer than Safari's. A plain circular arc at 0.15423 deviates
+   from Apple's actual mask by at most 0.93pt, which is invisible
+   at any size we render, and it is identical on every engine. */
+
+/* Firefox shipped `zoom` only in 126. Older engines drop the
+   declaration entirely, leaving a constant 433.76px frame to
+   overflow a phone viewport and get sliced by `.page-scroll`'s
+   `overflow-x: hidden`. Fall back to the pre-scale-model
+   behaviour there: the app reflows (the bug this whole block
+   exists to fix) but nothing is ever cropped. */
+@supports not (zoom: 1) {
+  .device-frame {
+    --dw: min(402px, calc((100vw - 4rem) / 1.079));
+  }
+}
+
+/* ============================================================
+   .device-app — the one rule that makes mounting the real UI
+   possible at all.
+
+   `contain: layout paint`:
+     • layout containment (CSS Containment L2 §2.1) — "the
+       element acts as a containing block for absolutely
+       positioned and fixed positioned descendants". That
+       re-roots every `position: fixed` in the app subtree from
+       the VIEWPORT to this box.
+     • paint containment (§2.2) — same guarantee, PLUS
+       descendants are clipped to the overflow clip edge, on all
+       four sides.
+
+   Chosen over `transform` / `translate` / `will-change:
+   transform`, which promote the whole subtree to a composited
+   layer and cost the app's text its subpixel antialiasing (this
+   is the hero; soft type is the entire failure mode). Chosen
+   over `filter` / `backdrop-filter`, which additionally
+   establish a Backdrop Root.
+
+   Deliberately NOT `container-type: size`: that would add size
+   containment on top, and every height the app needs is already
+   available as the absolute `--app-h` below, so container-query
+   units buy nothing.
+   ============================================================ */
+.device-app {
+  position: absolute;
+  inset: var(--ch) 0 0 0;
+  contain: layout paint;
+  background: var(--ios-bg, #000);
+}
+
+@supports not (contain: paint) {
+  /* Pre-2022 engines. `translate` (CSS Transforms L2 §17) is the
+     cheapest containing-block fallback; accept its layer
+     promotion on that sliver of traffic rather than let the
+     whole app escape to the viewport. */
+  .device-app {
+    translate: 0;
+    overflow: hidden;
+  }
+}
+
+/* 1. `.ios-nav-stack` (index.css:470-503). The GLOBAL rule stays
+   exactly as written — its comment records that `relative` (not
+   fixed/transform) is what lets fixed descendants escape to the
+   VISUAL viewport, which is what keeps `.ios-nav-page-bottom`
+   pinned while Android Chrome collapses its URL toolbar, and
+   `100dvh` is right there because on `/r/<shareID>` the stack IS
+   the viewport. Both facts are false inside a bezel, and only
+   inside a bezel.
+
+   Without this override, on any browser window shorter than the
+   fake screen the stack ends above the phone's bottom edge — and
+   since the stack's border box is the reference box for its
+   `clip-path`, the Continue bar is masked away entirely.
+
+   `clip-path: none`: the 431px column mask keys off the
+   VIEWPORT, so it fires inside the bezel on every desktop visit.
+   Its horizontal half is a no-op there (a ~390px stack gives
+   `calc(50% - 220px)` = -25px, and a negative `inset()` expands
+   the clip rect rather than cropping); its VERTICAL half is the
+   trap above. `contain: paint` already does this job properly,
+   on four sides. Absolute length, not `100%`: the stack's parent
+   is `ItemsViewDemo`'s auto-height wrapper, so a percentage
+   would resolve against an indefinite height and compute to 0 —
+   which is the zero-height-stack blanking index.css:472-476
+   already warns about. */
+.device-app .ios-nav-stack {
+  min-height: var(--app-h);
+  height: var(--app-h);
+  clip-path: none;
+}
+
+/* 2. Tailwind's dvh utilities. Specificity 0,2,0 beats
+   Tailwind's 0,1,0 regardless of source order. In the demo path:
+     SavedReceiptView.tsx:429  `h-dvh`     — LOAD-BEARING. The
+       Pay/summary chrome is `absolute inset-x-0 bottom-0` inside
+       this wrapper, so a viewport-sized height puts it off the
+       bottom of the fake screen.
+     ItemsView.tsx:996/1004/1054  `min-h-dvh` — Loading /
+       Expired / Error. Unreachable with a fixture and
+       `modeCaptured` seeded, but covered anyway. */
+.device-app .h-dvh {
+  height: var(--app-h);
+}
+.device-app .min-h-dvh {
+  min-height: var(--app-h);
+}
+
+/* 3. `env(safe-area-inset-*)` is viewport-scoped and cannot be
+   redefined, so inside the bezel it reports the HOST device's
+   insets — on a notched phone visiting splitea.app (index.html
+   sets `viewport-fit=cover`) that floats the Continue bar ~34px
+   off the fake screen's floor and, in landscape, adds ~50px of
+   phantom side gutter. Both sites that MOVE layout are
+   neutralised. `bottom: 0` with `padding-bottom: 0` and NOT an
+   offset bottom: lifting the bar off the floor would leak a
+   strip of scrolling item list underneath it, since the bar's
+   scrim is `absolute inset: 0` INSIDE the bar. Specificity
+   0,2,0 also beats the landscape escape hatch at
+   index.css:655-682. */
+.device-app .ios-nav-page-bottom {
+  bottom: 0;
+  padding-bottom: 0;
+}
+.device-app .safe-px {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* 4. Scroll — a DELIBERATE non-change, documented so nobody
+   "fixes" it into something worse.
+
+   Measured chain under a point inside the bezel:
+     `.ios-nav-page` (overflow-y: auto, overscroll-behavior: auto)
+       -> `.page-scroll` (auto, auto)
+
+   Touch platforms bind a pan to the first scroll container that
+   accepts it for the ENTIRE gesture — there is no mid-gesture
+   handoff — so a swipe that starts on the phone scrolls the
+   receipt, not the page. Measured overflow inside the bezel at a
+   375px viewport: 581px, i.e. the visitor spends at most one
+   extra swipe before the inner scroller bottoms out and the next
+   gesture chains to `.page-scroll`. Bounded and recoverable.
+
+   The alternative (`overflow-y: hidden` on the inner scrollers
+   under `(pointer: coarse)`) was tried and rejected: with the
+   bottom bar occupying 172px and `pb-[calc(180px+env(...))]` on
+   the body, a frozen 294px-wide phone shows the title, the
+   receipt card and ONE item row. A cropped still is a worse hero
+   than one wasted swipe.
+
+   NOTE FOR WHOEVER TOUCHES THIS NEXT — the two obvious fixes are
+   both wrong. `overscroll-behavior: contain` FORBIDS chaining,
+   making the trap permanent instead of eventual (right tool for
+   a modal drawer, wrong one for a marketing hero).
+   `touch-action: none` on the screen intersects up the ancestor
+   chain, so the swipe would then scroll nothing at all.
+   ContactsRow.tsx:231's `overflow-x-auto` must stay untouched
+   either way so the contacts row still scrolls horizontally. */
+
+/* 5. Hide the scrollbars on the phone's internal scrollers. A
+   real phone has overlay scrollbars that fade; a classic
+   desktop scrollbar drawn down the inside of the bezel is an
+   instant tell, and on Windows/Linux Chrome it also STEALS ~15px
+   of layout width from the app. Mirrors the treatment
+   `ContactsRow` already gives its horizontal row (the
+   `[style*="scrollbar-width: none"]` rule at index.css:699).
+   Covers `.ios-nav-page` (index.css:529), ItemsView.tsx:958 and
+   SavedReceiptView.tsx:471. */
+.device-app .ios-nav-page,
+.device-app .overflow-y-auto {
+  scrollbar-width: none;
+}
+.device-app .ios-nav-page::-webkit-scrollbar,
+.device-app .overflow-y-auto::-webkit-scrollbar {
+  display: none;
+}
