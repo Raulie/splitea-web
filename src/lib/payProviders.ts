@@ -248,12 +248,9 @@ export const PAY_PROVIDERS: PayProvider[] = [
     slug: "paypal",
     displayName: "PayPal",
     profileURL: (u) => `https://paypal.me/${encodeURIComponent(u)}`,
-    // PayPal.me path syntax: `/<user>/<amount><currencyCode>`,
-    // e.g. `paypal.me/jdoe/25.00USD`. Currency code
-    // concatenated to the amount with no separator —
-    // PayPal parses on the trailing 3-letter ISO suffix.
-    paymentURL: ({ username, amount, currencyCode }) => {
-      return `https://paypal.me/${encodeURIComponent(username)}/${formatAmount(amount)}${currencyCode.toUpperCase()}`;
+    // With a currency suffix the PayPal app opens the profile instead of Send; its Send screen has a currency picker.
+    paymentURL: ({ username, amount }) => {
+      return `https://paypal.me/${encodeURIComponent(username)}/${formatAmount(amount)}`;
     },
   },
   {
