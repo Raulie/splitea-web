@@ -1,5 +1,5 @@
 import { convertBill } from "../lib/currencyConversion";
-import { createSignal, For, Show, onMount, onCleanup } from "solid-js";
+import { createMemo, createSignal, For, Show, onMount, onCleanup } from "solid-js";
 import type { ReceiptSnapshot } from "../types/snapshot";
 import { ContactBreakdownRow } from "../components/ContactBreakdownRow";
 import { BillSummary } from "../components/BillSummary";
@@ -10,8 +10,11 @@ import { NavBar } from "../components/NavBar";
 import { ReceiptViewer } from "../components/ReceiptViewer";
 import { PayMenuSheet } from "../components/PayMenuSheet";
 import { IOSAlert } from "../components/IOSAlert";
+import { SettlementRing } from "../components/SettlementRing";
+import { SegmentedControl } from "../components/SegmentedControl";
 import {
   calculateContactBreakdowns,
+  minorUnitExponent,
 } from "../lib/moneyMath";
 import { formatReceiptDateTime } from "../lib/format";
 import { configuredPayProviders } from "../lib/payProviders";
@@ -143,6 +146,85 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     const b = target.replace(/\D/g, "");
     if (!a || !b) return false;
     return a.endsWith(b) || b.endsWith(a);
+  };
+
+  const ringPayerId = createMemo(() => {
+    const s = props.snapshot;
+    const target = (s.receipt.payerPhoneNumber ?? "").replace(/\D/g, "");
+    if (target.length >= 7) {
+      const hit = s.contacts.find((c) => {
+        const digits = c.phoneNumber.replace(/\D/g, "");
+        return digits.length >= 7 && (digits.endsWith(target) || target.endsWith(digits));
+      });
+      if (hit) return hit.id.toLowerCase();
+    }
+    if (target.length > 0) {
+      const hit = s.contacts.find((c) => {
+        const digits = c.phoneNumber.replace(/\D/g, "");
+        const n = Math.min(7, digits.length, target.length);
+        return digits.length > 0 && digits.slice(-n) === target.slice(-n);
+      });
+      if (hit) return hit.id.toLowerCase();
+    }
+    return s.contacts.find((c) => c.isUserContact)?.id.toLowerCase() ?? null;
+  });
+
+  const ring = createMemo(() => {
+    const conv = converted();
+    const currency = conv?.currencyCode ?? props.snapshot.receipt.currencyCode;
+    const scale = 10 ** minorUnitExponent(currency);
+    const payerId = ringPayerId();
+    let owed = 0;
+    let settled = 0;
+    let debtors = 0;
+    let settledCount = 0;
+    for (const row of breakdowns()) {
+      if (row.contact!.id.toLowerCase() === payerId) continue;
+      const b = conv?.breakdowns.find((x) => x.contactId === row.breakdown.contactId);
+      const minor = Math.round((b ? b.subtotal + b.tax + b.tip : row.total) * scale);
+      debtors++;
+      owed += minor;
+      if (settlementState(row.contact!) === "settled") {
+        settledCount++;
+        settled += minor;
+      }
+    }
+    return {
+      debtors,
+      settledCount,
+      currency,
+      outstanding: (owed - settled) / scale,
+      progress: owed > 0 ? Math.min(1, Math.max(0, settled / owed)) : 0,
+      allSettled: debtors > 0 && settledCount === debtors,
+    };
+  });
+
+  const ringCaption = () => {
+    const payerId = ringPayerId();
+    if (payerId && props.forContactId?.toLowerCase() === payerId) return t("ringYoureOwed");
+    const payer = props.snapshot.contacts.find((c) => c.id.toLowerCase() === payerId);
+    const firstName = payer?.fullName?.trim().split(/\s+/)[0];
+    return firstName ? t("ringOwedTo", { name: firstName }) : t("ringStillOwed");
+  };
+
+  const HERO_TAB_KEY = "splitea.receiptHeroTab";
+  type HeroTab = "summary" | "receipt";
+  const [heroTab, setHeroTab] = createSignal<HeroTab>(
+    (() => {
+      if (props.demo) return "summary";
+      try {
+        return localStorage.getItem(HERO_TAB_KEY) === "receipt" ? "receipt" : "summary";
+      } catch {
+        return "summary";
+      }
+    })(),
+  );
+  const selectHeroTab = (tab: HeroTab) => {
+    setHeroTab(tab);
+    if (props.demo) return;
+    try {
+      localStorage.setItem(HERO_TAB_KEY, tab);
+    } catch {}
   };
 
   /// Per-contact expansion state. Holds the set of contact
@@ -418,6 +500,34 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     });
   });
 
+  const settlementRing = () => (
+    <SettlementRing
+      progress={ring().progress}
+      outstanding={ring().outstanding}
+      currencyCode={ring().currency}
+      caption={ringCaption()}
+      settledCount={ring().settledCount}
+      debtorCount={ring().debtors}
+      allSettled={ring().allSettled}
+    />
+  );
+
+  const receiptPhoto = () => (
+    <button
+      type="button"
+      class="block max-w-full active:opacity-80 transition-opacity"
+      aria-label={t("viewFullReceiptLabel")}
+      onClick={() => setShowingReceipt(true)}
+    >
+      <img
+        src={`data:${props.snapshot.receipt.receiptMimeType};base64,${props.snapshot.receipt.receiptImageBase64}`}
+        alt={t("receiptNavTitleFallback")}
+        class="max-h-60 w-auto rounded-ios-card-inner"
+        style={{ "box-shadow": "0 4px 10px rgba(0,0,0,0.2)" }}
+      />
+    </button>
+  );
+
   return (
     // Layout: a flex column that fills its parent
     // (`.ios-nav-pushed`, which is `position: fixed; inset: 0`
@@ -506,6 +616,11 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
       >
         <NavBar
           title={props.snapshot.receipt.merchantName ?? t("receiptNavTitleFallback")}
+          subtitle={
+            props.snapshot.receipt.receiptDate
+              ? formatReceiptDateTime(props.snapshot.receipt.receiptDate, { includeTime: true })
+              : null
+          }
           leading={
             props.onBack ? (
               <BackButton onClick={() => props.onBack!()} />
@@ -518,57 +633,46 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           }
         />
         <div class="safe-px pt-2 space-y-7">
-        {/* Receipt image section — mirrors iOS
-            `receiptImageSection(_:)` in
-            `SavedReceiptDetailView.swift:310`:
-              VStack(spacing: 8) {
-                Button { showingFullImage = true } label: {
-                  Image(uiImage: image)
-                    .resizable().scaledToFit()
-                    .frame(maxHeight: 240)
-                    .shadow(color: .black.opacity(0.2), radius: 5, y: 4)
-                }
-                Text(displayDate.formatted(date: .long,
-                  time: receiptDate != nil ? .shortened : .omitted))
-                  .font(.footnote).foregroundStyle(.secondary)
-              }
-              .padding(.vertical, 12)
-            Skipped when no image is captured (PDF-only or
-            manual-entry receipts) — the breakdown card
-            below carries the date in its own layout. */}
-        <Show when={props.snapshot.receipt.receiptImageBase64}>
-          {(b64) => (
-            <section class="flex flex-col items-center gap-2 pb-3">
-              <button
-                type="button"
-                class="block max-w-full active:opacity-80 transition-opacity"
-                aria-label={t("viewFullReceiptLabel")}
-                onClick={() => setShowingReceipt(true)}
-              >
-                <img
-                  src={`data:${props.snapshot.receipt.receiptMimeType};base64,${b64()}`}
-                  alt={t("receiptNavTitleFallback")}
-                  class="max-h-60 w-auto rounded-ios-card-inner"
-                  style={{
-                    // iOS shadow: `.shadow(color: .black.opacity(0.2),
-                    // radius: 5, y: 4)`. CSS box-shadow takes blur as
-                    // 2× the SwiftUI radius (different falloff math),
-                    // so radius 5 → blur 10. Y-offset matches.
-                    "box-shadow": "0 4px 10px rgba(0,0,0,0.2)",
-                  }}
-                />
-              </button>
-              <Show when={props.snapshot.receipt.receiptDate}>
-                {(date) => (
-                  <span class="text-ios-footnote text-ios-label-secondary">
-                    {formatReceiptDateTime(date(), {
-                      includeTime: true,
-                    })}
-                  </span>
-                )}
-              </Show>
+        <Show
+          when={ring().debtors > 0}
+          fallback={
+            <Show when={props.snapshot.receipt.receiptImageBase64}>
+              <section class="flex flex-col items-center pb-2">{receiptPhoto()}</section>
+            </Show>
+          }
+        >
+          <Show
+            when={props.snapshot.receipt.receiptImageBase64}
+            fallback={<section class="-mt-2 pb-2">{settlementRing()}</section>}
+          >
+            <section class="flex flex-col gap-3 pb-2">
+              <div class="relative h-[260px]">
+                <div
+                  class="receipt-hero-layer absolute inset-0 flex items-center justify-center"
+                  classList={{ "receipt-hero-layer-hidden": heroTab() !== "summary" }}
+                  inert={heroTab() !== "summary" || undefined}
+                >
+                  {settlementRing()}
+                </div>
+                <div
+                  class="receipt-hero-layer absolute inset-0 flex items-center justify-center"
+                  classList={{ "receipt-hero-layer-hidden": heroTab() !== "receipt" }}
+                  inert={heroTab() !== "receipt" || undefined}
+                >
+                  {receiptPhoto()}
+                </div>
+              </div>
+              <SegmentedControl
+                ariaLabel={t("heroTabsLabel")}
+                value={heroTab()}
+                onChange={selectHeroTab}
+                options={[
+                  { value: "summary", label: t("heroTabSummary") },
+                  { value: "receipt", label: t("heroTabReceipt") },
+                ]}
+              />
             </section>
-          )}
+          </Show>
         </Show>
 
         {/* "Breakdown" section header with a global Expand /
@@ -685,23 +789,6 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           converted={converted()}
         />
 
-        {/* When the receipt has no captured image, the date
-            wouldn't otherwise surface anywhere on this view —
-            the receipt-image section above is the only place
-            iOS shows it. Render a centered footer instead so
-            non-image receipts still carry the date stamp. */}
-        <Show
-          when={
-            !props.snapshot.receipt.receiptImageBase64 &&
-            props.snapshot.receipt.receiptDate
-          }
-        >
-          {(date) => (
-            <div class="px-2 text-ios-footnote text-ios-label-secondary text-center">
-              {formatReceiptDateTime(date(), { includeTime: true })}
-            </div>
-          )}
-        </Show>
         </div>
       </main>
 

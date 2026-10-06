@@ -36,9 +36,9 @@ import type { ReceiptSnapshot } from "../types/snapshot";
 ///   • **`receiptImageBase64` is null on purpose.** Embedding
 ///     a photo would put a multi-hundred-KB data URI in the
 ///     JS bundle. Null degrades cleanly: `ReceiptInfoCard`
-///     drops the receipt-icon button, `SavedReceiptView` skips
-///     the thumbnail section and falls back to its centered
-///     date footer.
+///     drops the receipt-icon button, and `SavedReceiptView`
+///     shows the settlement ring without the Summary/Receipt
+///     control.
 ///
 ///   • **`avatarUrl` is null on every contact** so the page
 ///     makes no request to `avatars.splitea.app`. `Avatar`

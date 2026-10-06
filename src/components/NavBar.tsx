@@ -34,6 +34,7 @@ import { Show } from "solid-js";
 /// browser mode, which the user explicitly didn't want.
 export interface NavBarProps {
   title: string;
+  subtitle?: string | null;
   /// Optional leading element — rendered at the left edge.
   /// Sized to fit a 44×44pt back button without crowding the
   /// title.
@@ -66,10 +67,21 @@ export function NavBar(props: NavBarProps) {
           stays visually centered regardless of leading/
           trailing widths (a long Back button shouldn't push
           the title right). */}
-      <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <span class="text-ios-headline font-semibold text-ios-label truncate max-w-[60%]">
+      <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span
+          class="font-semibold text-ios-label truncate max-w-[60%]"
+          classList={{
+            "text-ios-headline": !props.subtitle,
+            "text-[15px] leading-5": !!props.subtitle,
+          }}
+        >
           {props.title}
         </span>
+        <Show when={props.subtitle}>
+          <span class="text-ios-caption text-ios-label-secondary truncate max-w-[60%]">
+            {props.subtitle}
+          </span>
+        </Show>
       </div>
     </div>
   );
