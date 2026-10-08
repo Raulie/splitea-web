@@ -1,7 +1,9 @@
+import { lazy } from "solid-js";
 import { Router, Route } from "@solidjs/router";
 import { ItemsView } from "./views/ItemsView";
-import { Landing } from "./views/Landing";
 import { NotFound } from "./views/NotFound";
+
+const Landing = lazy(() => import("./views/landing/Landing"));
 
 /// Top-level routing.
 ///

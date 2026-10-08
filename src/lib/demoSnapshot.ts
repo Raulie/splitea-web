@@ -11,18 +11,17 @@ import type { ReceiptSnapshot } from "../types/snapshot";
 /// Invariants worth preserving when editing:
 ///
 ///   • **The money ties out.** Item prices sum to $118.00.
-///     Every `taxAmount` is that item's price × 11.5% rounded
-///     half-up, except `Flan de Queso` which absorbs the one
-///     reconciliation cent so the six amounts sum EXACTLY to
-///     `printedTaxTotal` ($13.57) — the same shape iOS's
-///     reconciler produces. `on_subtotal_half_up` on the same
-///     items independently yields $13.57 too, so the baked
-///     path and the rate fallback in `billTaxTotal` agree.
-///     (The renderer only ever takes the baked path here, since
-///     `bakedTaxTotal` is non-null — the agreement is belt-and-
-///     braces for a future edit, not a tested invariant.)
-///     Renders as: Subtotal $118.00 · Tax (11.5%) $13.57 ·
-///     Tip (18%) $21.24 · Total $152.81.
+///     Food is taxed at 7% and the sangría at 11.5%, Puerto
+///     Rico's split between prepared food and alcohol. Every
+///     `taxAmount` is that item's price × its rate rounded
+///     half-up, except `Arroz con gandules` which gives back the
+///     one reconciliation cent so the six amounts sum EXACTLY to
+///     `printedTaxTotal` ($9.43 = 7% of the $92.00 food subtotal
+///     plus 11.5% of $26.00), the same shape iOS's reconciler
+///     produces. `taxRate` is null because the rates are mixed,
+///     so the summary reads "Tax", never "Tax (11.5%)".
+///     Renders as: Subtotal $118.00 · Tax $9.43 ·
+///     Tip (18%) $21.24 · Total $148.67.
 ///
 ///   • **Assignments are deliberately PARTIAL.** Four of the
 ///     six items are claimed, two are not. That keeps the hero
@@ -67,8 +66,8 @@ export const DEMO_SNAPSHOT: ReceiptSnapshot = {
     warningCodes: [],
     taxRoundingMethod: "on_subtotal_half_up",
     taxInclusive: false,
-    taxRate: 11.5,
-    printedTaxTotal: 13.57,
+    taxRate: null,
+    printedTaxTotal: 9.43,
     payerPhoneNumber: "+17875550142",
   },
   items: [
@@ -76,8 +75,8 @@ export const DEMO_SNAPSHOT: ReceiptSnapshot = {
       id: "1D7B23F0-6C94-4E15-8A72-3B60D1F84E29",
       itemDescription: "Mofongo de pulpo",
       price: 27,
-      tax: 11.5,
-      taxAmount: 3.11,
+      tax: 7,
+      taxAmount: 1.89,
       sortOrder: 0,
       warningCodes: [],
     },
@@ -85,8 +84,8 @@ export const DEMO_SNAPSHOT: ReceiptSnapshot = {
       id: "2E85C40A-7D16-4B98-A3E5-9C41F27B5D63",
       itemDescription: "Chillo entero frito",
       price: 34,
-      tax: 11.5,
-      taxAmount: 3.91,
+      tax: 7,
+      taxAmount: 2.38,
       sortOrder: 1,
       warningCodes: [],
     },
@@ -94,17 +93,20 @@ export const DEMO_SNAPSHOT: ReceiptSnapshot = {
       id: "0C4A17E9-58B2-4D63-9F81-7A25E0B3C46D",
       itemDescription: "Tostones",
       price: 11.5,
-      tax: 11.5,
-      taxAmount: 1.32,
+      tax: 7,
+      taxAmount: 0.81,
       sortOrder: 2,
       warningCodes: [],
     },
     {
+      // Carries the reconciliation cent: 8.50 × 7% is 0.595,
+      // which would round half-up to 0.60. Baked down to 0.59
+      // so the six amounts sum to printedTaxTotal.
       id: "3F96D51B-8E27-4CA9-B4F6-0D52A38C6E74",
       itemDescription: "Arroz con gandules",
       price: 8.5,
-      tax: 11.5,
-      taxAmount: 0.98,
+      tax: 7,
+      taxAmount: 0.59,
       sortOrder: 3,
       warningCodes: [],
     },
@@ -118,14 +120,11 @@ export const DEMO_SNAPSHOT: ReceiptSnapshot = {
       warningCodes: [],
     },
     {
-      // Carries the reconciliation cent: 11.00 × 11.5% is
-      // 1.265, which would round half-up to 1.27. Baked down
-      // to 1.26 so the six amounts sum to printedTaxTotal.
       id: "5B18F73D-A049-4EC1-9628-2F74C5AE8096",
       itemDescription: "Flan de queso",
       price: 11,
-      tax: 11.5,
-      taxAmount: 1.26,
+      tax: 7,
+      taxAmount: 0.77,
       sortOrder: 5,
       warningCodes: [],
     },

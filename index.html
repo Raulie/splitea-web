@@ -6,10 +6,31 @@
     <!-- Splitea web is dark-only. Black theme-color so the
          mobile URL/status bar matches the always-dark page, and
          color-scheme:dark so the browser paints native controls
-         dark and skips force-dark inversion. -->
+         dark and skips force-dark inversion. The landing page at
+         "/" swaps both to its cream palette before first paint. -->
     <meta name="theme-color" content="#000000" />
     <meta name="color-scheme" content="dark" />
-    <title>Splitea</title>
+    <title>Splitea for iPhone: split receipts with friends, to the cent</title>
+    <meta name="description" content="Snap the receipt, tap who had what, and send one link. Friends pick their items in any browser with no app, and every share adds up to the exact total." />
+    <link rel="canonical" href="https://splitea.app/" />
+    <meta name="apple-itunes-app" content="app-id=6760237781, affiliate-data=ct=landing&amp;pt=128599477" />
+    <style>html.landing,html.landing body,html.landing #root{background-color:#EFE7D6!important;color:#1A1614;color-scheme:light}html.landing{height:auto;overflow:visible;scroll-behavior:auto}html.landing body{position:static;inset:auto;overflow:visible}.lp-android{display:none}html.is-android .lp-android{display:block}</style>
+    <script>(function(){if(location.pathname!=="/")return;var d=document,h=d.documentElement;h.classList.add("landing");if(/Android/i.test(navigator.userAgent))h.classList.add("is-android");var t=d.querySelector('meta[name="theme-color"]');t&&t.setAttribute("content","#EFE7D6");var c=d.querySelector('meta[name="color-scheme"]');c&&c.setAttribute("content","light");var l=d.createElement("link");l.rel="preload";l.as="font";l.type="font/woff2";l.href="/fonts/bricolage-800-latin-v1.woff2";l.crossOrigin="";d.head.appendChild(l)})();</script>
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Splitea" />
+    <meta property="og:url" content="https://splitea.app/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Splitea: split the bill to the last cent" />
+    <meta property="og:description" content="Snap the receipt, tap who had what, send a link. Friends pick their items in any browser. For iPhone." />
+    <meta property="og:image" content="https://splitea.app/og/splitea-en-v1-1200x630.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Split the bill to the last cent. Splitea's Assign Items screen on an iPhone with the callouts 1 Tap a contact and 2 Tap their items." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Splitea: split the bill to the last cent" />
+    <meta name="twitter:description" content="Snap the receipt, tap who had what, send a link. Friends pick their items in any browser." />
+    <meta name="twitter:image" content="https://splitea.app/og/splitea-en-v1-1200x630.png" />
 
     <!-- Reuses the same icons the worker already serves at the
          apex (`/apple-touch-icon.png`, `/favicon-*.png`). When
@@ -20,11 +41,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
 
-    <!-- Inter as the cross-platform fallback for SF Pro. Apple
-         devices won't fetch this — `-apple-system` resolves
-         locally first. -->
-    <link rel="preconnect" href="https://rsms.me/" />
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"MobileApplication","name":"Splitea","url":"https://splitea.app/","installUrl":"https://apps.apple.com/app/id6760237781","sameAs":["https://apps.apple.com/app/id6760237781"],"operatingSystem":"iOS 26.0 or later","applicationCategory":"FinanceApplication","description":"Split receipts with friends. Snap the receipt, send one link, and friends pick their items in any browser.","author":{"@type":"Person","name":"Raúl Mora"}}</script>
   </head>
   <body class="bg-ios-bg text-ios-label">
     <div id="root"></div>

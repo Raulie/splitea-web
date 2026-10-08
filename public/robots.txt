@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://splitea.app/sitemap.xml

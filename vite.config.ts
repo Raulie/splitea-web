@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type HtmlTagDescriptor, type Plugin } from "vite";
 import solid from "vite-plugin-solid";
 
 // Stable, hash-free filenames for the entry bundle (`main.js`,
@@ -12,15 +12,39 @@ import solid from "vite-plugin-solid";
 //
 // Code-split chunks keep their content hashes so cache-busting
 // works correctly for the rest of the bundle as it grows.
+
+function preloadLanding(): Plugin {
+  return {
+    name: "preload-landing",
+    apply: "build",
+    transformIndexHtml: {
+      order: "post",
+      handler(html, ctx) {
+        const chunk = Object.values(ctx.bundle ?? {}).find(
+          (c) => c.type === "chunk" && c.facadeModuleId?.endsWith("/views/landing/Landing.tsx"),
+        );
+        if (!chunk || chunk.type !== "chunk") return html;
+        const tags: HtmlTagDescriptor[] = [
+          { tag: "link", attrs: { rel: "modulepreload", crossorigin: true, href: `/${chunk.fileName}` }, injectTo: "head" },
+        ];
+        for (const css of chunk.viteMetadata?.importedCss ?? []) {
+          tags.push({ tag: "link", attrs: { rel: "stylesheet", crossorigin: true, href: `/${css}` }, injectTo: "head" });
+        }
+        return { html, tags };
+      },
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [solid()],
+  plugins: [solid(), preloadLanding()],
   build: {
     rollupOptions: {
       output: {
         entryFileNames: "assets/main.js",
         chunkFileNames: "assets/chunk-[hash].js",
         assetFileNames: ({ name }) => {
-          if (name?.endsWith(".css")) return "assets/main.css";
+          if (name === "index.css") return "assets/main.css";
           return "assets/[name]-[hash][extname]";
         },
       },

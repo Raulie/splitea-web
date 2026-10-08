@@ -1,4 +1,5 @@
 import { t } from "../lib/i18n";
+import { appStoreUrl } from "../lib/appStore";
 
 /// Fallback for any path that isn't `/r/<id>`. The marketing
 /// site will eventually live at `/` — until then, we just nudge
@@ -13,7 +14,7 @@ export function NotFound() {
       </p>
       <a
         class="mt-4 px-6 py-3 rounded-full bg-ios-blue text-white font-semibold no-underline"
-        href="https://apps.apple.com/app/splitea/id6760237781"
+        href={appStoreUrl("share")}
       >
         {t("getSpliteaAppStoreButton")}
       </a>

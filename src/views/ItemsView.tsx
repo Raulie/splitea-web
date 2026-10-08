@@ -23,6 +23,7 @@ import { SavedReceiptView } from "./SavedReceiptView";
 import { BackButton } from "../components/BackButton";
 import { NavBar } from "../components/NavBar";
 import { createSnapshotStore } from "../lib/store";
+import { appStoreUrl } from "../lib/appStore";
 import { LiveSession, type LiveStatus } from "../lib/socket";
 import {
   getGuestDisplayName,
@@ -1114,16 +1115,11 @@ function ExpiredState() {
         nudge rather than a misdirection.
 
         Same visual as `NotFound`'s button so the two
-        states feel consistent. Real Apple ID
-        (`id6760237781`) — once Splitea ships publicly,
-        tapping this lands on the live App Store page. While
-        it's TestFlight-only, the page may show "App not
-        available", which is acceptable: the user clearly
-        sees what they tapped and that the app exists.
+        states feel consistent.
       */}
       <a
         class="mt-4 px-6 py-3 rounded-full bg-ios-blue text-white font-semibold no-underline"
-        href="https://apps.apple.com/app/splitea/id6760237781"
+        href={appStoreUrl("share")}
       >
         {t("getSpliteaAppStoreButton")}
       </a>
