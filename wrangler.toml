@@ -26,6 +26,8 @@ compatibility_date = "2025-04-01"
 workers_dev = false
 preview_urls = false
 
+main = "worker/index.js"
+
 # Custom-domain routing. NOTE: `routes` MUST be declared at
 # the TOML top level, not under `[assets]`. Putting it after
 # the `[assets]` table header would scope it as `assets.routes`
@@ -38,12 +40,15 @@ routes = [
   { pattern = "splitea.app/*", zone_name = "splitea.app" },
 ]
 
-# Static-assets-only worker (no `main`, no Worker code). Vite's
-# `dist/` directory is what Cloudflare serves. Equivalent in
-# behavior to Cloudflare Pages but uses the modern unified
-# Workers Static Assets API.
+# Static-assets worker. Vite's `dist/` directory is what
+# Cloudflare serves. Worker code runs only for the landing
+# videos (`run_worker_first`), to answer the byte-range
+# requests Safari needs before it will play an MP4; every other
+# path is served straight from the assets.
 [assets]
 directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/landing/*.mp4"]
 # `single-page-application` makes any unknown path return
 # index.html with status 200, which is what `@solidjs/router`
 # expects for client-side routing.
@@ -69,4 +74,6 @@ routes = [
 
 [env.dev.assets]
 directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/landing/*.mp4"]
 not_found_handling = "single-page-application"
