@@ -1,5 +1,6 @@
 import "./landing.css";
-import { For, onCleanup, onMount } from "solid-js";
+import { For, Show, onCleanup, onMount } from "solid-js";
+import { isServer } from "solid-js/web";
 import { SpliteaMark } from "../../components/SpliteaMark";
 import { DeviceFrame } from "../../components/DeviceFrame";
 import { ItemsViewDemo } from "../ItemsView";
@@ -144,7 +145,9 @@ export default function Landing() {
               <DemoGate>
                 <DeviceFrame>
                   <div lang={locale} style={{ display: "contents" }}>
-                    <ItemsViewDemo snapshot={snapshot} />
+                    <Show when={!isServer}>
+                      <ItemsViewDemo snapshot={snapshot} />
+                    </Show>
                   </div>
                 </DeviceFrame>
               </DemoGate>

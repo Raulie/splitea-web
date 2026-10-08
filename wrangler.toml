@@ -49,10 +49,11 @@ routes = [
 directory = "./dist"
 binding = "ASSETS"
 run_worker_first = ["/landing/*.mp4"]
-# `single-page-application` makes any unknown path return
-# index.html with status 200, which is what `@solidjs/router`
-# expects for client-side routing.
-not_found_handling = "single-page-application"
+# `404-page` serves dist/404.html (the bare SPA shell, marked
+# noindex) with a real 404 status for unknown paths. The router
+# still renders NotFound there, and "/" keeps its prerendered
+# index.html.
+not_found_handling = "404-page"
 
 # Dev environment. `wrangler deploy --env dev` ships a separate
 # worker (`splitea-web-dev`) bound to `dev.splitea.app/*`,
@@ -76,4 +77,4 @@ routes = [
 directory = "./dist"
 binding = "ASSETS"
 run_worker_first = ["/landing/*.mp4"]
-not_found_handling = "single-page-application"
+not_found_handling = "404-page"

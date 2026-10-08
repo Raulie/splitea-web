@@ -1,6 +1,8 @@
 import { createSignal, onCleanup, type Accessor } from "solid-js";
+import { isServer } from "solid-js/web";
 
 export function createMediaQuery(query: string): Accessor<boolean> {
+  if (isServer) return () => false;
   const mql = window.matchMedia(query);
   const [matches, setMatches] = createSignal(mql.matches);
   const update = (e: MediaQueryListEvent) => setMatches(e.matches);
@@ -12,6 +14,7 @@ export function createMediaQuery(query: string): Accessor<boolean> {
 export const createReducedMotion = () => createMediaQuery("(prefers-reduced-motion: reduce)");
 
 export function createPageVisible(): Accessor<boolean> {
+  if (isServer) return () => true;
   const [visible, setVisible] = createSignal(document.visibilityState === "visible");
   const update = () => setVisible(document.visibilityState === "visible");
   document.addEventListener("visibilitychange", update);

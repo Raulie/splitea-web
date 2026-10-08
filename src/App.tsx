@@ -5,6 +5,8 @@ import { NotFound } from "./views/NotFound";
 
 const Landing = lazy(() => import("./views/landing/Landing"));
 
+export const preloadLanding = () => Landing.preload();
+
 /// Top-level routing.
 ///
 /// Web is intentionally **read-only** — it exists so a
