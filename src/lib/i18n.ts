@@ -1,4 +1,5 @@
 import { LOCALES, messages, type Locale, type MessageKey } from "../locales";
+import { landingSegment } from "./landingPaths";
 
 /// UI language for the share-link page.
 ///
@@ -51,6 +52,17 @@ function resolve(): Locale {
     const forced = new URLSearchParams(window.location.search).get("lang");
     if (forced) {
       const m = match(forced);
+      if (m) return m;
+    }
+  } catch {
+    /* no window.location in a non-browser context — fall through */
+  }
+
+  try {
+    const seg = landingSegment(window.location.pathname);
+    if (seg === null) return FALLBACK;
+    if (seg) {
+      const m = match(seg);
       if (m) return m;
     }
   } catch {

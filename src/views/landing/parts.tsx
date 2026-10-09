@@ -1,6 +1,6 @@
 import { For, Show, splitProps, type JSX } from "solid-js";
-import { BADGE_SRC, BEZEL_SRC, appStoreUrl } from "./appStore";
-import { copy } from "./copy";
+import { BEZEL_SRC, appStoreUrl } from "./appStore";
+import { badgeSrc, useLanding } from "./locales";
 import { QR_PATH, QR_SIZE } from "./qr";
 
 export function Accent(props: { text: string }) {
@@ -113,10 +113,11 @@ export function PhoneShot(props: {
 }
 
 export function AppStoreBadge(props: { height?: number; class?: string }) {
+  const { copy, locale } = useLanding();
   const h = () => props.height ?? 48;
   return (
     <a class={`lp-badge ${props.class ?? ""}`} href={appStoreUrl("landing")} aria-label={copy.badgeLabel}>
-      <img src={BADGE_SRC} alt="" width={Math.round(h() * 2.9916)} height={h()} style={{ height: `${h()}px` }} />
+      <img src={badgeSrc(locale)} alt="" width={Math.round((h() * locale.badgeWidth) / 40)} height={h()} style={{ height: `${h()}px` }} />
     </a>
   );
 }

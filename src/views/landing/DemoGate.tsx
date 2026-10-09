@@ -1,8 +1,9 @@
 import { Show, createSignal, type JSX } from "solid-js";
-import { copy } from "./copy";
+import { useLanding } from "./locales";
 import { createMediaQuery } from "./motion";
 
 export function DemoGate(props: { children: JSX.Element }) {
+  const { copy } = useLanding();
   const coarse = createMediaQuery("(pointer: coarse)");
   const [open, setOpen] = createSignal(false);
   const gated = () => coarse() && !open();

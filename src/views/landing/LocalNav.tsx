@@ -1,11 +1,12 @@
 import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
 import { SpliteaMark } from "../../components/SpliteaMark";
 import { appStoreUrl } from "./appStore";
-import { copy } from "./copy";
+import { useLanding } from "./locales";
 import { createMediaQuery } from "./motion";
 import { QrCode } from "./parts";
 
 export function LocalNav(props: { watch: () => Element | undefined }) {
+  const { copy } = useLanding();
   const [shown, setShown] = createSignal(false);
   const [current, setCurrent] = createSignal<string | null>(null);
   const desktopPointer = createMediaQuery("(hover: hover) and (pointer: fine) and (min-width: 1024px)");

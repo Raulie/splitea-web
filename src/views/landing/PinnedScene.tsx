@@ -1,7 +1,7 @@
 import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import { Accent, PhoneShot, Pill, ShotPicture, Tagline, type PillIcon, type Shot } from "./parts";
 import { createPageVisible, createReducedMotion, observeOnce, smoothBehavior } from "./motion";
-import { copy } from "./copy";
+import { useLanding } from "./locales";
 
 export type ScenePill = {
   n?: number;
@@ -23,6 +23,7 @@ export type SceneStep = {
 };
 
 export function PinnedScene(props: { steps: SceneStep[] }) {
+  const { copy } = useLanding();
   const [step, setStep] = createSignal(0);
   const [armed, setArmed] = createSignal(false);
   const [playing, setPlaying] = createSignal(false);

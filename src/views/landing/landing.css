@@ -1,6 +1,6 @@
 @font-face {
   font-family: "Bricolage Grotesque";
-  src: url("/fonts/bricolage-800-latin-v1.woff2") format("woff2");
+  src: url("/fonts/bricolage-800-latin-v2.woff2") format("woff2");
   font-weight: 800;
   font-style: normal;
   font-display: swap;
@@ -353,7 +353,7 @@ html.is-android .lp-android {
 .phone-shot::before {
   content: "";
   position: absolute;
-  inset: 0.7% 1% 0.75%;
+  inset: 0.765% 1.897% 0.819% 1.786%;
   border-radius: calc(var(--pw) * 0.2);
   box-shadow: var(--shadow-phone);
 }
@@ -714,7 +714,17 @@ html.is-android .lp-android {
   padding: calc(var(--dw) * 0.0575) calc(var(--dw) * 0.06);
   border-radius: calc(var(--dw) * 0.2);
   background: none;
-  box-shadow: var(--shadow-device);
+  box-shadow: none;
+}
+
+.lp .device-frame::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0.765% 1.897% 0.819% 1.786%;
+  border-radius: calc(var(--dw) * 0.2);
+  box-shadow: 0 2px 6px rgb(26 22 20 / 0.12), var(--shadow-device);
+  pointer-events: none;
 }
 
 .lp .device-frame::after {
@@ -736,6 +746,22 @@ html.is-android .lp-android {
 .lp .device-btn,
 .lp .device-glare {
   display: none;
+}
+
+.lp .device-app {
+  --home-inset: calc(var(--dw) * 0.0846);
+}
+
+.lp .device-app .ios-nav-page-bottom > .relative {
+  padding-bottom: var(--home-inset);
+}
+
+.lp .device-app .ios-nav-pushed .absolute.inset-x-0.bottom-0 {
+  padding-bottom: calc(var(--home-inset) + 12px) !important;
+}
+
+.lp .device-app .ios-nav-pushed .flex-1.overflow-y-auto {
+  padding-bottom: calc(108px + var(--home-inset));
 }
 
 @media (min-width: 1024px) {
@@ -908,7 +934,7 @@ html.is-android .lp-android {
   z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: var(--nav-clear) minmax(0, 1fr) 44px 156px var(--bar-clear);
+  grid-template-rows: var(--nav-clear) minmax(0, 1fr) 44px minmax(156px, auto) var(--bar-clear);
   grid-template-areas: "." "phone" "segs" "caps" ".";
 }
 
@@ -991,8 +1017,8 @@ html.is-android .lp-android {
 
 .scene-video-toggle {
   position: absolute;
-  right: calc(var(--scene-pw) * 0.1);
-  bottom: calc(var(--scene-pw) * 0.1);
+  right: -56px;
+  bottom: calc(var(--scene-pw) * 0.12);
   z-index: 3;
   display: grid;
   place-items: center;
@@ -1116,7 +1142,7 @@ html.is-android .lp-android {
 
 @media (max-height: 640px) {
   .scene-stage {
-    grid-template-rows: var(--nav-clear) minmax(0, 1fr) 44px 136px var(--bar-clear);
+    grid-template-rows: var(--nav-clear) minmax(0, 1fr) 44px minmax(136px, auto) var(--bar-clear);
   }
   .scene-cap-body {
     font-size: 15px;
@@ -2107,3 +2133,157 @@ html.is-android .lp-android {
   }
 }
 
+
+.lp :is(.lp-h1, .lp-h2, .lp-h3) {
+  overflow-wrap: break-word;
+}
+
+.lp[lang="de"] :is(.lp-h1, .lp-h2, .lp-h3, .scene-cap-body, .lp-body) {
+  hyphens: auto;
+}
+
+.lp[lang="ja"] {
+  --display: "Bricolage Grotesque", "Bricolage Fallback", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+  --text: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+  line-break: strict;
+}
+
+.lp[lang="ko"] {
+  --display: "Bricolage Grotesque", "Bricolage Fallback", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --text: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  word-break: keep-all;
+}
+
+.lp[lang="zh-Hans"] {
+  --display: "Bricolage Grotesque", "Bricolage Fallback", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --text: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
+
+.lp[lang="zh-Hant"] {
+  --display: "Bricolage Grotesque", "Bricolage Fallback", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --text: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+}
+
+.lp:is([lang="ja"], [lang="ko"], [lang="zh-Hans"], [lang="zh-Hant"]) :is(.lp-h1, .lp-h2, .lp-h3, .get-word, .scene-end-title) {
+  letter-spacing: 0;
+  line-height: 1.18;
+}
+
+.lp:is([lang="ja"], [lang="ko"], [lang="zh-Hans"], [lang="zh-Hant"]) :is(.lp-body, .scene-cap-body, .faq-item p, .privacy-fact-text, .region-text) {
+  line-height: 1.75;
+}
+
+.lp:is([lang="ja"], [lang="ko"], [lang="zh-Hans"], [lang="zh-Hant"]) .lp-tagline {
+  letter-spacing: 0.06em;
+}
+
+.lp-langs ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-langs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.lp-langs a:hover,
+.lp-langs a[aria-current="page"] {
+  color: var(--ink);
+}
+
+.lp-langs a[aria-current="page"] {
+  font-weight: 600;
+}
+
+.lang-suggest {
+  position: fixed;
+  z-index: 70;
+  left: 50%;
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 8px);
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100vw - 24px);
+  padding: 0 4px 0 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cream);
+  box-shadow: var(--shadow-pop);
+  font: 600 15px/1.2 var(--text);
+  letter-spacing: -0.01em;
+}
+
+.lang-suggest.is-away {
+  opacity: 0;
+  translate: -50% 16px;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lang-suggest {
+    transition: opacity 240ms ease, translate 240ms var(--ease-out);
+  }
+}
+
+.lang-suggest a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  color: var(--cream);
+  text-decoration: none;
+}
+
+.lang-suggest button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: rgb(239 231 214 / 0.7);
+  cursor: pointer;
+}
+
+.lang-suggest button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.lp .lang-suggest :focus-visible {
+  outline-color: var(--cream);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lang-suggest {
+    animation: lp-suggest-in 420ms var(--ease-out) 700ms backwards;
+  }
+}
+
+@keyframes lp-suggest-in {
+  from {
+    opacity: 0;
+    translate: -50% 16px;
+  }
+}
+
+.lp:is([lang="ja"], [lang="ko"], [lang="zh-Hans"], [lang="zh-Hant"]) .lp-h2 {
+  font-size: clamp(1.875rem, 1.25rem + 2.6vw, 3.75rem);
+}
+
+.lp:is([lang="ja"], [lang="ko"], [lang="zh-Hans"], [lang="zh-Hant"]) .lp-h3,
+.lp:is([lang="ja"], [lang="ko"], [lang="zh-Hans"], [lang="zh-Hant"]) .scene-cap .lp-h3 {
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem);
+}

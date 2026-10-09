@@ -12,7 +12,7 @@ const root = document.getElementById('root')!
 const boot = () => render(() => <App />, root)
 
 if (root.dataset.prerender === 'landing') {
-  preloadLanding().then(() => {
+  preloadLanding(root.dataset.lang).then(() => {
     root.replaceChildren()
     boot()
   })

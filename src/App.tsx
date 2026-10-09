@@ -2,10 +2,15 @@ import { lazy } from "solid-js";
 import { Router, Route } from "@solidjs/router";
 import { ItemsView } from "./views/ItemsView";
 import { NotFound } from "./views/NotFound";
+import { LANDING_SEGMENTS } from "./lib/landingPaths";
 
-const Landing = lazy(() => import("./views/landing/Landing"));
+const loadLanding = () => import("./views/landing/Landing");
+const Landing = lazy(loadLanding);
 
-export const preloadLanding = () => Landing.preload();
+export const preloadLanding = (seg?: string) =>
+  Landing.preload()
+    .then(() => loadLanding())
+    .then((m) => m.loadLandingCopy(seg));
 
 /// Top-level routing.
 ///
@@ -32,6 +37,7 @@ function App() {
   return (
     <Router>
       <Route path="/" component={Landing} />
+      <Route path="/:lang" matchFilters={{ lang: LANDING_SEGMENTS }} component={Landing} />
       <Route path="/r/:shareID" component={ItemsView} />
       <Route path="/r/:shareID/c/:contactShortId" component={ItemsView} />
       <Route path="*" component={NotFound} />

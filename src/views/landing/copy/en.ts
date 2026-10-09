@@ -1,4 +1,12 @@
-export const copy = {
+export const en = {
+  meta: {
+    title: "Splitea for iPhone: split receipts with friends, to the cent",
+    description: "Snap the receipt, tap who had what, and send one link. Friends pick their items in any browser with no app, and every share adds up to the exact total.",
+    ogTitle: "Splitea: split the bill to the last cent",
+    ogDescription: "Snap the receipt, tap who had what, send a link. Friends pick their items in any browser. For iPhone.",
+    ogImageAlt: "Split the bill to the last cent. Splitea's Assign Items screen on an iPhone with the callouts 1 Tap a contact and 2 Tap their items.",
+    ogTagline: "For iPhone · splitea.app",
+  },
   nav: {
     chapters: [
       { id: "how", label: "How it works" },
@@ -8,6 +16,7 @@ export const copy = {
       { id: "pricing", label: "Pricing" },
     ],
     cta: "Get Splitea",
+    dismiss: "Dismiss",
     qrLine: "Scan with your iPhone camera to get Splitea.",
     qrLink: "Open the App Store page",
   },
@@ -101,6 +110,7 @@ export const copy = {
     body: "Convert a split into your home currency using the amount on your card statement, your own rate, or today's market rate. Converted shares still add up to the converted total, and friends see the rate on their page. Currencies without cents, like yen and won, work too.",
     translateBefore: "Item names in another script come with a translation in your language, like ",
     translateExample: "비빔밥",
+    translateExampleLang: "ko",
     translateAfter: " (Bibimbap). The app speaks 10 languages.",
     alt: "The currency conversion sheet, from pesos to dollars.",
     payTitle: "Friends pay with the app they already use.",
@@ -206,6 +216,7 @@ export const copy = {
   },
   footer: {
     origin: "Splitea · Made in Puerto Rico",
+    languages: "Language",
     privacy: "Privacy",
     terms: "Terms",
     appStore: "App Store",
@@ -217,3 +228,5 @@ export const copy = {
   },
   badgeLabel: "Download Splitea on the App Store",
 };
+
+export type Copy = typeof en;
