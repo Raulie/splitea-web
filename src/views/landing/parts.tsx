@@ -25,14 +25,19 @@ export function Pill(props: {
   style?: JSX.CSSProperties;
   on?: boolean;
 }) {
+  const variant = () =>
+    props.n !== undefined ? "lp-pill--badge" : props.rate ? "lp-pill--rate" : props.icon ? "lp-pill--icon" : "";
   return (
-    <span class={`lp-pill ${props.class ?? ""}`} style={props.style} data-on={props.on ? "" : undefined}>
+    <span class={`lp-pill ${variant()} ${props.class ?? ""}`} style={props.style} data-on={props.on ? "" : undefined}>
       <Show when={props.n !== undefined}>
         <span class="lp-pill-n">{props.n}</span>
       </Show>
       <Show when={props.icon === "location"}>
-        <svg class="lp-pill-glyph lp-pill-glyph--accent" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M14.6 1.4 1.9 6.7c-.6.3-.6 1.2.1 1.4l5 1.4 1.4 5c.2.7 1.1.7 1.4.1l5.3-12.7c.2-.4-.2-.8-.5-.5Z" fill="currentColor" />
+        <svg class="lp-pill-glyph lp-pill-glyph--location" viewBox="0 0 20.8547 19.0403" aria-hidden="true">
+          <path
+            d="M1.33653 10.172 8.70417 10.2023C8.85577 10.2023 8.9063 10.2529 8.9063 10.4045L8.92651 17.7115C8.92651 19.2173 10.7356 19.571 11.4127 18.1056L18.8815 2.04639C19.5586.570847 18.3963-.399377 16.9814.257546L.831202 7.74647C-.46243 8.34275-.209767 10.1619 1.33653 10.172Z"
+            fill="currentColor"
+          />
         </svg>
       </Show>
       <Show when={props.icon === "globe"}>
@@ -44,7 +49,7 @@ export function Pill(props: {
       <Show when={props.icon === "dot"}>
         <span class="lp-pill-dot" />
       </Show>
-      <span>{props.text}</span>
+      <span class="lp-pill-text">{props.text}</span>
       <Show when={props.rate}>
         <span class="lp-pill-rate">{props.rate}</span>
       </Show>

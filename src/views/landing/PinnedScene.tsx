@@ -35,6 +35,7 @@ export function PinnedScene(props: { steps: SceneStep[] }) {
   const visible = createPageVisible();
   const triggers: HTMLDivElement[] = [];
   let scene!: HTMLDivElement;
+  let pillLayer!: HTMLDivElement;
   let video: HTMLVideoElement | undefined;
 
   const videoStep = () => props.steps.findIndex((s) => "video" in s.screen);
@@ -60,10 +61,30 @@ export function PinnedScene(props: { steps: SceneStep[] }) {
     const sceneIO = new IntersectionObserver(sync);
     sceneIO.observe(scene);
     const disarm = observeOnce(scene, () => setArmed(true), "0px 0px 100% 0px");
+    const layoutLeft = (el: HTMLElement) => {
+      let x = 0;
+      for (let e: HTMLElement | null = el; e; e = e.offsetParent as HTMLElement | null) x += e.offsetLeft;
+      return x;
+    };
+    const fitPills = () => {
+      const edge = 10;
+      const width = document.documentElement.clientWidth;
+      const base = layoutLeft(pillLayer);
+      for (const pill of pillLayer.children as HTMLCollectionOf<HTMLElement>) {
+        const left = base + pill.offsetLeft;
+        const right = left + pill.offsetWidth;
+        const shift = left < edge ? edge - left : right > width - edge ? width - edge - right : 0;
+        pill.style.setProperty("--fit-x", `${shift}px`);
+      }
+    };
+    const fit = new ResizeObserver(fitPills);
+    fit.observe(scene);
+    for (const pill of pillLayer.children) fit.observe(pill);
     onCleanup(() => {
       io.disconnect();
       sceneIO.disconnect();
       disarm();
+      fit.disconnect();
     });
   });
 
@@ -192,7 +213,7 @@ export function PinnedScene(props: { steps: SceneStep[] }) {
                 )}
               </For>
             </PhoneShot>
-            <div class="scene-pills" aria-hidden="true">
+            <div class="scene-pills" ref={pillLayer} aria-hidden="true">
               <For each={props.steps}>
                 {(s, k) => (
                   <For each={s.pills}>

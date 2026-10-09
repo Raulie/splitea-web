@@ -7,6 +7,39 @@
 }
 
 @font-face {
+  font-family: "Bricolage Text";
+  src: url("/fonts/bricolage-600-text-latin-v1.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  ascent-override: 93%;
+  descent-override: 27%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Archivo Black Digits";
+  src: url("/fonts/archivo-black-num-v1.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  ascent-override: 87.8%;
+  descent-override: 21%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "JetBrains Mono Digits";
+  src: url("/fonts/jetbrains-mono-700-num-v1.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}
+
+@font-face {
   font-family: "Bricolage Fallback";
   src: local("Helvetica Neue Bold"), local("HelveticaNeue-Bold"), local("Arial Bold"), local("Arial-BoldMT");
   font-weight: 800;
@@ -50,7 +83,6 @@ html.landing #root {
   --ink-soft: #3d3732;
   --muted: #6b665d;
   --accent: #c8553d;
-  --accent-ink: #b5482f;
   --white: #ffffff;
   --green: #34c759;
 
@@ -66,6 +98,7 @@ html.landing #root {
   --display: "Bricolage Grotesque", "Bricolage Fallback", "Helvetica Neue", Arial, sans-serif;
   --text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --pill-font: "Bricolage Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   --gutter: 20px;
   --sec-pad: 96px;
@@ -228,73 +261,100 @@ html.landing #root {
 }
 
 .lp-pill {
+  --pill-fs: 20px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 14px 0 8px;
+  gap: 0.291667em;
+  padding: 0.385288em 0.49537em;
   border-radius: 999px;
   background: var(--white);
   color: var(--ink);
-  box-shadow: var(--shadow-pill);
-  font-family: var(--text);
+  box-shadow: 0 0.220165em 0.220165em rgb(0 0 0 / 0.25);
+  font-family: var(--pill-font);
   font-weight: 600;
-  font-size: 15px;
-  line-height: 1;
-  letter-spacing: -0.01em;
+  font-size: var(--pill-fs);
+  font-variation-settings: "opsz" 24;
+  line-height: 0.648486;
+  letter-spacing: -0.0081061em;
   white-space: nowrap;
 }
 
-.lp-pill:not(:has(.lp-pill-n)) {
-  padding-left: 14px;
+.lp-pill-text {
+  position: relative;
+}
+
+.lp-pill--badge .lp-pill-text {
+  top: 0.009em;
+}
+
+.lp-pill:is(.lp-pill--icon, .lp-pill--rate) .lp-pill-text {
+  top: -0.022em;
+}
+
+.lp-pill:is(.lp-pill--icon, .lp-pill--rate) {
+  font-variation-settings: "opsz" 24.837749;
+}
+
+.lp-pill--icon {
+  gap: 0.333333em;
+  padding-block: 0.541667em;
+  min-height: 1.849987em;
+}
+
+.lp-pill--rate {
+  gap: 0.416667em;
 }
 
 .lp-pill-n {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
   border-radius: 50%;
-  background: var(--accent-ink);
+  background: var(--accent);
   color: var(--white);
-  font-weight: 700;
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
+  font: 700 0.833333em/1.32 "JetBrains Mono Digits", var(--mono);
+  letter-spacing: 0;
 }
 
 .lp-pill-rate {
-  color: var(--accent-ink);
-  font-variant-numeric: tabular-nums;
+  position: relative;
+  top: -0.013em;
+  color: var(--accent);
+  font: 400 0.833333em/1.111211 "Archivo Black Digits", "Arial Black", sans-serif;
+  letter-spacing: 0;
 }
 
 .lp-pill-glyph {
-  width: 15px;
-  height: 15px;
+  width: 0.839636em;
+  height: 0.766583em;
   flex: none;
 }
 
-.lp-pill-glyph--accent {
-  color: var(--accent-ink);
+.lp-pill-glyph--location {
+  color: var(--accent);
 }
 
 .lp-pill-dot {
-  width: 8px;
-  height: 8px;
+  flex: none;
+  width: 0.4em;
+  height: 0.4em;
+  margin-inline: 0.2em;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 0 3px rgb(52 199 89 / 0.18);
+  box-shadow: 0 0 0 0.15em rgb(52 199 89 / 0.18);
 }
 
 @media (max-width: 399px) {
   .lp-pill {
-    height: 36px;
-    font-size: 14px;
-    gap: 7px;
+    --pill-fs: 17px;
   }
-  .lp-pill-n {
-    width: 22px;
-    height: 22px;
-    font-size: 13px;
+}
+
+@media (max-width: 359px) {
+  .lp-pill {
+    --pill-fs: 15px;
   }
 }
 
@@ -996,9 +1056,18 @@ html.is-android .lp-android {
   pointer-events: none;
 }
 
+.lp-pill.scene-pill {
+  --scene-pill-fs: max(calc(var(--scene-pw) * 0.090018), min(13px, calc(var(--scene-pw) * 0.1119 - 1.5px)));
+  --pill-fs: var(--scene-pill-fs);
+}
+
+.lp-pill.scene-pill:is(.lp-pill--icon, .lp-pill--rate) {
+  --pill-fs: calc(var(--scene-pill-fs) * 1.034906);
+}
+
 .scene-pill {
   position: absolute;
-  translate: 0 calc(-50% + 12px);
+  translate: var(--fit-x, 0px) calc(-100% + 12px);
   scale: 0.96;
   opacity: 0;
   transition: opacity 180ms ease, translate 0s linear 180ms, scale 0s linear 180ms;
@@ -1014,7 +1083,7 @@ html.is-android .lp-android {
 
 .scene-pill[data-on] {
   opacity: 1;
-  translate: 0 -50%;
+  translate: var(--fit-x, 0px) -100%;
   scale: 1;
   transition:
     opacity 300ms var(--ease-out) var(--d, 0ms),
@@ -1024,7 +1093,7 @@ html.is-android .lp-android {
 
 .scene-video-toggle {
   position: absolute;
-  right: -56px;
+  left: -56px;
   bottom: calc(var(--scene-pw) * 0.12);
   z-index: 3;
   display: grid;
@@ -1285,6 +1354,7 @@ html.is-android .lp-android {
 .send-visual {
   display: grid;
   justify-items: end;
+  min-width: 0;
 }
 
 .send-card {
@@ -2062,7 +2132,7 @@ html.is-android .lp-android {
   }
   .scene-pill,
   .scene-pill[data-on] {
-    translate: 0 -50%;
+    translate: var(--fit-x, 0px) -100%;
     scale: 1;
     transition: opacity 200ms ease;
   }
@@ -2152,23 +2222,27 @@ html.is-android .lp-android {
 .lp[lang="ja"] {
   --display: "Bricolage Grotesque", "Bricolage Fallback", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
   --text: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+  --pill-font: "Bricolage Text", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
   line-break: strict;
 }
 
 .lp[lang="ko"] {
   --display: "Bricolage Grotesque", "Bricolage Fallback", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   --text: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --pill-font: "Bricolage Text", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   word-break: keep-all;
 }
 
 .lp[lang="zh-Hans"] {
   --display: "Bricolage Grotesque", "Bricolage Fallback", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   --text: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --pill-font: "Bricolage Text", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
 }
 
 .lp[lang="zh-Hant"] {
   --display: "Bricolage Grotesque", "Bricolage Fallback", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
   --text: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --pill-font: "Bricolage Text", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
 }
 
 .lp:is([lang="ja"], [lang="ko"], [lang="zh-Hans"], [lang="zh-Hant"]) :is(.lp-h1, .lp-h2, .lp-h3, .get-word, .scene-end-title) {

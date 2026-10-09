@@ -17,8 +17,8 @@ import { Accent, AppStoreBadge, PhoneShot, Pill, QrTile, ShotPicture, Tagline } 
 export const loadLandingCopy = (seg?: string) => loadCopy(localeForSegment(seg).code);
 
 const TAX_ROWS: Record<string, { place: string; oldFashioned: string; mofongo: string }> = {
-  oneLine: { place: "24.2%", oldFashioned: "53.3%", mofongo: "69.3%" },
-  twoLines: { place: "26.5%", oldFashioned: "55.6%", mofongo: "71.6%" },
+  oneLine: { place: "20.65%", oldFashioned: "48.6%", mofongo: "64.65%" },
+  twoLines: { place: "22.9%", oldFashioned: "50.9%", mofongo: "66.95%" },
 };
 
 const taxRows = (locale: LandingLocale) =>
@@ -47,8 +47,8 @@ function buildSteps(copy: Copy, locale: LandingLocale): SceneStep[] {
       },
     },
     pills: [
-      { n: 1, text: pills.contact, top: "86.2%", side: "right" },
-      { n: 2, text: pills.items, top: "39%", side: "left", late: true },
+      { n: 1, text: pills.contact, top: "81.3%", side: "right" },
+      { n: 2, text: pills.items, top: "40.75%", side: "left", late: true },
     ],
   },
   {
@@ -64,8 +64,8 @@ function buildSteps(copy: Copy, locale: LandingLocale): SceneStep[] {
     ...copy.how.steps[3],
     screen: { shot: localizedShot("settle", locale) },
     pills: [
-      { n: 1, text: pills.request, top: "83.6%", side: "left" },
-      { n: 2, text: pills.paid, top: "94%", side: "right" },
+      { n: 1, text: pills.request, top: "6.5%", side: "right" },
+      { n: 2, text: pills.paid, top: "90.7%", side: "left" },
     ],
   },
 ];

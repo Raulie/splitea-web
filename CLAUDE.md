@@ -87,10 +87,17 @@ No hydration: `index.tsx` sees the marker, awaits `preloadLanding(seg)`, then em
 
 - `public/landing/<slug>[-<seg>]-v1-<width>.avif|webp`, the bezel, and the `assign-v1` HEVC/H.264 clips with first/last stills. `/landing/*`, `/fonts/*`, `/og/*`, `/badges/*` are cached a year, immutable: changed content needs a new `-vN` name (the font went to v2). `v1` is hardcoded in `ShotPicture`, `badgeSrc`, `BEZEL_SRC`, the video paths in `Landing.tsx`, `prerender.mjs`, `index.html` and the asset scripts.
 - Captures: `scripts/landing-assets/capture.sh <sim-udid> <out-dir>` launches the Splitea Dev build (`com.raulie.Splitea.dev`) with the iOS screenshot-harness flags in all 10 languages, overrides the status bar to 9:41 and blurs the receipt header on the scan shot. Use a fresh simulator with no Apple Account signed in, or a password prompt covers the app.
-- `encode.sh <captures-dir>` writes AVIF/WebP into `public/landing/`. `video.sh <OnboardingContacts.mp4> <9:41 capture>` makes the assign clips and stills. `font.sh <Bricolage variable ttf> <version>` subsets the headline font.
+- `encode.sh <captures-dir>` writes AVIF/WebP into `public/landing/`. `video.sh <OnboardingContacts.mp4> <9:41 capture>` makes the assign clips and stills. `font.sh <Bricolage variable ttf> <version>` subsets the headline font. `pill-fonts.sh <Bricolage variable ttf> <ArchivoBlack-Regular.ttf> <JetBrainsMono[wght].ttf>` subsets the three bubble fonts (Google Fonts, OFL).
 - OG images: after a build, `node scripts/landing-assets/og-pages.mjs | python3 scripts/landing-assets/og.py <captures-dir>` (needs Pillow and the TTF from `font.sh`).
 - The scripts use ImageMagick (`magick`), `cwebp`, `ffmpeg` and fonttools (`pyftsubset`); `brico-800-96.ttf` and `mark.png` are gitignored and regenerated.
-- After re-shooting, re-measure the pill `top` percentages in `buildSteps` (`Landing.tsx`). They are percentages of the screen (`.scene-pills` sits exactly on `.phone-shot-screen`), centered on the row they point at. On the Taxes screen, languages whose subtitle wraps to two lines (es, pt-br, fr, de, it) push every row down 2.3%, which is what `TAX_ROWS` encodes; detect row dividers in each capture rather than eyeballing. A re-cut assign clip also needs its `tapAt` (seconds into the clip when the `late` pill appears).
+- After re-shooting, re-measure the pill `top` percentages in `buildSteps` (`Landing.tsx`). They are percentages of the screen (`.scene-pills` sits exactly on `.phone-shot-screen`) and mark the bubble's bottom edge, 0.6% above the top of what it points at, so a bubble never covers its target: the contact strip, the item list, the place card, a row divider, the share button, the Pay button. On the Taxes screen, languages whose subtitle wraps to two lines (es, pt-br, fr, de, it) push every row down 2.3%, which is what `TAX_ROWS` encodes; detect edges in each capture rather than eyeballing. A re-cut assign clip also needs its `tapAt` (seconds into the clip when the `late` pill appears).
+
+## Bubbles
+
+- `Pill` (`parts.tsx`) copies the bubbles in the App Store screenshot deck in Figma: the numbered pills of Screenshots 1 and 3 (24 pt text) and the tax bubbles of Screenshot 2 (24.84 pt, the same design scaled by 1.034906). Every value in the `.lp-pill*` rules is an em of that text size: padding, gap, badge, icon box, shadow, tracking and line height. When the deck changes, read the new values from Figma and convert; don't eyeball.
+- Fonts: Bricolage Grotesque 600 for the label, Archivo Black for the tax rate, JetBrains Mono Bold for the badge digit, colors `--ink` and `--accent`. Figma renders Bricolage at an optical size equal to the font size even though its panel shows opsz 14, so `bricolage-600-text-latin-v1.woff2` keeps an opsz 12 to 32 axis and the browser's auto optical sizing reproduces it. A static opsz 14 instance comes out about 1.3% wider than the deck.
+- `.lp-pill-text` `top` nudges match Figma's baseline per variant, measured on 4x exports. Chrome snaps text to whole pixels, so they are averages across subpixel positions.
+- Scene bubbles scale with the phone screen: `--scene-pw` × 0.090018 for numbered pills, × 1.034906 more for tax bubbles. On very small phones a floor keeps the Settle bubbles at least 3 px apart. `PinnedScene` sets `--fit-x` so a long translation never crosses the viewport edge (10 px margin). The video toggle sits left of the phone so it never meets the "Tap a contact" bubble.
 
 ## Worker, routing, headers
 
@@ -130,6 +137,7 @@ Verify on each host (`dev.splitea.app` for dev):
 
 ## Known follow-ups
 
+- On a phone held in landscape, the pinned scene's phone is about 42 px wide, so the scene needs its own landscape layout.
 - Swap `public/landing/bezel-iphone-v1.webp` (the app's onboarding bezel) for the Figma deck bezel. A new bezel image needs its screen box (`.phone-shot-screen`, `.lp .device-frame` padding) and its visible outline re-measured from the alpha channel: the shadows in `landing.css` (`.phone-shot::before`, `.lp .device-frame::before`) use those exact insets, or a cream gap shows between metal and shadow. The demo's bottom bars get the 34 pt home-indicator inset from `--home-inset` in `landing.css`.
 - Share-page `notFoundBody` says "iPhone or iPad"; the app is iPhone-only (all 10 locales).
 - After JS loads the landing has two `h1`s, because the demo's Assign Items title is an `h1`.

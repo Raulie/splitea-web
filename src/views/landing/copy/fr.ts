@@ -90,7 +90,7 @@ const fr: Copy = {
     line: "Le téléphone en haut de cette page affiche justement la page de vos amis.",
     tryIt: "Essayez",
     connected: "Connectés (3)",
-    anyBrowser: "S'ouvre dans n'importe quel navigateur",
+    anyBrowser: "S'ouvre dans tout navigateur",
     cardAlt: "Une carte d'aperçu de lien Splitea dans une conversation.",
   },
   trips: {
