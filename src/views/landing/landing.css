@@ -273,6 +273,10 @@ html.landing #root {
   flex: none;
 }
 
+.lp-pill-glyph--accent {
+  color: var(--accent-ink);
+}
+
 .lp-pill-dot {
   width: 8px;
   height: 8px;
@@ -984,7 +988,10 @@ html.is-android .lp-android {
 
 .scene-pills {
   position: absolute;
-  inset: 0;
+  left: calc(var(--scene-pw) * 0.06);
+  top: calc(var(--scene-pw) * 0.0575);
+  width: var(--scene-pw);
+  aspect-ratio: 402 / 874;
   z-index: 2;
   pointer-events: none;
 }
@@ -998,11 +1005,11 @@ html.is-android .lp-android {
 }
 
 .scene-pill--left {
-  left: calc(var(--overhang) * -1);
+  left: calc((var(--overhang) + var(--scene-pw) * 0.06) * -1);
 }
 
 .scene-pill--right {
-  right: calc(var(--overhang) * -1);
+  right: calc((var(--overhang) + var(--scene-pw) * 0.06) * -1);
 }
 
 .scene-pill[data-on] {

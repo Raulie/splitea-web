@@ -16,8 +16,17 @@ import { Accent, AppStoreBadge, PhoneShot, Pill, QrTile, ShotPicture, Tagline } 
 
 export const loadLandingCopy = (seg?: string) => loadCopy(localeForSegment(seg).code);
 
+const TAX_ROWS: Record<string, { place: string; oldFashioned: string; mofongo: string }> = {
+  oneLine: { place: "24.2%", oldFashioned: "53.3%", mofongo: "69.3%" },
+  twoLines: { place: "26.5%", oldFashioned: "55.6%", mofongo: "71.6%" },
+};
+
+const taxRows = (locale: LandingLocale) =>
+  ["es", "pt-br", "fr", "de", "it"].includes(locale.seg) ? TAX_ROWS.twoLines : TAX_ROWS.oneLine;
+
 function buildSteps(copy: Copy, locale: LandingLocale): SceneStep[] {
   const pills = copy.how.pills;
+  const rows = taxRows(locale);
   const pct = (n: number) =>
     new Intl.NumberFormat(locale.code === "es" ? "es-MX" : locale.code, { style: "percent", maximumFractionDigits: 1 }).format(n / 100);
   return [
@@ -38,25 +47,25 @@ function buildSteps(copy: Copy, locale: LandingLocale): SceneStep[] {
       },
     },
     pills: [
-      { n: 1, text: pills.contact, top: "77%", side: "right" },
-      { n: 2, text: pills.items, top: "38%", side: "left", late: true },
+      { n: 1, text: pills.contact, top: "86.2%", side: "right" },
+      { n: 2, text: pills.items, top: "39%", side: "left", late: true },
     ],
   },
   {
     ...copy.how.steps[2],
     screen: { shot: localizedShot("taxes", locale) },
     pills: [
-      { text: pills.place, icon: "location", top: "20%", side: "right" },
-      { text: pills.oldFashioned, rate: pct(11.5), top: "50%", side: "left" },
-      { text: pills.mofongo, rate: pct(7), top: "66%", side: "right" },
+      { text: pills.place, icon: "location", top: rows.place, side: "right" },
+      { text: pills.oldFashioned, rate: pct(11.5), top: rows.oldFashioned, side: "left" },
+      { text: pills.mofongo, rate: pct(7), top: rows.mofongo, side: "right" },
     ],
   },
   {
     ...copy.how.steps[3],
     screen: { shot: localizedShot("settle", locale) },
     pills: [
-      { n: 1, text: pills.request, top: "77%", side: "left" },
-      { n: 2, text: pills.paid, top: "87%", side: "right" },
+      { n: 1, text: pills.request, top: "83.6%", side: "left" },
+      { n: 2, text: pills.paid, top: "94%", side: "right" },
     ],
   },
 ];

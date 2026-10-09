@@ -31,7 +31,7 @@ export function Pill(props: {
         <span class="lp-pill-n">{props.n}</span>
       </Show>
       <Show when={props.icon === "location"}>
-        <svg class="lp-pill-glyph" viewBox="0 0 16 16" aria-hidden="true">
+        <svg class="lp-pill-glyph lp-pill-glyph--accent" viewBox="0 0 16 16" aria-hidden="true">
           <path d="M14.6 1.4 1.9 6.7c-.6.3-.6 1.2.1 1.4l5 1.4 1.4 5c.2.7 1.1.7 1.4.1l5.3-12.7c.2-.4-.2-.8-.5-.5Z" fill="currentColor" />
         </svg>
       </Show>
