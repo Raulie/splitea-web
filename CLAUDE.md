@@ -90,7 +90,7 @@ No hydration: `index.tsx` sees the marker, awaits `preloadLanding(seg)`, then em
 - `encode.sh <captures-dir>` writes AVIF/WebP into `public/landing/`. `video.sh <OnboardingContacts.mp4> <9:41 capture>` makes the assign clips and stills. `font.sh <Bricolage variable ttf> <version>` subsets the headline font.
 - OG images: after a build, `node scripts/landing-assets/og-pages.mjs | python3 scripts/landing-assets/og.py <captures-dir>` (needs Pillow and the TTF from `font.sh`).
 - The scripts use ImageMagick (`magick`), `cwebp`, `ffmpeg` and fonttools (`pyftsubset`); `brico-800-96.ttf` and `mark.png` are gitignored and regenerated.
-- After re-shooting, re-measure the pill `top` percentages in `buildSteps` (`Landing.tsx`); a re-cut assign clip also needs its `tapAt` (seconds into the clip when the `late` pill appears).
+- After re-shooting, re-measure the pill `top` percentages in `buildSteps` (`Landing.tsx`). They are percentages of the screen (`.scene-pills` sits exactly on `.phone-shot-screen`), centered on the row they point at. On the Taxes screen, languages whose subtitle wraps to two lines (es, pt-br, fr, de, it) push every row down 2.3%, which is what `TAX_ROWS` encodes; detect row dividers in each capture rather than eyeballing. A re-cut assign clip also needs its `tapAt` (seconds into the clip when the `late` pill appears).
 
 ## Worker, routing, headers
 
