@@ -39,9 +39,9 @@ import type { ReceiptSnapshot } from "../types/snapshot";
 ///     shows the settlement ring without the Summary/Receipt
 ///     control.
 ///
-///   • **`avatarUrl` is null on every contact** so the page
-///     makes no request to `avatars.splitea.app`. `Avatar`
-///     falls back to initials (MV / AC / NB).
+///   • **`avatarUrl` points at self-hosted photos** in
+///     `/landing/` (the faces from the App Store screenshots),
+///     so the page makes no request to `avatars.splitea.app`.
 ///
 ///   • **Ids are hardcoded and stable.** The breakdown math
 ///     places leftover cents by lowercased id order, so
@@ -150,7 +150,7 @@ export const DEMO_SNAPSHOT: ReceiptSnapshot = {
       paymentUsernames: {
         venmo: "marisol-vega",
       },
-      avatarUrl: null,
+      avatarUrl: "/landing/avatar-marisol-v1.webp",
       shortId: 1,
       paid: false,
       paidAt: null,
@@ -168,7 +168,7 @@ export const DEMO_SNAPSHOT: ReceiptSnapshot = {
       fullName: "Andrés Colón",
       isUserContact: false,
       paymentUsernames: null,
-      avatarUrl: null,
+      avatarUrl: "/landing/avatar-andres-v1.webp",
       shortId: 2,
       paid: false,
       paidAt: null,
@@ -182,7 +182,7 @@ export const DEMO_SNAPSHOT: ReceiptSnapshot = {
       fullName: "Nina Bermúdez",
       isUserContact: false,
       paymentUsernames: null,
-      avatarUrl: null,
+      avatarUrl: "/landing/avatar-nina-v1.webp",
       shortId: 3,
       paid: false,
       paidAt: null,
