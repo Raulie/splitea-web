@@ -88,6 +88,7 @@ No hydration: `index.tsx` sees the marker, awaits `preloadLanding(seg)`, then em
   - The bar root and its fixed wrapper are `pointer-events: none`, with only the contact strip and Continue wrappers `auto`, so rows showing through the 40px fade band take taps. The home-indicator inset sits on the Continue wrapper, so the solid bar still blocks taps.
   - Each trig `zoom` on `.lp .device-frame` is followed by a typed-division `zoom`. iOS 26 Safari computes the trig form as 0.05 (a 23pt phone); engines without typed division drop the second line and keep the first.
   - `.lang-suggest` hides while `.demo-done` exists (demo open on touch), and `Landing` adds a passive `touchstart` listener so iOS shows `:active` press states.
+  - `.lp .device-screen` draws a black ring (2% of the screen width) that the bezel image covers. At some widths (428/430 pt, desktop) rounding leaves the screen a fraction of a pixel short of the bezel's inner edge, and without the ring a cream hairline shows there.
   - Verify demo changes on iOS Safari (Simulator), not just Chromium: the hit-testing bug is WebKit-only.
 
 ## Assets

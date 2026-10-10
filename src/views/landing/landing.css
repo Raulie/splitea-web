@@ -808,6 +808,10 @@ html.is-android .lp-android {
   box-shadow: none;
 }
 
+.lp .device-screen {
+  box-shadow: 0 0 0 calc(var(--dw) * 0.02) #000;
+}
+
 .lp .device-btn,
 .lp .device-glare {
   display: none;
