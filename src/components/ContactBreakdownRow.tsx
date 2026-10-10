@@ -53,6 +53,14 @@ export interface ContactBreakdownRowProps {
 export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
   const state = createMemo(() => settlementState(props.contact));
   const nameId = createUniqueId();
+  const showsSubtotal = () =>
+    props.subtotal > 0 &&
+    !(
+      props.items.length === 1 &&
+      formatCurrency(props.items[0]!.amount, props.currencyCode) ===
+        formatCurrency(props.subtotal, props.currencyCode)
+    );
+  const hasSummaryRows = () => showsSubtotal() || props.tax > 0 || props.tip > 0;
   const statusText = () =>
     state() === "settled"
       ? t("breakdownSettledSubtitle")
@@ -252,16 +260,18 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
             `border-style: dashed` on a 1px-tall block; the
             color matches the solid-divider token so both
             stack visually-paired. */}
-        <div
-          class="my-3 border-t border-dashed border-ios-separator"
-          aria-hidden="true"
-        />
+        <Show when={hasSummaryRows()}>
+          <div
+            class="my-3 border-t border-dashed border-ios-separator"
+            aria-hidden="true"
+          />
+        </Show>
 
         {/* Subtotal / Tax / Tip — iOS `summaryRow(isBold:
-            false)`. Hidden when zero, matching the SwiftUI
-            `if subtotal > 0` guards. */}
+            false)`. Hidden when zero, and Subtotal also hides
+            when it only repeats a single item, as on iOS. */}
         <div class="space-y-1">
-          <Show when={props.subtotal > 0}>
+          <Show when={showsSubtotal()}>
             <BreakdownLine
               label={t("summarySubtotalLabel")}
               value={formatCurrency(props.subtotal, props.currencyCode)}
