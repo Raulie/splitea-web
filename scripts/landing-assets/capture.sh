@@ -34,7 +34,7 @@ for c in en es pt-BR fr de it ja ko zh-Hans zh-Hant; do
   blur_receipt_header "$OUT/scan$suffix.png"
   cap "$OUT/taxes$suffix.png" "${base[@]}" -screenshotScreen taxes
   cap "$OUT/settle$suffix.png" "${base[@]}" -screenshotScreen payButton
-  cap "$OUT/trip-folder$suffix.png" "${base[@]}" -screenshotScreen library -screenshotFolder YES
+  cap "$OUT/trip-dc$suffix.png" "${base[@]}" -screenshotScreen library -screenshotFolder YES
   cap "$OUT/fx$suffix.png" "${base[@]}" -screenshotScreen fx
   cap "$OUT/library-grid$suffix.png" "${base[@]}" -screenshotScreen splits -screenshotSplitsTitle "${TITLE[$c]}"
   cap "$OUT/library-list$suffix.png" "${base[@]}" -screenshotScreen library -screenshotMode list

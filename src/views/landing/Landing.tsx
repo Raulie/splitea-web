@@ -267,7 +267,7 @@ export default function Landing(props: { lang?: string; params?: { lang?: string
               <div class="mask-window">
                 <div class="mask-content">
                   <PhoneShot pw="var(--trips-pw)" class="trips-phone" label={copy.trips.alt}>
-                    <ShotPicture shot={localizedShot("trip-folder", locale)} sizes="(min-width:1024px) 320px, 62vw" />
+                    <ShotPicture shot={localizedShot("trip-dc", locale)} sizes="(min-width:1024px) 320px, 62vw" />
                   </PhoneShot>
                 </div>
               </div>

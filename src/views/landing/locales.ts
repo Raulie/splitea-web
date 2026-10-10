@@ -75,7 +75,7 @@ export function registerCopy(code: string, copy: Copy) {
 
 export const copyFor = (code: string): Copy => cache[code] ?? en;
 
-const LOCALIZED_SHOTS = new Set(["scan", "taxes", "settle", "trip-folder", "fx", "library-grid", "library-list"]);
+const LOCALIZED_SHOTS = new Set(["scan", "taxes", "settle", "trip-dc", "fx", "library-grid", "library-list"]);
 
 export const localizedShot = (slug: string, locale: LandingLocale) =>
   locale.seg && LOCALIZED_SHOTS.has(slug) ? { slug: `${slug}-${locale.seg}`, widths: [480, 720] } : { slug };

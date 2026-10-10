@@ -1427,7 +1427,8 @@ html.is-android .lp-android {
   display: grid;
   justify-items: center;
   overflow: clip;
-  padding-block: 8px 24px;
+  padding-block: 8px 72px;
+  margin-bottom: -48px;
 }
 
 .mask-window {
