@@ -738,6 +738,45 @@ html { scroll-behavior: smooth; }
   to { opacity: 1; }
 }
 
+.ios-menu {
+  border-radius: 22px;
+  background-color: rgba(247, 247, 247, 0.82);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+  transform-origin: 16px 0;
+  animation: ios-menu-in 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.ios-menu-above {
+  translate: 0 -100%;
+  transform-origin: 16px 100%;
+}
+@media (prefers-color-scheme: dark) {
+  .ios-menu {
+    background-color: rgba(44, 44, 46, 0.82);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+}
+.ios-menu-item {
+  min-height: 48px;
+  padding: 12px 16px;
+  transition: background-color 120ms ease-out;
+}
+.ios-menu-item:active,
+.ios-menu-item:focus-visible {
+  background-color: rgba(120, 120, 128, 0.2);
+  outline: none;
+}
+@keyframes ios-menu-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ios-menu {
+    animation: ios-alert-fade 150ms ease-out;
+  }
+}
+
 /* ============================================================
    LANDING HERO — iPhone shell + the REAL recipient UI inside it
 

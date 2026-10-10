@@ -8,7 +8,8 @@ import { BackButton } from "../components/BackButton";
 import { EditButton } from "../components/EditButton";
 import { NavBar } from "../components/NavBar";
 import { ReceiptViewer } from "../components/ReceiptViewer";
-import { PayMenuSheet } from "../components/PayMenuSheet";
+import { PayMenuSheet, identityCacheKey } from "../components/PayMenuSheet";
+import { FitText } from "../components/FitText";
 import { IOSAlert } from "../components/IOSAlert";
 import { SettlementRing } from "../components/SettlementRing";
 import { SegmentedControl } from "../components/SegmentedControl";
@@ -16,7 +17,7 @@ import {
   calculateContactBreakdowns,
   minorUnitExponent,
 } from "../lib/moneyMath";
-import { formatReceiptDateTime } from "../lib/format";
+import { formatCurrency, formatReceiptDateTime } from "../lib/format";
 import { configuredPayProviders } from "../lib/payProviders";
 import { claimPaid } from "../lib/api";
 import { settlementState } from "../lib/settlement";
@@ -375,13 +376,60 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     payCandidates().length > 0 &&
     (payerIsPayable() || owingCandidates().length > 0);
 
+  const [rememberedIdentity, setRememberedIdentity] = createSignal<string | null>(
+    (() => {
+      if (props.demo) return null;
+      try {
+        return localStorage.getItem(identityCacheKey(props.snapshot.receipt.id));
+      } catch {
+        return null;
+      }
+    })(),
+  );
+
+  const viewerCandidate = () => {
+    if (props.demo) return undefined;
+    const candidates = payCandidates();
+    const byId = (id: string | null | undefined) =>
+      id ? candidates.find((c) => c.contactId === id) : undefined;
+    if (props.forContactId) return byId(props.forContactId);
+    return byId(rememberedIdentity()) ?? (candidates.length === 1 ? candidates[0] : undefined);
+  };
+
+  const showsPayBar = () =>
+    canPay() && (viewerCandidate()?.settlementState ?? "owes") === "owes";
+
+  const payerFirstName = () =>
+    payerContact()?.fullName?.trim().split(/\s+/)[0] || payerDisplayName();
+
+  const payBarLabels = () => {
+    if (!payerIsPayable()) return [t("markAsPaidButton")];
+    const viewer = viewerCandidate();
+    if (!viewer) return [t("payPersonButton", { name: payerFirstName() }), t("payButton")];
+    const amount = formatCurrency(viewer.amount, displayCurrency());
+    return [
+      t("payPersonAmountButton", { name: payerFirstName(), amount }),
+      t("payAmountButton", { amount }),
+      t("payButton"),
+    ];
+  };
+
+  const payBarAccessibleLabel = () => {
+    if (!payerIsPayable()) return t("markAsPaidButton");
+    const viewer = viewerCandidate();
+    return viewer
+      ? t("payPersonAmountButton", {
+          name: payerDisplayName(),
+          amount: formatCurrency(viewer.amount, displayCurrency()),
+        })
+      : t("payPersonButton", { name: payerDisplayName() });
+  };
+
   /// The contact to claim for when "Mark as paid" can skip the
   /// identity picker, or null when it must not.
   ///
-  /// A claim is one-way on this surface — `claimPaid` only ever
-  /// sends `paid: true`, and clearing it is the payer's action on
-  /// iOS — so the bar may only claim without asking when the
-  /// visitor's identity is beyond doubt. Two cases qualify:
+  /// The bar may only claim without asking when the visitor's
+  /// identity is beyond doubt. Two cases qualify:
   ///
   ///   - A per-recipient link (`/r/<id>/c/<shortId>`) named them,
   ///     the same identity `PayMenuSheet` treats as authoritative.
@@ -414,6 +462,10 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   /// failure is safely retriable on the next tap.
   const onMarkPaid = (contactId: string) => {
     void claimPaid(props.shareID, contactId).catch(() => {});
+  };
+
+  const onMarkUnpaid = (contactId: string) => {
+    void claimPaid(props.shareID, contactId, false).catch(() => {});
   };
 
   /// "Did you pay <payer>?" return prompt — the web analog of iOS's
@@ -609,9 +661,9 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         class="flex-1 overflow-y-auto"
         classList={{
           "pb-[calc(108px+env(safe-area-inset-bottom))]":
-            canPay(),
+            showsPayBar(),
           "pb-[calc(16px+env(safe-area-inset-bottom))]":
-            !(canPay()),
+            !showsPayBar(),
         }}
       >
         <NavBar
@@ -728,7 +780,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                   // `bg-ios-card-hi` (#2c2c2e); on release the
                   // bg fades back. Mirrors UIKit's standard
                   // touch-down highlight on a grouped-list
-                  // cell. Tailwind's `has-[button:active]:`
+                  // cell. Tailwind's `has-[.disclosure-toggle:active]:`
                   // selector reads the descendant button's
                   // `:active` pseudo-class so the parent
                   // responds without any JS plumbing.
@@ -742,7 +794,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                   // (22pt) — matches the iOS app's
                   // `cornerRadius: 22, style: .continuous`.
                   return (
-                    <div class="bg-ios-card has-[button:active]:bg-ios-card-hi transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] rounded-ios-card overflow-hidden">
+                    <div class="bg-ios-card has-[.disclosure-toggle:active]:bg-ios-card-hi transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] rounded-ios-card overflow-hidden">
                       <ContactBreakdownRow
                         contact={row.contact!}
                         amount={displayTotal(row)}
@@ -755,6 +807,12 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                         open={isRowExpanded(row.breakdown.contactId)}
                         onOpenChange={(next) =>
                           setRowExpanded(row.breakdown.contactId, next)
+                        }
+                        isViewer={viewerCandidate()?.contactId === row.breakdown.contactId}
+                        onMarkUnpaid={
+                          viewerCandidate()?.contactId === row.breakdown.contactId
+                            ? () => onMarkUnpaid(row.breakdown.contactId)
+                            : undefined
                         }
                       />
                     </div>
@@ -831,7 +889,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         it).
       */}
       <Show
-        when={canPay()}
+        when={showsPayBar()}
       >
         <div
           // `absolute inset-x-0 bottom-0` — pinned to the
@@ -903,12 +961,13 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                 only thing left to do is settle offline. That skips
                 the sheet only when `settleShortcutTarget` knows
                 exactly who the visitor is — otherwise it presents
-                the identity picker, because an unattributed claim
-                can't be taken back from here. */}
-            <Show when={canPay()}>
+                the identity picker, because a guessed claim would
+                settle a stranger's share. */}
+            <Show when={showsPayBar()}>
               <button
                 type="button"
-                class="block w-full h-12 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity truncate"
+                class="block w-full h-12 px-5 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity truncate"
+                aria-label={payBarAccessibleLabel()}
                 onClick={() => {
                   if (payerIsPayable()) {
                     setShowingPayMenu(true)
@@ -922,9 +981,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                   }
                 }}
               >
-                {payerIsPayable()
-                  ? t("payPersonButton", { name: senderDisplayName() })
-                  : t("markAsPaidButton")}
+                <FitText class="text-center" variants={payBarLabels()} />
               </button>
             </Show>
 
@@ -948,6 +1005,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           settleOnly={!payerIsPayable()}
           onMarkPaid={onMarkPaid}
           onProviderTap={armPayConfirm}
+          onIdentityChange={setRememberedIdentity}
           onClose={() => setShowingPayMenu(false)}
         />
       </Show>

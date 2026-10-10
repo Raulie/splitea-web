@@ -88,6 +88,7 @@ export interface PayMenuSheetProps {
   /// when they return (mirrors iOS `openProviderURL` arming
   /// `awaitingPayConfirmation`).
   onProviderTap?: (contactId: string) => void;
+  onIdentityChange?: (contactId: string | null) => void;
   /// Called once the slide-down exit animation completes.
   onClose: () => void;
 }
@@ -119,7 +120,7 @@ const PAY_SHEET_ANIMATION_MS = 380;
 /// identity choice for a given receipt. One choice per
 /// receipt ID — switching browsers / clearing storage
 /// resets the picker, which is fine.
-function identityCacheKey(receiptID: string): string {
+export function identityCacheKey(receiptID: string): string {
   return `splitea:pay-identity:${receiptID}`;
 }
 
@@ -200,6 +201,13 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
   }
 
   function chooseIdentity(contactId: string) {
+    try {
+      localStorage.setItem(identityCacheKey(props.receiptID), contactId);
+    } catch {
+      // Ignore storage failures — the in-memory selection
+      // still works for the rest of this modal session.
+    }
+    props.onIdentityChange?.(contactId);
     // Settle-only: the identity IS the whole interaction. Claim
     // and close rather than advancing to a providers stage that
     // would have nothing in it.
@@ -209,12 +217,6 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
       return;
     }
     setSelectedContactId(contactId);
-    try {
-      localStorage.setItem(identityCacheKey(props.receiptID), contactId);
-    } catch {
-      // Ignore storage failures — the in-memory selection
-      // still works for the rest of this modal session.
-    }
   }
 
   function clearIdentity() {
@@ -224,6 +226,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
     } catch {
       /* noop */
     }
+    props.onIdentityChange?.(null);
   }
 
   function urlForProvider(provider: PayProvider, username: string): string {

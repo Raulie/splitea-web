@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, createUniqueId } from "solid-js";
 import type { JSX } from "solid-js";
 
 /// Expandable container — tap the summary to reveal the
@@ -48,9 +48,10 @@ export interface DisclosureGroupProps {
   /// `open` is controlled (otherwise the parent has no way
   /// to react to taps); optional in self-managed mode.
   onOpenChange?: (next: boolean) => void;
-  /// Class on the wrapping `<button>` for the summary so the
-  /// caller can override padding / hover states.
+  /// Class on the summary's wrapper so the caller can override
+  /// padding / hover states.
   summaryClass?: string;
+  labelledBy?: string;
   /// Class on the body's inner content wrapper. The grid
   /// machinery on the outer wrapper is fixed; padding/etc.
   /// belong on the inner wrapper, NOT here.
@@ -68,23 +69,28 @@ export function DisclosureGroup(props: DisclosureGroupProps) {
     if (props.open === undefined) setInternalOpen(next);
     props.onOpenChange?.(next);
   };
+  const summaryId = createUniqueId();
   return (
     <div>
-      <button
-        type="button"
-        // No `active:opacity-*` here — press feedback is
-        // owned by the parent wrapper via Tailwind's
-        // `has-[button:active]:` selector (see
-        // `SavedReceiptView`'s breakdown-card div). Dimming
-        // the button on top of a wrapper bg-fade looked
-        // muddy; UIKit's grouped-list cell highlight is bg-
-        // only, not opacity-driven.
-        class={`w-full text-left ${props.summaryClass ?? ""}`}
-        aria-expanded={isOpen()}
-        onClick={toggle}
-      >
-        {props.summary(isOpen)}
-      </button>
+      <div class={`relative ${props.summaryClass ?? ""}`}>
+        <button
+          type="button"
+          // No `active:opacity-*` here — press feedback is
+          // owned by the parent wrapper via Tailwind's
+          // `has-[.disclosure-toggle:active]:` selector (see
+          // `SavedReceiptView`'s breakdown-card div). Dimming
+          // the button on top of a wrapper bg-fade looked
+          // muddy; UIKit's grouped-list cell highlight is bg-
+          // only, not opacity-driven.
+          class="disclosure-toggle absolute inset-0 w-full"
+          aria-expanded={isOpen()}
+          aria-labelledby={props.labelledBy ?? summaryId}
+          onClick={toggle}
+        />
+        <div id={summaryId} class="relative pointer-events-none">
+          {props.summary(isOpen)}
+        </div>
+      </div>
       <div
         class="grid"
         style={{

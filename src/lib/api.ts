@@ -39,7 +39,7 @@ export async function fetchSnapshot(shareID: string): Promise<ReceiptSnapshot> {
 }
 
 /// Stateless "I paid" claim from a read-only per-recipient
-/// visitor. POSTs `{ contactId, paid: true }` to the relay's
+/// visitor. POSTs `{ contactId, paid }` to the relay's
 /// `/live/receipt/<id>/claim` endpoint. The relay records the
 /// claim in its settlement store and broadcasts a
 /// `settlement.markPaid` op to any connected peers — so we
@@ -56,18 +56,19 @@ export async function fetchSnapshot(shareID: string): Promise<ReceiptSnapshot> {
 /// `splitea.app/live/receipt/*` (see `BackendShareService`); the
 /// worker strips the `/live` prefix before matching `/receipt/:id/claim`.
 ///
-/// `paid` is always `true` here — the web affordance is one-way
-/// ("I paid"); there's no un-claim and no confirm on web.
+/// `paid: false` is the visitor's own "Mark unpaid"; the relay also
+/// clears the payer's confirmation then. There's no confirm on web.
 export async function claimPaid(
   shareID: string,
   contactId: string,
+  paid = true,
 ): Promise<void> {
   const response = await fetch(
     `${apiBase}/live/receipt/${encodeURIComponent(shareID)}/claim`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contactId, paid: true }),
+      body: JSON.stringify({ contactId, paid }),
     },
   );
   if (!response.ok) {

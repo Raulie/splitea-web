@@ -1,9 +1,11 @@
-import { For, Show, createMemo } from "solid-js";
+import { For, Show, createMemo, createUniqueId } from "solid-js";
 import type { ContactPayload } from "../types/snapshot";
 import type { ContactItemShare } from "../lib/moneyMath";
 import { Avatar } from "./Avatar";
 import { ChevronGlyph } from "./ChevronGlyph";
 import { DisclosureGroup } from "./DisclosureGroup";
+import { MenuButton } from "./MenuButton";
+import { UturnBackwardGlyph } from "./UturnBackwardGlyph";
 import { settlementState } from "../lib/settlement";
 import { formatCurrency, formatPhoneNumber } from "../lib/format";
 import { t } from "../lib/i18n";
@@ -44,14 +46,24 @@ export interface ContactBreakdownRowProps {
   /// flip every row open/closed in lockstep.
   open?: boolean;
   onOpenChange?: (next: boolean) => void;
+  isViewer?: boolean;
+  onMarkUnpaid?: () => void;
 }
 
 export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
   const state = createMemo(() => settlementState(props.contact));
+  const nameId = createUniqueId();
+  const statusText = () =>
+    state() === "settled"
+      ? t("breakdownSettledSubtitle")
+      : props.isViewer
+        ? t("breakdownWaitingSubtitle")
+        : t("breakdownPendingSubtitle");
   return (
     <DisclosureGroup
       open={props.open}
       onOpenChange={props.onOpenChange}
+      labelledBy={nameId}
       // 18px summary padding (vs the previous 16h/12v) so
       // the 36px-radius avatar (size 36, r = 18) sits
       // concentric with the 36px card corner. Math:
@@ -67,14 +79,20 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
       summaryClass="p-[18px]"
       summary={(isOpen) => (
         <div class="flex items-center gap-3">
-          <Avatar
-            size={36}
-            fullName={props.contact.fullName}
-            imageURL={props.contact.avatarUrl}
-          />
+          <div aria-hidden="true" class="shrink-0">
+            <Avatar
+              size={36}
+              fullName={props.contact.fullName}
+              imageURL={props.contact.avatarUrl}
+            />
+          </div>
           <div class="flex-1 min-w-0">
             {/* Name — iOS `.subheadline .semibold`. */}
-            <div class="text-ios-subheadline font-semibold text-ios-label truncate">
+            <div
+              id={nameId}
+              aria-hidden="true"
+              class="text-ios-subheadline font-semibold text-ios-label truncate"
+            >
               {props.contact.fullName ?? t("contactsRowUnnamedContactFallback")}
             </div>
             {/* Mirrors iOS `ContactBreakdownRow.settlementSubtitleInfo`
@@ -93,17 +111,41 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
                 </Show>
               }
             >
-              <div
-                class="text-ios-caption truncate"
-                classList={{
-                  "text-ios-green": state() === "settled",
-                  "text-ios-orange": state() === "pending",
-                }}
+              <Show
+                when={props.onMarkUnpaid}
+                fallback={
+                  <div
+                    class="text-ios-caption truncate"
+                    classList={{
+                      "text-ios-green": state() === "settled",
+                      "text-ios-orange": state() === "pending",
+                    }}
+                  >
+                    {statusText()}
+                  </div>
+                }
               >
-                {state() === "settled"
-                  ? t("breakdownSettledSubtitle")
-                  : t("breakdownPendingSubtitle")}
-              </div>
+                <div class="flex min-w-0">
+                  <MenuButton
+                    class="pointer-events-auto relative inline-flex max-w-full min-w-0 text-left text-ios-caption after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-['']"
+                    label={
+                      <span
+                        class="min-w-0 truncate underline decoration-1 underline-offset-[3px]"
+                        classList={{
+                          "text-ios-green": state() === "settled",
+                          "text-ios-orange": state() === "pending",
+                        }}
+                      >
+                        {statusText()}
+                      </span>
+                    }
+                    itemLabel={t("markUnpaidButton")}
+                    itemIcon={<UturnBackwardGlyph size={17} />}
+                    destructive
+                    onSelect={() => props.onMarkUnpaid?.()}
+                  />
+                </div>
+              </Show>
             </Show>
           </div>
           <div class="flex items-center gap-1.5">
