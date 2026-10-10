@@ -29,7 +29,7 @@ import type { ReceiptSnapshot } from "../types/snapshot";
 ///     picks summary-first when every item is assigned) and
 ///     exercises all four of `ItemRow`'s assignment
 ///     indicators in one screenful: a single avatar, a
-///     partial count badge ("2"), the everyone glyph, and the
+///     two-avatar stack, the everyone glyph, and the
 ///     empty circle.
 ///
 ///   • **`receiptImageBase64` is null on purpose.** Embedding
@@ -191,7 +191,7 @@ export const DEMO_SNAPSHOT: ReceiptSnapshot = {
     },
   ],
   assignments: [
-    // Tostones — shared by two of three: renders the "2" count badge.
+    // Tostones — shared by two of three: renders a two-avatar stack.
     {
       id: "8E4F0B26-3D79-4A81-BA05-7F126C93D4E8",
       itemId: "0C4A17E9-58B2-4D63-9F81-7A25E0B3C46D",

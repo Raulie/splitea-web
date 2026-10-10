@@ -1,6 +1,6 @@
-import { createEffect, createSignal, For, onCleanup, Show } from "solid-js";
+import { For, Show } from "solid-js";
 import type { ItemPayload, ContactPayload } from "../types/snapshot";
-import { Avatar } from "./Avatar";
+import { AssigneeIndicator } from "./AssigneeIndicator";
 import { EVERYONE_ID } from "./ContactsRow";
 import { formatCurrency, formatTaxRate } from "../lib/format";
 import { uniformItemRate } from "../lib/moneyMath";
@@ -120,57 +120,11 @@ interface ItemRowProps {
 }
 
 function ItemRow(props: ItemRowProps) {
-  /// Per-row assignment indicator — mirrors the iOS cascade
-  /// in `Components/ItemRow.swift::assignmentIndicator`:
-  ///
-  ///   • 0 assigned        → empty gray circle (no glyph).
-  ///   • 1 assigned        → that contact's avatar.
-  ///   • all assigned      → `person.3.fill` (everyone).
-  ///   • else (1 < N < all)→ count text ("2", "3", ...).
-  ///
-  /// The previous web implementation collapsed cases 3 and 4
-  /// into "show the first assignee's initials" — accurate
-  /// only when N === 1, misleading for partial multi-assigns
-  /// because the user couldn't tell a single-assignee row
-  /// apart from a 3-of-5 row. The count-text variant restores
-  /// the at-a-glance signal.
-  const isEveryone = () =>
-    props.totalContactCount > 1 &&
-    props.assigned.length === props.totalContactCount;
-  const isPartial = () =>
-    props.assigned.length > 1 &&
-    props.assigned.length < props.totalContactCount;
-  /// First assignee for the single-assignee path.
-  const primary = () => props.assigned[0] ?? null;
-
-  /// Bouncy scale on assignment-count change, mirroring the
-  /// iOS `BounceState` enum in `Components/ItemRow.swift`:
-  ///   • added   → scale 1.25 (overshoot)
-  ///   • removed → scale 0.75 (depress)
-  ///   • idle    → scale 1.0 after 200ms
-  /// iOS uses `spring(duration: 0.25, bounce: 0.7)`. CSS
-  /// doesn't have a real spring; the closest match is a
-  /// `cubic-bezier` whose final control point overshoots 1
-  /// (here `(0.5, 1.6, 0.5, 1)` — a pronounced "back-out"
-  /// that feels springy at 250ms).
-  const [scale, setScale] = createSignal(1);
-  let prevCount = props.assigned.length;
-  let revertTimer: ReturnType<typeof setTimeout> | null = null;
-  createEffect(() => {
-    const current = props.assigned.length;
-    if (current === prevCount) return;
-    setScale(current > prevCount ? 1.25 : 0.75);
-    prevCount = current;
-    if (revertTimer !== null) clearTimeout(revertTimer);
-    revertTimer = setTimeout(() => {
-      setScale(1);
-      revertTimer = null;
-    }, 200);
-  });
-  onCleanup(() => {
-    if (revertTimer !== null) clearTimeout(revertTimer);
-  });
-
+  /// Per-row assignment indicator: a port of the iOS
+  /// `AssignmentIndicator` in `Components/ItemRow.swift`
+  /// (dashed empty slot, one avatar, an overlapping stack with a
+  /// "+n" bubble past three, or the everyone glyph), including its
+  /// springs. See `AssigneeIndicator.tsx`.
   return (
     <li>
       <button
@@ -187,40 +141,11 @@ function ItemRow(props: ItemRowProps) {
         onClick={() => props.onTap()}
         disabled={!props.tappable}
       >
-        <span
-          class="inline-flex"
-          style={{
-            transform: `scale(${scale()})`,
-            transition:
-              "transform 250ms cubic-bezier(0.5, 1.6, 0.5, 1)",
-          }}
-        >
-          {/* Cascade matches iOS — see `isEveryone` /
-              `isPartial` derivation above. Order of checks:
-              everyone → partial-count → single primary
-              (which itself renders empty when no assignee). */}
-          <Show
-            when={!isEveryone()}
-            fallback={<Avatar size={40} variant="everyone" />}
-          >
-            <Show
-              when={!isPartial()}
-              fallback={
-                <Avatar
-                  size={40}
-                  displayText={String(props.assigned.length)}
-                />
-              }
-            >
-              <Avatar
-                size={40}
-                fullName={primary()?.fullName ?? null}
-                imageURL={primary()?.avatarUrl ?? null}
-                emptyWhenUnnamed={!primary()}
-              />
-            </Show>
-          </Show>
-        </span>
+        <AssigneeIndicator
+          assigned={props.assigned}
+          total={props.totalContactCount}
+          size={40}
+        />
         {/* Item description, price, and tax % all match iOS
             `Components/ItemRow.swift:146-164`:
               description: .subheadline (15pt) .secondary

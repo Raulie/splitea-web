@@ -25,6 +25,7 @@ Solid 1.9, Vite 5, Tailwind 3, TypeScript, Cloudflare Workers static assets. **T
 - Wire changes follow the transition window: workers dual-accept first, the app ships second.
 - Cross-repo order: splitea-shares before web when the page needs a new endpoint; web before an iOS release whose snapshots it must render; splitea-legal before privacy copy.
 - Bill math (`src/lib/moneyMath.ts`, `settlement.ts`, `currencyConversion.ts`) stays at parity with iOS to the cent.
+- The item row's assignee indicator (`src/components/AssigneeIndicator.tsx`, springs in `src/lib/spring.ts`) is a port of iOS `AssignmentIndicator` in `ItemRow.swift`, matched to a frame-by-frame Simulator recording. Arrivals appear instantly; only exits (scale and fade about their own center), slides, the everyone morph and the pop animate. `spring.ts` is the closed-form SwiftUI `Spring(duration:bounce:)` (stiffness (2π/d)², damping ratio 1 - bounce), checked against SwiftUI's own values. Keep them in step when iOS changes.
 
 ## Repo map
 
