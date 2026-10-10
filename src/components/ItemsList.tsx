@@ -6,10 +6,8 @@ import { formatCurrency, formatTaxRate } from "../lib/format";
 import { uniformItemRate } from "../lib/moneyMath";
 import { t } from "../lib/i18n";
 
-/// Items section header ("Items" + "Reset" right-aligned) plus
-/// the rounded-card list of items. Each row shows the assigned
-/// avatar (or an "everyone" pill if assigned to all selected
-/// contacts), the item description, and price + tax rate.
+/// Items section header plus the rounded-card list of items. Mirrors
+/// `ItemsView.itemsSection` and `Components/ItemRow.swift` on iOS.
 ///
 /// Tapping a row toggles the assignment of that item against
 /// `activeContactId` — the contact currently selected in
@@ -24,6 +22,8 @@ export interface ItemsListProps {
   assignmentsByItem: Map<string, ContactPayload[]>;
   totalContactCount: number;
   currencyCode: string;
+  receiptTaxRate: number | null;
+  taxInclusive: boolean;
   /// The contact a tap will toggle the assignment against.
   /// `null` when no contact is selected — taps no-op in that
   /// case (and we drop the visual affordance accordingly).
@@ -32,37 +32,20 @@ export interface ItemsListProps {
 }
 
 export function ItemsList(props: ItemsListProps) {
-  // One uniform rate across all items → it shows once in the summary's
-  // "Tax (X%)" row, so drop the redundant per-row badge. Mixed rates →
-  // keep the badge so each row's own rate stays visible.
-  const showsTaxRate = () => uniformItemRate(props.items) === null;
+  const showsTaxRate = () =>
+    !props.taxInclusive &&
+    (props.receiptTaxRate === null || props.receiptTaxRate === undefined) &&
+    uniformItemRate(props.items) === null;
   return (
     <section>
-      {/* "Items" header only — the Reset / "Split evenly"
-          affordance from iOS lives on the owner side; web
-          peers can only assign their own slice, so the
-          destructive bulk control would be confusing here. */}
-      {/* iOS section header treatment — sub-headline weight
-          (15pt) at semibold in `text-ios-label-secondary`
-          (~60% white). Matches the rendered Section header
-          style SwiftUI uses for `.insetGrouped` lists on
-          iOS 26 when the developer doesn't explicitly
-          override font / color: a subdued gray label that
-          reads as "category divider", not as primary
-          content. The earlier `text-ios-body text-ios-label`
-          (17pt white) read too prominent next to the items
-          card below; the earlier `text-ios-footnote text-
-          ios-label-secondary` (13pt gray) read too faint.
-          15pt + semibold + gray is the sweet spot the iOS
-          screenshot lands on. */}
-      <div class="flex items-center justify-between px-4 mb-2">
-        <h2 class="text-ios-subheadline font-semibold text-ios-label-secondary">
+      <div class="flex items-center justify-between px-4 mb-[9px]">
+        <h2 class="text-ios-headline text-ios-label-secondary">
           {t("itemsSectionTitle")}
         </h2>
       </div>
-      <ul class="bg-ios-card rounded-ios-card ios-list-divide overflow-hidden">
+      <ul class="items-card bg-ios-card rounded-ios-card overflow-hidden">
         <For each={props.items}>
-          {(item) => {
+          {(item, index) => {
             const assigned = () =>
               props.assignmentsByItem.get(item.id) ?? [];
             // When the active selection is "Everyone", an item
@@ -90,6 +73,7 @@ export function ItemsList(props: ItemsListProps) {
                 isAssignedToActive={isAssignedToActive()}
                 tappable={props.activeContactId !== null}
                 showsTaxRate={showsTaxRate()}
+                showsDivider={index() < props.items.length - 1}
                 onTap={() => props.onToggleItem(item.id)}
               />
             );
@@ -105,73 +89,65 @@ interface ItemRowProps {
   assigned: ContactPayload[];
   totalContactCount: number;
   currencyCode: string;
-  /// True when the active contact is one of the assignees on
-  /// this item — drives the row's "this is mine" treatment
-  /// (subtle bg tint to confirm the assignment).
   isAssignedToActive: boolean;
   /// True when there's a contact selected (so taps mean
   /// something). When false the row is still rendered but
   /// taps are no-ops — same UX as iOS.
   tappable: boolean;
-  /// False when every item shares one tax rate — the per-row tax badge
-  /// is dropped because the rate is shown once in the summary instead.
   showsTaxRate: boolean;
+  showsDivider: boolean;
   onTap: () => void;
 }
 
 function ItemRow(props: ItemRowProps) {
-  /// Per-row assignment indicator: a port of the iOS
-  /// `AssignmentIndicator` in `Components/ItemRow.swift`
-  /// (dashed empty slot, one avatar, an overlapping stack with a
-  /// "+n" bubble past three, or the everyone glyph), including its
-  /// springs. See `AssigneeIndicator.tsx`.
+  const hasTax = () =>
+    props.showsTaxRate &&
+    props.item.tax !== null &&
+    props.item.tax !== undefined &&
+    props.item.tax > 0;
   return (
-    <li>
+    <li class="relative">
       <button
         type="button"
-        // `py-4` (16pt) matches the visual vertical inset
-        // iOS InsetGroupedListStyle gives each row in
-        // `Components/ItemRow.swift`. Combined with the 40pt
-        // avatar, this lands rows at ~72pt total height —
-        // the same vertical rhythm the iOS screenshot shows.
-        // Earlier `py-3` (12pt) was 8pt shy on each row.
-        class={`w-full text-left px-4 py-4 flex items-center gap-3 active:bg-ios-card-hi transition-colors ${
-          props.isAssignedToActive ? "bg-ios-card-hi" : ""
-        }`}
+        class="w-full text-left px-4 py-[15px] flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ios-blue"
         onClick={() => props.onTap()}
         disabled={!props.tappable}
+        aria-pressed={props.tappable ? props.isAssignedToActive : undefined}
       >
         <AssigneeIndicator
           assigned={props.assigned}
           total={props.totalContactCount}
           size={40}
         />
-        {/* Item description, price, and tax % all match iOS
-            `Components/ItemRow.swift:146-164`:
-              description: .subheadline (15pt) .secondary
-              price:       .subheadline (15pt) .semibold .primary
-              tax %:       .caption2     (11pt) .secondary
-            We were one size larger across the board (body
-            17pt instead of subheadline 15pt) which made the
-            web rows visibly heavier than iOS.
-            VStack(alignment: .trailing, spacing: 2) on the
-            right side maps to Tailwind `space-y-0.5` (2pt). */}
-        <div class="flex-1 min-w-0">
-          <div class="text-ios-subheadline text-ios-label-secondary truncate">
-            {props.item.itemDescription}
-          </div>
+        <div
+          class="flex-1 min-w-0 text-ios-subheadline line-clamp-2 break-words"
+          classList={{
+            "font-medium text-ios-label": props.isAssignedToActive,
+            "text-ios-label-secondary": !props.isAssignedToActive,
+          }}
+        >
+          {props.item.itemDescription}
         </div>
-        <div class="flex flex-col items-end space-y-0.5">
-          <span class="text-ios-subheadline font-semibold text-ios-label">
+        <div class="shrink-0 flex flex-col items-end gap-1">
+          <span
+            class="text-[15px] leading-[18px] whitespace-nowrap"
+            classList={{
+              "font-bold text-ios-label": props.isAssignedToActive,
+              "font-semibold text-ios-label-secondary": !props.isAssignedToActive,
+            }}
+          >
             {formatCurrency(props.item.price, props.currencyCode)}
           </span>
-          <Show when={props.showsTaxRate && props.item.tax !== null && props.item.tax !== undefined && props.item.tax > 0}>
-            <span class="text-ios-caption2 text-ios-label-secondary">
+          <Show when={hasTax()}>
+            <span class="px-[7px] py-[3px] rounded-full bg-ios-tertiary-fill text-[10px] leading-[12px] text-ios-label-secondary whitespace-nowrap">
               {formatTaxRate(props.item.tax!)}
             </span>
           </Show>
         </div>
       </button>
+      <Show when={props.showsDivider}>
+        <div aria-hidden="true" class="pointer-events-none absolute bottom-0 left-4 right-4 h-px bg-ios-separator" />
+      </Show>
     </li>
   );
 }

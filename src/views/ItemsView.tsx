@@ -821,6 +821,8 @@ function Loaded(props: {
           assignmentsByItem={assignmentsByItem()}
           totalContactCount={store.snapshot.contacts.length}
           currencyCode={store.snapshot.receipt.currencyCode}
+          receiptTaxRate={store.snapshot.receipt.taxRate}
+          taxInclusive={store.snapshot.receipt.taxInclusive}
           activeContactId={activeContactId()}
           onToggleItem={onToggleItem}
         />

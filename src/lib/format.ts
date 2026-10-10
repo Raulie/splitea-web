@@ -28,13 +28,10 @@ export function formatCurrency(amount: number, currencyCode: string): string {
   }
 }
 
-/// Tax-rate label like "7%" or "11.5%". Keeps trailing zeros
-/// trimmed so we don't render "7.0%" when "7%" suffices.
+/// Tax-rate label like "7%", "11.5%" or "8.88%", in the browser's
+/// number locale. Mirrors iOS `.number.precision(.fractionLength(0...2))`.
 export function formatTaxRate(taxRate: number): string {
-  const trimmed = Number.isInteger(taxRate)
-    ? taxRate.toString()
-    : taxRate.toFixed(1).replace(/\.0$/, "");
-  return `${trimmed}%`;
+  return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(taxRate)}%`;
 }
 
 /// "May 4, 2026" — long month, numeric day, year. Matches the

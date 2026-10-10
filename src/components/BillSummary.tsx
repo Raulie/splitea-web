@@ -99,7 +99,7 @@ export function BillSummary(props: BillSummaryProps) {
 
   // Card chrome + concentric padding:
   //
-  //   • `rounded-ios-card` (22pt) matches every other card
+  //   • `rounded-ios-card` (26px) matches every other card
   //     on this view — breakdown rows, ReceiptInfoCard,
   //     ItemsList — so the stack reads as one consistent
   //     surface. iOS app uses `cornerRadius: 22` on its

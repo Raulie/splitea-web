@@ -791,8 +791,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                   // animation since press feedback should
                   // feel snappier than a layout change.
                   // Card corner radius is `rounded-ios-card`
-                  // (22pt) — matches the iOS app's
-                  // `cornerRadius: 22, style: .continuous`.
+                  // (26px), the iOS inset-grouped card radius.
                   return (
                     <div class="bg-ios-card has-[.disclosure-toggle:active]:bg-ios-card-hi transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] rounded-ios-card overflow-hidden">
                       <ContactBreakdownRow

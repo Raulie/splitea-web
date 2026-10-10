@@ -22,14 +22,12 @@
   --ios-card-hi:         #e5e5ea;
   /* iOS `Color.gray.opacity(0.5)` translucent token — used
      as the default Avatar circle backing. SwiftUI's
-     `Color.gray` is the literal CSS gray (`rgb(128,128,128)`),
-     NOT `UIColor.systemGray` (`#8e8e93`) — easy to confuse
-     because the system-named gray is what most iOS UI uses
-     elsewhere. ContactAvatar / InitialsAvatar / everyone-
-     chip all use the literal `.gray`. 0.5α renders over
-     whatever's behind: on a white card surface ≈ `#c0c0c0`;
-     on the `#f2f2f7` body ≈ `#b9b9bb`. */
-  --ios-gray-fill:       rgba(128, 128, 128, 0.5);
+     `Color.gray` renders as `systemGray` (`#8e8e93`): an
+     iPhone capture of the Items card measures the everyone
+     chip at (85,84,88) on the #1c1c1e card, which literal
+     `rgb(128,128,128)` at 0.5α would put at (78,78,79).
+     ContactAvatar / InitialsAvatar / everyone-chip all use it. */
+  --ios-gray-fill:       rgba(142, 142, 147, 0.5);
   /* Lighter variant of the same fill — iOS uses 0.2α (vs
      0.5α) specifically for the "no assignment" avatar
      circle on items (`Color.gray.opacity(0.2)` in
@@ -39,17 +37,18 @@
      contacts, the everyone-chip, and initials avatars.
      Over white: rgb(228, 228, 228). */
   --ios-gray-fill-dim:   rgba(128, 128, 128, 0.2);
+  --ios-tertiary-fill:   rgba(118, 118, 128, 0.12);
   /* Opaque pre-composited equivalent of `--ios-gray-fill`
      for places where a translucent fill would bleed through
      a gradient-masked backdrop (ContactsRow's mask-image
      fade). Pre-composited onto the body bg per mode:
-       Light:  0.5×(128,128,128) + 0.5×(242,242,247)
-               = rgb(185, 185, 187)
-       Dark:   0.5×(128,128,128) + 0.5×(0,0,0)
-               = rgb(64, 64, 64)
+       Light:  0.5×(142,142,147) + 0.5×(242,242,247)
+               = rgb(192, 192, 197)
+       Dark:   0.5×(142,142,147) + 0.5×(0,0,0)
+               = rgb(71, 71, 74)
      ContactsRow + EveryonePill consume this directly via
      inline `background-color: var(--ios-gray-fill-opaque)`. */
-  --ios-gray-fill-opaque: rgb(185, 185, 187);
+  --ios-gray-fill-opaque: rgb(192, 192, 197);
   /* iOS-style floating toast pill (ConnectingPill, future
      notification pills). Modelled after iOS 26's "Updating
      Location" / AirDrop-progress capsule — thin material
@@ -115,19 +114,16 @@
      can't tell parser acceptance apart from actual
      rendering). */
   /* Universal radii — same numeric value on every engine, no
-     UA / @supports detection. The iOS app uses
-     `cornerRadius: 22, style: .continuous`; we go larger
-     here (28) because the web is a separate visual surface
-     and the slightly softer corners read as deliberately
-     iOS-flavored rather than as a faithful port. On Safari
-     the `.squircle` class adds `corner-shape: superellipse(3)`
-     for the true iOS continuous curve at this radius; every
-     other engine paints the same 28px as a plain circular
-     arc, which lands close to the squircle's perceived size.
+     UA / @supports detection. 26 is the iOS 26 inset-grouped
+     List card radius, measured from an iPhone capture of the
+     Items section (Raúl asked for the web cards to match it,
+     2026-10-10). Cards paint it as a plain circular arc; at 26
+     its 45° inset lands within 0.15px of the iOS continuous
+     curve.
      Pill-shaped buttons should use `rounded-full` (not
      `rounded-ios-card`) and skip `.squircle` — at half-height
      radius the two curves are visually identical. */
-  --radius-ios-card:     28px;
+  --radius-ios-card:     26px;
   --radius-ios-sheet:    44px;
   --radius-ios-tag:      14px;
   --radius-ios-card-inner: 12px;
@@ -143,9 +139,10 @@
   --ios-bg:              #000000;
   --ios-card:            #1c1c1e;
   --ios-card-hi:         #2c2c2e;
-  --ios-gray-fill:       rgba(128, 128, 128, 0.5);
+  --ios-gray-fill:       rgba(142, 142, 147, 0.5);
   --ios-gray-fill-dim:   rgba(128, 128, 128, 0.2);
-  --ios-gray-fill-opaque: rgb(64, 64, 64);
+  --ios-tertiary-fill:   rgba(118, 118, 128, 0.24);
+  --ios-gray-fill-opaque: rgb(71, 71, 74);
   --ios-toast-bg:        rgba(20, 20, 22, 0.7);
   --ios-toast-border:    rgba(255, 255, 255, 0.08);
   --ios-toast-spinner-base: rgba(255, 255, 255, 0.25);

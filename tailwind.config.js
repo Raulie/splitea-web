@@ -26,6 +26,7 @@ export default {
         "ios-card-hi":         "var(--ios-card-hi)",
         "ios-gray-fill":       "var(--ios-gray-fill)",
         "ios-gray-fill-dim":   "var(--ios-gray-fill-dim)",
+        "ios-tertiary-fill":   "var(--ios-tertiary-fill)",
         "ios-separator":       "var(--ios-separator)",
         "ios-label":           "var(--ios-label)",
         "ios-label-secondary": "var(--ios-label-secondary)",
