@@ -774,6 +774,7 @@ html.is-android .lp-android {
 
 .lp .device-frame {
   zoom: max(0.05, min(1, tan(atan2(calc(100vw - 4rem), 450.24px))));
+  zoom: max(0.05, min(1, calc((100vw - 4rem) / 450.24px)));
   width: calc(var(--dw) * 1.12);
   padding: calc(var(--dw) * 0.0575) calc(var(--dw) * 0.06);
   border-radius: calc(var(--dw) * 0.2);
@@ -814,10 +815,27 @@ html.is-android .lp-android {
 
 .lp .device-app {
   --home-inset: calc(var(--dw) * 0.0846);
+  translate: 0;
+  touch-action: manipulation;
 }
 
+.lp .device-app .ios-nav-page-bottom,
 .lp .device-app .ios-nav-page-bottom > .relative {
-  padding-bottom: var(--home-inset);
+  pointer-events: none;
+}
+
+.lp .device-app .ios-nav-page-bottom > .relative > .relative {
+  pointer-events: auto;
+}
+
+.lp .device-app .ios-nav-page-bottom > .relative > .absolute {
+  background: var(--ios-bg, #000) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.lp .device-app .ios-nav-page-bottom > .relative > .relative:last-child {
+  padding-bottom: calc(0.75rem + var(--home-inset));
 }
 
 .lp .device-app .ios-nav-pushed .absolute.inset-x-0.bottom-0 {
@@ -834,6 +852,7 @@ html.is-android .lp-android {
               min(1,
                   tan(atan2(calc(100vw - 4rem), 450.24px)),
                   tan(atan2(calc(100dvh - 10.5rem), 920.08px))));
+    zoom: max(0.72, min(1, calc((100vw - 4rem) / 450.24px), calc((100dvh - 10.5rem) / 920.08px)));
   }
 }
 
@@ -1431,19 +1450,20 @@ html.is-android .lp-android {
 .digital-visual {
   display: grid;
   justify-items: center;
-  gap: 16px;
 }
 
-.digital-visual > span:first-child {
-  justify-self: start;
+.digital-stack {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  width: min(100%, 360px);
 }
 
 .digital-card {
   position: relative;
-  width: min(100%, 360px);
-  border-radius: 28px;
+  width: 100%;
+  border-radius: 9.8% 9.8% 12% 12% / 9.6% 9.6% 11.8% 11.8%;
   box-shadow: var(--shadow-phone);
-  margin-top: 28px;
 }
 
 .digital-card picture,
@@ -1451,27 +1471,22 @@ html.is-android .lp-android {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 28px;
 }
 
 .digital-pill2 {
   position: absolute;
   left: 61.6%;
-  top: 0;
-  transform: translate(-50%, calc(-100% + 6px));
+  top: 37.2%;
+  transform: translate(-50%, calc(-100% - 6px));
 }
 
 @media (min-width: 1024px) {
-  .digital-card {
+  .digital-stack {
     width: 440px;
   }
   .digital-visual {
     grid-column: 1;
     grid-row: 1;
-  }
-  .digital-visual > span:first-child {
-    justify-self: center;
-    transform: translateX(-120px);
   }
 }
 
@@ -2304,7 +2319,8 @@ html.is-android .lp-android {
   letter-spacing: -0.01em;
 }
 
-.lang-suggest.is-away {
+.lang-suggest.is-away,
+.lp:has(.demo-done) .lang-suggest {
   opacity: 0;
   translate: -50% 16px;
   pointer-events: none;

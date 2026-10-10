@@ -152,7 +152,10 @@ export default function Landing(props: { lang?: string; params?: { lang?: string
     if (/Android/i.test(navigator.userAgent)) root.classList.add("is-android");
     theme?.setAttribute("content", "#EFE7D6");
     scheme?.setAttribute("content", "light");
+    const press = () => {};
+    document.addEventListener("touchstart", press, { passive: true });
     onCleanup(() => {
+      document.removeEventListener("touchstart", press);
       root.classList.remove("landing", "is-android");
       if (prevTheme) theme?.setAttribute("content", prevTheme);
       if (prevScheme) scheme?.setAttribute("content", prevScheme);
@@ -274,20 +277,22 @@ export default function Landing(props: { lang?: string; params?: { lang?: string
           <section id="digital" class="sec digital lp-container lp-split lp-split--7-5">
             <SectionHead title={copy.digital.title} tagline={copy.digital.tagline} body={copy.digital.body} />
             <div class="digital-visual">
-              <span class="reveal-rise" ref={reveal} style={{ "--i": 0 }}>
-                <Pill n={1} text={copy.digital.pills[0]} icon="share" />
-              </span>
-              <div class="digital-card">
-                <ShotPicture
-                  shot={{ slug: "share-sheet", widths: [480, 758], webp: 758 }}
-                  sizes="(min-width:1024px) 440px, min(100vw - 40px, 360px)"
-                  alt={copy.digital.alt}
-                  width={758}
-                  height={496}
-                />
-                <span class="digital-pill2 reveal-rise" ref={reveal} style={{ "--i": 1 }}>
-                  <Pill n={2} text={copy.digital.pills[1]} />
+              <div class="digital-stack">
+                <span class="reveal-rise" ref={reveal} style={{ "--i": 0 }}>
+                  <Pill n={1} text={copy.digital.pills[0]} icon="share" />
                 </span>
+                <div class="digital-card">
+                  <ShotPicture
+                    shot={{ slug: "share-sheet-full", widths: [480, 720, 1080], webp: 1080 }}
+                    sizes="(min-width:1024px) 440px, min(100vw - 40px, 360px)"
+                    alt={copy.digital.alt}
+                    width={1123}
+                    height={1147}
+                  />
+                  <span class="digital-pill2 reveal-rise" ref={reveal} style={{ "--i": 1 }}>
+                    <Pill n={2} text={copy.digital.pills[1]} />
+                  </span>
+                </div>
               </div>
             </div>
           </section>

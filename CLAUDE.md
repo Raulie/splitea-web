@@ -82,6 +82,13 @@ No hydration: `index.tsx` sees the marker, awaits `preloadLanding(seg)`, then em
 - Pinned scene (`PinnedScene.tsx`): IntersectionObservers on the trigger divs and the scene set the step. No scroll listeners, no rAF loops. No timeline on the sticky `.scene-stage`, and no `overflow: hidden|auto|scroll` on its ancestors (use `clip`).
 - `reveal` (`motion.ts`) flips `data-reveal` from `pending` to `done` once; it is a no-op under reduced motion.
 - No transform, filter or opacity animation on the `DeviceFrame` subtree. `content-visibility` stays off the scene and anything with a view timeline.
+- The hero demo's tap fixes in `landing.css` are load-bearing; keep them together:
+  - `.lp .device-app` keeps a static `translate: 0` next to the `contain: layout paint` from `index.css`. Without it, WebKit (iOS 26 and 27, likely desktop Safari) mis-hit-tests positioned children of the app's fixed layers once the page scrolls, and rows, chips and Continue stop taking taps. `contain: layout` alone fixes the taps but unclips the hidden Connecting pill and the square app corners.
+  - With that translate, iOS 26.5 draws the bottom bar faded through its `backdrop-filter`, so the demo's bar scrim has no blur and an opaque background.
+  - The bar root and its fixed wrapper are `pointer-events: none`, with only the contact strip and Continue wrappers `auto`, so rows showing through the 40px fade band take taps. The home-indicator inset sits on the Continue wrapper, so the solid bar still blocks taps.
+  - Each trig `zoom` on `.lp .device-frame` is followed by a typed-division `zoom`. iOS 26 Safari computes the trig form as 0.05 (a 23pt phone); engines without typed division drop the second line and keep the first.
+  - `.lang-suggest` hides while `.demo-done` exists (demo open on touch), and `Landing` adds a passive `touchstart` listener so iOS shows `:active` press states.
+  - Verify demo changes on iOS Safari (Simulator), not just Chromium: the hit-testing bug is WebKit-only.
 
 ## Assets
 
@@ -138,6 +145,8 @@ Verify on each host (`dev.splitea.app` for dev):
 ## Known follow-ups
 
 - On a phone held in landscape, the pinned scene's phone is about 42 px wide, so the scene needs its own landscape layout.
+- iOS 26 Safari doesn't scale the demo's text with `zoom`, so the hero demo's text renders about 25% large there (dates wrap, the last rows tuck under the bar). iOS 27 is fine.
+- Picking a contact in the demo plays a 450ms reorder; a second contact tap within about 200ms can land on a moving chip.
 - Swap `public/landing/bezel-iphone-v1.webp` (the app's onboarding bezel) for the Figma deck bezel. A new bezel image needs its screen box (`.phone-shot-screen`, `.lp .device-frame` padding) and its visible outline re-measured from the alpha channel: the shadows in `landing.css` (`.phone-shot::before`, `.lp .device-frame::before`) use those exact insets, or a cream gap shows between metal and shadow. The demo's bottom bars get the 34 pt home-indicator inset from `--home-inset` in `landing.css`.
 - Share-page `notFoundBody` says "iPhone or iPad"; the app is iPhone-only (all 10 locales).
 - After JS loads the landing has two `h1`s, because the demo's Assign Items title is an `h1`.
