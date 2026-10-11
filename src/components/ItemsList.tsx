@@ -29,6 +29,7 @@ export interface ItemsListProps {
   /// case (and we drop the visual affordance accordingly).
   activeContactId: string | null;
   onToggleItem: (itemId: string) => void;
+  readOnly?: boolean;
 }
 
 export function ItemsList(props: ItemsListProps) {
@@ -71,7 +72,8 @@ export function ItemsList(props: ItemsListProps) {
                 totalContactCount={props.totalContactCount}
                 currencyCode={props.currencyCode}
                 isAssignedToActive={isAssignedToActive()}
-                tappable={props.activeContactId !== null}
+                tappable={!props.readOnly && props.activeContactId !== null}
+                readOnly={props.readOnly ?? false}
                 showsTaxRate={showsTaxRate()}
                 showsDivider={index() < props.items.length - 1}
                 onTap={() => props.onToggleItem(item.id)}
@@ -96,6 +98,7 @@ interface ItemRowProps {
   tappable: boolean;
   showsTaxRate: boolean;
   showsDivider: boolean;
+  readOnly: boolean;
   onTap: () => void;
 }
 
@@ -105,46 +108,54 @@ function ItemRow(props: ItemRowProps) {
     props.item.tax !== null &&
     props.item.tax !== undefined &&
     props.item.tax > 0;
-  return (
-    <li class="relative">
-      <button
-        type="button"
-        class="w-full text-left px-4 py-[15px] flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ios-blue"
-        onClick={() => props.onTap()}
-        disabled={!props.tappable}
-        aria-pressed={props.tappable ? props.isAssignedToActive : undefined}
+  const rowClass = "w-full text-left px-4 py-[15px] flex items-center gap-3";
+  const content = () => (
+    <>
+      <AssigneeIndicator
+        assigned={props.assigned}
+        total={props.totalContactCount}
+        size={40}
+      />
+      <div
+        class="flex-1 min-w-0 text-ios-subheadline line-clamp-2 break-words"
+        classList={{
+          "font-medium text-ios-label": props.isAssignedToActive,
+          "text-ios-label-secondary": !props.isAssignedToActive,
+        }}
       >
-        <AssigneeIndicator
-          assigned={props.assigned}
-          total={props.totalContactCount}
-          size={40}
-        />
-        <div
-          class="flex-1 min-w-0 text-ios-subheadline line-clamp-2 break-words"
+        {props.item.itemDescription}
+      </div>
+      <div class="shrink-0 flex flex-col items-end gap-1">
+        <span
+          class="text-[15px] leading-[18px] whitespace-nowrap"
           classList={{
-            "font-medium text-ios-label": props.isAssignedToActive,
-            "text-ios-label-secondary": !props.isAssignedToActive,
+            "font-bold text-ios-label": props.isAssignedToActive,
+            "font-semibold text-ios-label-secondary": !props.isAssignedToActive,
           }}
         >
-          {props.item.itemDescription}
-        </div>
-        <div class="shrink-0 flex flex-col items-end gap-1">
-          <span
-            class="text-[15px] leading-[18px] whitespace-nowrap"
-            classList={{
-              "font-bold text-ios-label": props.isAssignedToActive,
-              "font-semibold text-ios-label-secondary": !props.isAssignedToActive,
-            }}
-          >
-            {formatCurrency(props.item.price, props.currencyCode)}
+          {formatCurrency(props.item.price, props.currencyCode)}
+        </span>
+        <Show when={hasTax()}>
+          <span class="px-[7px] py-[3px] rounded-full bg-ios-tertiary-fill text-[10px] leading-[12px] text-ios-label-secondary whitespace-nowrap">
+            {formatTaxRate(props.item.tax!)}
           </span>
-          <Show when={hasTax()}>
-            <span class="px-[7px] py-[3px] rounded-full bg-ios-tertiary-fill text-[10px] leading-[12px] text-ios-label-secondary whitespace-nowrap">
-              {formatTaxRate(props.item.tax!)}
-            </span>
-          </Show>
-        </div>
-      </button>
+        </Show>
+      </div>
+    </>
+  );
+  return (
+    <li class="relative">
+      <Show when={!props.readOnly} fallback={<div class={rowClass}>{content()}</div>}>
+        <button
+          type="button"
+          class={`${rowClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ios-blue`}
+          onClick={() => props.onTap()}
+          disabled={!props.tappable}
+          aria-pressed={props.tappable ? props.isAssignedToActive : undefined}
+        >
+          {content()}
+        </button>
+      </Show>
       <Show when={props.showsDivider}>
         <div aria-hidden="true" class="pointer-events-none absolute bottom-0 left-4 right-4 h-px bg-ios-separator" />
       </Show>

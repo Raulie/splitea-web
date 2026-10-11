@@ -67,7 +67,134 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
       : props.isViewer
         ? t("breakdownWaitingSubtitle")
         : t("breakdownPendingSubtitle");
+  const header = (isOpen: () => boolean) => (
+    <div class="flex items-center gap-3">
+      <div aria-hidden="true" class="shrink-0">
+        <Avatar
+          size={36}
+          fullName={props.contact.fullName}
+          imageURL={props.contact.avatarUrl}
+        />
+      </div>
+      <div class="flex-1 min-w-0">
+        {/* Name — iOS `.subheadline .semibold`. */}
+        <div
+          id={nameId}
+          aria-hidden={props.items.length > 0 ? "true" : undefined}
+          class="text-ios-subheadline font-semibold text-ios-label truncate"
+        >
+          {props.contact.fullName ?? t("contactsRowUnnamedContactFallback")}
+        </div>
+        {/* Mirrors iOS `ContactBreakdownRow.settlementSubtitleInfo`
+            (swift:130-141): the settlement status REPLACES the
+            phone number as the subtitle — green "Paid" once
+            settled, orange "Marked as paid" while the claim
+            awaits confirmation — otherwise the phone number.
+            No pill, no checkmark. */}
+        <Show
+          when={!props.isPayer && state() !== "owes"}
+          fallback={
+            <Show when={props.contact.phoneNumber}>
+              <div class="text-ios-caption text-ios-label-secondary truncate">
+                {formatPhoneNumber(props.contact.phoneNumber)}
+              </div>
+            </Show>
+          }
+        >
+          <Show
+            when={props.onMarkUnpaid}
+            fallback={
+              <div
+                class="text-ios-caption truncate"
+                classList={{
+                  "text-ios-green": state() === "settled",
+                  "text-ios-orange": state() === "pending",
+                }}
+              >
+                {statusText()}
+              </div>
+            }
+          >
+            <div class="flex min-w-0">
+              <MenuButton
+                class="pointer-events-auto relative inline-flex max-w-full min-w-0 text-left text-ios-caption after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-['']"
+                label={
+                  <span
+                    class="min-w-0 truncate underline decoration-1 underline-offset-[3px]"
+                    classList={{
+                      "text-ios-green": state() === "settled",
+                      "text-ios-orange": state() === "pending",
+                    }}
+                  >
+                    {statusText()}
+                  </span>
+                }
+                itemLabel={t("markUnpaidButton")}
+                itemIcon={<UturnBackwardGlyph size={17} />}
+                destructive
+                onSelect={() => props.onMarkUnpaid?.()}
+              />
+            </div>
+          </Show>
+        </Show>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <Show when={props.isPayer}>
+          <CreditCardGlyph size={12} />
+        </Show>
+        {/* iOS strikes through + greys the amount once settled
+            (`ContactBreakdownRow.swift:308-309`). */}
+        <span
+          class="text-ios-subheadline font-semibold"
+          classList={{
+            "text-ios-label": state() !== "settled",
+            "text-ios-label-secondary line-through":
+              state() === "settled",
+          }}
+        >
+          {formatCurrency(props.amount, props.currencyCode)}
+        </span>
+      </div>
+      {/* SF Symbol `chevron.left` exported from Apple's
+          CoreSVG — same glyph the back button uses, just
+          rotated 180° (collapsed → points right) or 270°
+          (expanded → points down). iOS uses
+          `chevron.right` rotated 90° on expand for the
+          same effect; reusing one source SVG keeps the
+          chevron weight identical across the app.
+          Wrapped in a span so we apply the rotation
+          transform via inline style and let CSS
+          transition it without fighting the SVG's own
+          rotation prop. */}
+      <Show when={props.items.length > 0}>
+        <span
+          class="text-ios-label-tertiary shrink-0 inline-flex"
+          // `isOpen` is a SIGNAL GETTER — calling it inside
+          // this style object turns into a reactive binding
+          // that only updates the `transform` string. The
+          // CSS `transition` then animates the rotation
+          // smoothly between 180° (right) and 270° (down).
+          // If we read `isOpen()` outside the style object
+          // (e.g. in a const above), Solid would tear the
+          // span down on every toggle and the transition
+          // wouldn't fire — same bug we hit before this
+          // refactor.
+          style={{
+            transform: `rotate(${isOpen() ? 270 : 180}deg)`,
+            transition: "transform 280ms cubic-bezier(0.32, 0.72, 0, 1)",
+          }}
+          aria-hidden="true"
+        >
+          <ChevronGlyph size={11} />
+        </span>
+      </Show>
+    </div>
+  );
   return (
+    <Show
+      when={props.items.length > 0}
+      fallback={<div class="p-[18px]">{header(() => false)}</div>}
+    >
     <DisclosureGroup
       open={props.open}
       onOpenChange={props.onOpenChange}
@@ -85,127 +212,7 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
       // rect rather than a rounded rect inside a rounded
       // rect.
       summaryClass="p-[18px]"
-      summary={(isOpen) => (
-        <div class="flex items-center gap-3">
-          <div aria-hidden="true" class="shrink-0">
-            <Avatar
-              size={36}
-              fullName={props.contact.fullName}
-              imageURL={props.contact.avatarUrl}
-            />
-          </div>
-          <div class="flex-1 min-w-0">
-            {/* Name — iOS `.subheadline .semibold`. */}
-            <div
-              id={nameId}
-              aria-hidden="true"
-              class="text-ios-subheadline font-semibold text-ios-label truncate"
-            >
-              {props.contact.fullName ?? t("contactsRowUnnamedContactFallback")}
-            </div>
-            {/* Mirrors iOS `ContactBreakdownRow.settlementSubtitleInfo`
-                (swift:130-141): the settlement status REPLACES the
-                phone number as the subtitle — green "Paid" once
-                settled, orange "Marked as paid" while the claim
-                awaits confirmation — otherwise the phone number.
-                No pill, no checkmark. */}
-            <Show
-              when={!props.isPayer && state() !== "owes"}
-              fallback={
-                <Show when={props.contact.phoneNumber}>
-                  <div class="text-ios-caption text-ios-label-secondary truncate">
-                    {formatPhoneNumber(props.contact.phoneNumber)}
-                  </div>
-                </Show>
-              }
-            >
-              <Show
-                when={props.onMarkUnpaid}
-                fallback={
-                  <div
-                    class="text-ios-caption truncate"
-                    classList={{
-                      "text-ios-green": state() === "settled",
-                      "text-ios-orange": state() === "pending",
-                    }}
-                  >
-                    {statusText()}
-                  </div>
-                }
-              >
-                <div class="flex min-w-0">
-                  <MenuButton
-                    class="pointer-events-auto relative inline-flex max-w-full min-w-0 text-left text-ios-caption after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-['']"
-                    label={
-                      <span
-                        class="min-w-0 truncate underline decoration-1 underline-offset-[3px]"
-                        classList={{
-                          "text-ios-green": state() === "settled",
-                          "text-ios-orange": state() === "pending",
-                        }}
-                      >
-                        {statusText()}
-                      </span>
-                    }
-                    itemLabel={t("markUnpaidButton")}
-                    itemIcon={<UturnBackwardGlyph size={17} />}
-                    destructive
-                    onSelect={() => props.onMarkUnpaid?.()}
-                  />
-                </div>
-              </Show>
-            </Show>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <Show when={props.isPayer}>
-              <CreditCardGlyph size={12} />
-            </Show>
-            {/* iOS strikes through + greys the amount once settled
-                (`ContactBreakdownRow.swift:308-309`). */}
-            <span
-              class="text-ios-subheadline font-semibold"
-              classList={{
-                "text-ios-label": state() !== "settled",
-                "text-ios-label-secondary line-through":
-                  state() === "settled",
-              }}
-            >
-              {formatCurrency(props.amount, props.currencyCode)}
-            </span>
-          </div>
-          {/* SF Symbol `chevron.left` exported from Apple's
-              CoreSVG — same glyph the back button uses, just
-              rotated 180° (collapsed → points right) or 270°
-              (expanded → points down). iOS uses
-              `chevron.right` rotated 90° on expand for the
-              same effect; reusing one source SVG keeps the
-              chevron weight identical across the app.
-              Wrapped in a span so we apply the rotation
-              transform via inline style and let CSS
-              transition it without fighting the SVG's own
-              rotation prop. */}
-          <span
-            class="text-ios-label-tertiary shrink-0 inline-flex"
-            // `isOpen` is a SIGNAL GETTER — calling it inside
-            // this style object turns into a reactive binding
-            // that only updates the `transform` string. The
-            // CSS `transition` then animates the rotation
-            // smoothly between 180° (right) and 270° (down).
-            // If we read `isOpen()` outside the style object
-            // (e.g. in a const above), Solid would tear the
-            // span down on every toggle and the transition
-            // wouldn't fire — same bug we hit before this
-            // refactor.
-            style={{
-              transform: `rotate(${isOpen() ? 270 : 180}deg)`,
-              transition: "transform 280ms cubic-bezier(0.32, 0.72, 0, 1)",
-            }}
-            aria-hidden="true"
-          >
-            <ChevronGlyph size={11} />
-          </span>
-        </div>
-      )}
+      summary={header}
     >
       {/*
         Body padding matches the summary's `p-[18px]` so the
@@ -292,6 +299,7 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
         </div>
       </div>
     </DisclosureGroup>
+    </Show>
   );
 }
 

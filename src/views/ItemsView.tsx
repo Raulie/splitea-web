@@ -330,7 +330,7 @@ function Loaded(props: {
   ///
   ///   • Summary-first mode (every item assigned at first
   ///     paint): base = SavedReceiptView, overlay = ItemsView.
-  ///     Pencil button → pushSummary() → overlay slides in.
+  ///     Items button → pushSummary() → overlay slides in.
   ///     Back / Done button → popSummary() → same.
   ///
   /// Both flows go through the same `pushSummary` / `popSummary`
@@ -705,8 +705,9 @@ function Loaded(props: {
     // Gate on the owner's edit lock — same reasoning. Without
     // this, the optimistic update flashes but the server drops
     // the broadcast (relay enforces `editLocked`), so the edit
-    // visually succeeds and then vanishes on reload.
-    if (store.editLocked) return;
+    // visually succeeds and then vanishes on reload. Per-recipient
+    // links are read-only too: their socket never sends.
+    if (isReadOnly()) return;
     const active = activeContactId();
     if (!active) return;
     // Selection-style haptic on item tap — matches iOS's
@@ -780,10 +781,11 @@ function Loaded(props: {
     <>
       <Show when={showHeaderNavBar}>
         <NavBar
-          title={t("editItemsNavTitle")}
+          title={isReadOnly() ? t("itemsSectionTitle") : t("editItemsNavTitle")}
           leading={<BackButton onClick={() => popSummary()} />}
         />
       </Show>
+      <Show when={!isReadOnly()}>
       <div class="safe-px pt-6">
         <h1 class="text-ios-title-3 text-ios-label">{t("assignItemsTitle")}</h1>
         {/* `text-ios-subheadline` (15pt) matches iOS
@@ -795,6 +797,7 @@ function Loaded(props: {
           {t("assignItemsInstructions")}
         </p>
       </div>
+      </Show>
 
       {/* Bottom padding clears the fixed bottom bar's SOLID
           region so the BillSummary's last row (Total) sits
@@ -825,6 +828,7 @@ function Loaded(props: {
           taxInclusive={store.snapshot.receipt.taxInclusive}
           activeContactId={activeContactId()}
           onToggleItem={onToggleItem}
+          readOnly={isReadOnly()}
         />
         {/* Subtotal / Tax / Tip / Total card. iOS calculation
             verbatim — see `lib/moneyMath.ts` for the eight
@@ -897,7 +901,7 @@ function Loaded(props: {
           payerPhoneNumber={store.snapshot.receipt.payerPhoneNumber}
           activeContactId={activeContactId()}
           onSelectContact={(id) => {
-            if (liveStatus() !== "open") return;
+            if (!isReadOnly() && liveStatus() !== "open") return;
             setActiveContactId(id);
           }}
         />
@@ -994,8 +998,9 @@ function Loaded(props: {
           {/* Summary-first: SavedReceiptView is the ROOT in
               `.ios-nav-page` body flow with no back button —
               nothing behind it on the navigation stack. The
-              pencil button on its trailing edge pushes the
-              ItemsView editor onto the stack as overlay. */}
+              items button at the trailing end of its bottom bar
+              pushes ItemsView onto the stack as overlay, read-only
+              for per-recipient links and locked shares. */}
           <div
             class="ios-nav-page"
             classList={{
@@ -1005,13 +1010,8 @@ function Loaded(props: {
             <SavedReceiptView
               snapshot={store.snapshot}
               shareID={props.shareID}
-              // Hide the pencil-edit affordance when the
-              // visitor is on a read-only Request link — they
-              // can't push to the items editor either way
-              // (no live channel, no mutation path), and the
-              // button would just lead to a static editor
-              // they can't use.
-              onEdit={isReadOnly() ? undefined : () => pushSummary()}
+              onItems={() => pushSummary()}
+              itemsButtonLabel={isReadOnly() ? t("itemsSectionTitle") : t("editItemsButton")}
               forContactId={props.forContactId}
               demo={props.demo}
             />

@@ -5,7 +5,7 @@ import { ContactBreakdownRow } from "../components/ContactBreakdownRow";
 import { BillSummary } from "../components/BillSummary";
 import { UnassignedItemsSection } from "../components/UnassignedItemsSection";
 import { BackButton } from "../components/BackButton";
-import { EditButton } from "../components/EditButton";
+import { ItemsButton } from "../components/ItemsButton";
 import { NavBar } from "../components/NavBar";
 import { ReceiptViewer } from "../components/ReceiptViewer";
 import { PayMenuSheet, identityCacheKey } from "../components/PayMenuSheet";
@@ -48,12 +48,8 @@ export interface SavedReceiptViewProps {
   /// of the navigation stack and there's nothing behind it
   /// to go back to).
   onBack?: () => void;
-  /// Optional pencil-tap handler. When provided, the nav bar
-  /// renders a trailing edit button (the SF Symbol pencil,
-  /// 44×44 circular). Used in the "summary-first" entry mode
-  /// where the breakdown is the root view and the pencil
-  /// pushes the items editor onto the stack.
-  onEdit?: () => void;
+  onItems?: () => void;
+  itemsButtonLabel?: string;
   /// Recipient-targeted Request link — when set, PayMenuSheet
   /// uses this contactId as the visitor's preselected
   /// identity (skipping the "which one are you?" picker) and
@@ -88,7 +84,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   /// Sort by total descending — same `lhs.total > rhs.total`
   /// rule iOS uses in `BillCalculationService.swift:62-64`,
   /// with id as the tie-breaker so the order is stable.
-  const breakdowns = () => {
+  const splitRows = () => {
     const all = calculateContactBreakdowns(
       props.snapshot.items,
       idsByItem(),
@@ -107,11 +103,27 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
       });
   };
 
+  const breakdowns = () => {
+    const rows = splitRows();
+    const payer = props.snapshot.contacts.find((c) => isPayer(c.phoneNumber));
+    if (!payer || rows.some((r) => r.breakdown.contactId.toLowerCase() === payer.id.toLowerCase())) {
+      return rows;
+    }
+    return [
+      ...rows,
+      {
+        breakdown: { contactId: payer.id, subtotal: 0, tax: 0, tip: 0, items: [] },
+        total: 0,
+        contact: payer,
+      },
+    ];
+  };
+
   const converted = () =>
     convertBill(
       props.snapshot.receipt,
       props.snapshot.items,
-      breakdowns().map((r) => r.breakdown),
+      splitRows().map((r) => r.breakdown),
     );
   const displayCurrency = () =>
     converted()?.currencyCode ?? props.snapshot.receipt.currencyCode;
@@ -399,6 +411,8 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   const showsPayBar = () =>
     canPay() && (viewerCandidate()?.settlementState ?? "owes") === "owes";
 
+  const showsBottomBar = () => showsPayBar() || !!props.onItems;
+
   const payerFirstName = () =>
     payerContact()?.fullName?.trim().split(/\s+/)[0] || payerDisplayName();
 
@@ -661,9 +675,9 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         class="flex-1 overflow-y-auto"
         classList={{
           "pb-[calc(108px+env(safe-area-inset-bottom))]":
-            showsPayBar(),
+            showsBottomBar(),
           "pb-[calc(16px+env(safe-area-inset-bottom))]":
-            !showsPayBar(),
+            !showsBottomBar(),
         }}
       >
         <NavBar
@@ -676,11 +690,6 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           leading={
             props.onBack ? (
               <BackButton onClick={() => props.onBack!()} />
-            ) : undefined
-          }
-          trailing={
-            props.onEdit ? (
-              <EditButton onClick={() => props.onEdit!()} />
             ) : undefined
           }
         />
@@ -888,7 +897,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         it).
       */}
       <Show
-        when={showsPayBar()}
+        when={showsBottomBar()}
       >
         <div
           // `absolute inset-x-0 bottom-0` — pinned to the
@@ -954,7 +963,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
               " black 55%)",
             }}
           />
-          <div class="relative flex flex-col gap-2 pointer-events-auto">
+          <div class="relative flex items-center justify-end gap-3 pointer-events-auto">
             {/* One button, two meanings — see `canPay`. With
                 providers it opens the pay sheet; without them the
                 only thing left to do is settle offline. That skips
@@ -965,7 +974,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
             <Show when={showsPayBar()}>
               <button
                 type="button"
-                class="block w-full h-12 px-5 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity truncate"
+                class="flex-1 min-w-0 h-12 px-5 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity truncate"
                 aria-label={payBarAccessibleLabel()}
                 onClick={() => {
                   if (payerIsPayable()) {
@@ -983,7 +992,12 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                 <FitText class="text-center" variants={payBarLabels()} />
               </button>
             </Show>
-
+            <Show when={props.onItems}>
+              <ItemsButton
+                onClick={() => props.onItems?.()}
+                ariaLabel={props.itemsButtonLabel ?? t("itemsSectionTitle")}
+              />
+            </Show>
           </div>
         </div>
       </Show>

@@ -2,7 +2,7 @@ import { DownloadGlyph } from "./DownloadGlyph";
 import { t } from "../lib/i18n";
 
 /// iOS 26-style circular download button. Matches the visual
-/// pattern of `BackButton` / `EditButton` / `CloseButton` —
+/// pattern of `BackButton` / `CloseButton` —
 /// 44×44pt circle, `ios-card` lifted-dark background, white
 /// glyph at 17pt — so any combination of these in the
 /// leading/trailing slots of `NavBar` reads as a coherent
