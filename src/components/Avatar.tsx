@@ -1,3 +1,4 @@
+import { createSignal } from "solid-js";
 import type { JSX } from "solid-js";
 import { initialsFor } from "../lib/format";
 
@@ -62,6 +63,8 @@ export function Avatar(props: AvatarProps) {
   // did — so you'd see a 44pt avatar inside a 56pt outer
   // slot, or vice versa. Don't reintroduce the local-const
   // pattern here.
+  const [failedURL, setFailedURL] = createSignal<string | null>(null);
+  const showsImage = () => !!props.imageURL && props.imageURL !== failedURL();
   const hasName = () => {
     const n = props.fullName?.trim();
     return !!n;
@@ -82,7 +85,7 @@ export function Avatar(props: AvatarProps) {
   const isEmpty = () =>
     props.variant !== "everyone" &&
     !hasDisplayText() &&
-    !props.imageURL &&
+    !showsImage() &&
     !hasName() &&
     !!props.emptyWhenUnnamed;
   return (
@@ -136,13 +139,14 @@ export function Avatar(props: AvatarProps) {
         // / fallback paths because the call-site is asserting
         // it wants this exact text shown.
         <span>{props.displayText!.trim()}</span>
-      ) : props.imageURL ? (
+      ) : showsImage() ? (
         <img
-          src={props.imageURL}
+          src={props.imageURL!}
           alt={props.fullName ?? ""}
           width={props.size}
           height={props.size}
           class="block w-full h-full object-cover"
+          onError={() => setFailedURL(props.imageURL ?? null)}
         />
       ) : hasName() ? (
         <span>{initialsFor(props.fullName)}</span>
