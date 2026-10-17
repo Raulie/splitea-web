@@ -8,6 +8,10 @@ import { ko } from './ko';
 import { pt_BR } from './pt-BR';
 import { zh_Hans } from './zh-Hans';
 import { zh_Hant } from './zh-Hant';
+import { nl } from './nl';
+import { sv } from './sv';
+import { da } from './da';
+import { nb } from './nb';
 
 export type { Messages, MessageKey } from './en';
 
@@ -25,6 +29,10 @@ export const messages = {
   "pt-BR": pt_BR,
   "zh-Hans": zh_Hans,
   "zh-Hant": zh_Hant,
+  "nl": nl,
+  "sv": sv,
+  "da": da,
+  "nb": nb,
 } as const;
 
 export type Locale = keyof typeof messages;

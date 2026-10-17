@@ -36,6 +36,7 @@ function match(tag: string): Locale | null {
   // Only Brazilian Portuguese ships; pt-PT readers get it too, which
   // is far closer than falling through to English.
   if (base === "pt") return "pt-BR";
+  if (base === "no" || base === "nn") return "nb";
 
   const exact = LOCALES.find((l) => l.toLowerCase() === lower);
   if (exact) return exact;

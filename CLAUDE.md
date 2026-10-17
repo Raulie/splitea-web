@@ -17,7 +17,7 @@ Solid 1.9, Vite 5, Tailwind 3, TypeScript, Cloudflare Workers static assets. **T
 - **No em dashes or en dashes** in any copy, any language. `grep -rnE $'\u2014|\u2013' src/views/landing src/locales index.html` (zsh) must print nothing. macOS `/usr/bin/grep` has no `-P`.
 - **No explanatory comments** in new code; otherwise match the file you are in.
 - **Claims must be true.** Privacy, pricing and feature copy must match the live policy (repo splitea-legal, served at `/legal/privacy`) and the code. Never "on-device", "free forever", "free trial", "no rounding", ratings, reviews or user counts. Policy changes deploy (splitea-legal) before landing copy that relies on them.
-- **Localization:** every new user-facing string ships in all 10 languages, landing and share page alike.
+- **Localization:** every new user-facing string ships in every language the page has: the landing has 10, the share page has 14 (`src/locales/`, which adds nl, sv, da and nb; `i18n.ts` maps no and nn to nb).
 
 ## Live-user rules (from `/Users/raulie/Workspace/Splitea/CLAUDE.md`)
 
