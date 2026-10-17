@@ -408,10 +408,13 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     return byId(rememberedIdentity()) ?? (candidates.length === 1 ? candidates[0] : undefined);
   };
 
-  const showsPayBar = () =>
-    canPay() && (viewerCandidate()?.settlementState ?? "owes") === "owes";
+  const showsPayBar = () => {
+    if (!canPay()) return false;
+    const viewer = viewerCandidate();
+    if (viewer) return viewer.settlementState === "owes";
+    return !props.forContactId;
+  };
 
-  const showsBottomBar = () => showsPayBar() || !!props.onItems;
 
   const payerFirstName = () =>
     payerContact()?.fullName?.trim().split(/\s+/)[0] || payerDisplayName();
@@ -631,53 +634,17 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
     // compact chrome on this view as the price of the
     // iOS-style push/pop animation pattern.
     <div class="h-dvh flex flex-col bg-ios-bg text-ios-label relative">
-      {/*
-        Bottom-padding clears the entire Pay bar (button + the
-        full 64px gradient region above) so the last content
-        sits comfortably above the bar's top fade with
-        breathing room. Anatomy:
-
-          64px gradient region (the fade-behind zone)
-          + 48px button height
-          + 12px button bottom interior padding
-          + env(safe-area-inset-bottom)
-          ≈ 124px + env(safe-area-inset-bottom)
-
-        Previously we tried 60px (clears only the solid button
-        region) and 72px (clears solid region + 12px slack);
-        both made the last content row read as crammed against
-        the button. 124px+safe-area reserves the FULL bar
-        footprint so the last card has at least the gradient
-        zone of breathing room above the button — content can
-        still scroll INTO the gradient when the user actively
-        scrolls down (the 64px fade-behind is preserved as a
-        mid-scroll affordance), but at-rest the last item has
-        comfortable air above the chrome.
-
-        When the Pay bar isn't rendered (visitor isn't the
-        payer / no providers configured), the standard 16px
-        + safe-area baseline applies.
-      */}
       <main
         // `flex-1 overflow-y-auto` — main owns all scrolling
         // because the wrapper is locked to viewport height
-        // (see h-dvh rationale above). Bottom padding clears
-        // the absolute-positioned Pay bar so the last content
-        // row sits comfortably above the bar's top fade.
-        // Anatomy:
-        //   64px gradient fade region
-        //   + 48px button height
-        //   + 12px button bottom interior padding
-        //   + env(safe-area-inset-bottom)
-        //   ≈ 124px + env(safe-area-inset-bottom)
-        // The shorter no-Pay-bar variant (16px + safe-area)
-        // is the regular baseline gutter.
+        // (see h-dvh rationale above). Bottom padding lets the
+        // last card scroll clear of the Pay bar.
         class="flex-1 overflow-y-auto"
         classList={{
           "pb-[calc(108px+env(safe-area-inset-bottom))]":
-            showsBottomBar(),
+            showsPayBar(),
           "pb-[calc(16px+env(safe-area-inset-bottom))]":
-            !showsBottomBar(),
+            !showsPayBar(),
         }}
       >
         <NavBar
@@ -690,6 +657,11 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
           leading={
             props.onBack ? (
               <BackButton onClick={() => props.onBack!()} />
+            ) : undefined
+          }
+          trailing={
+            props.onItems ? (
+              <ItemsButton onClick={() => props.onItems!()} ariaLabel={props.itemsButtonLabel ?? t("itemsSectionTitle")} />
             ) : undefined
           }
         />
@@ -897,7 +869,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
         it).
       */}
       <Show
-        when={showsBottomBar()}
+        when={showsPayBar()}
       >
         <div
           // `absolute inset-x-0 bottom-0` — pinned to the
@@ -963,7 +935,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
               " black 55%)",
             }}
           />
-          <div class="relative flex items-center justify-end gap-3 pointer-events-auto">
+          <div class="relative flex flex-col gap-2 pointer-events-auto">
             {/* One button, two meanings — see `canPay`. With
                 providers it opens the pay sheet; without them the
                 only thing left to do is settle offline. That skips
@@ -974,7 +946,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
             <Show when={showsPayBar()}>
               <button
                 type="button"
-                class="flex-1 min-w-0 h-12 px-5 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity truncate"
+                class="block w-full h-12 px-5 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity truncate"
                 aria-label={payBarAccessibleLabel()}
                 onClick={() => {
                   if (payerIsPayable()) {
@@ -992,12 +964,7 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
                 <FitText class="text-center" variants={payBarLabels()} />
               </button>
             </Show>
-            <Show when={props.onItems}>
-              <ItemsButton
-                onClick={() => props.onItems?.()}
-                ariaLabel={props.itemsButtonLabel ?? t("itemsSectionTitle")}
-              />
-            </Show>
+
           </div>
         </div>
       </Show>

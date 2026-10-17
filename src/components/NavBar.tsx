@@ -1,16 +1,13 @@
 import type { JSX } from "solid-js";
 import { Show } from "solid-js";
 
-/// Custom Splitea-web navigation bar. Diverges from iOS 26's
-/// pinned `.toolbar` layout in two intentional ways:
+/// Custom Splitea-web navigation bar, styled after iOS 26:
 ///
-///   1. **Not pinned.** The bar scrolls away with the page so
-///      readers reclaim ~64pt of vertical viewport when they
-///      scroll past the top. iOS itself does this in some
-///      contexts (Mail's compose view, certain modal sheets);
-///      we make it the default here because every nav bar in
-///      the app is a destination header, not a persistent
-///      toolbar with running state the user needs at a glance.
+///   1. **Pinned with a glass scroll edge.** The bar is sticky
+///      at the top of its scroll container. Content scrolls
+///      under it through `.nav-scroll-edge`, a blurred scrim
+///      that fades out below the bar, and the bar buttons are
+///      glass circles (`.ios-glass-button`).
 ///
 ///   2. **Taller body than the back button.** The button is
 ///      44pt (`w-11 h-11`); the bar's body is 60pt — the
@@ -47,7 +44,9 @@ const BAR_BODY_HEIGHT = "60px";
 
 export function NavBar(props: NavBarProps) {
   return (
-    <div class="relative bg-ios-bg" style={{ height: BAR_BODY_HEIGHT }}>
+    <div class="sticky top-0 z-30" style={{ height: BAR_BODY_HEIGHT }}>
+      <div aria-hidden="true" class="absolute inset-x-0 bottom-full h-[100lvh] bg-ios-bg pointer-events-none" />
+      <div aria-hidden="true" class="nav-scroll-edge absolute inset-x-0 top-0 pointer-events-none" />
       {/* Bar body — fixed 60pt height regardless of button
           presence so the title's vertical position stays
           consistent across screens with and without

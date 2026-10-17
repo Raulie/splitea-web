@@ -217,6 +217,13 @@ function Loaded(props: {
     initialActive,
   );
 
+  const shownActiveContactId = () => {
+    const active = activeContactId();
+    return isReadOnly() && active === EVERYONE_ID
+      ? (store.snapshot.contacts[0]?.id ?? null)
+      : active;
+  };
+
   /// Receipt-image viewer toggle — mirrors iOS
   /// `showingReceiptViewer`. The trigger lives in
   /// `ReceiptInfoCard` (right side of the merchant row), only
@@ -331,7 +338,7 @@ function Loaded(props: {
   ///   • Summary-first mode (every item assigned at first
   ///     paint): base = SavedReceiptView, overlay = ItemsView.
   ///     Items button → pushSummary() → overlay slides in.
-  ///     Back / Done button → popSummary() → same.
+  ///     Back button → popSummary() → same.
   ///
   /// Both flows go through the same `pushSummary` / `popSummary`
   /// pair and share the same popstate semantics. The history
@@ -359,8 +366,8 @@ function Loaded(props: {
     setPushPhase("closing");
     setTimeout(() => setPushPhase("closed"), PUSH_ANIMATION_MS);
   };
-  /// User-facing pop entry point used by the in-app back /
-  /// Done button. Calls `history.back()` which fires
+  /// User-facing pop entry point used by the in-app back
+  /// button. Calls `history.back()` which fires
   /// popstate; the listener handles the actual close.
   /// Routing through history keeps the browser's navigation
   /// stack and our SPA's nav state in sync — without this,
@@ -808,11 +815,17 @@ function Loaded(props: {
           but at rest the last row should have breathing room
           above the solid region.
 
-          Math: ContactsRow (~80) + Continue container (~64) +
-          ~36px slack + env(safe-area-inset-bottom). The 40px
+          Math: ContactsRow (~80) + Continue container (~64,
+          items-first only) + ~36px slack + env(safe-area-inset-bottom). The 40px
           gradient zone is NOT included — it's intentionally
           fade-behind territory on scroll. */}
-      <div class="safe-px mt-6 pb-[calc(180px+env(safe-area-inset-bottom))] space-y-7">
+      <div
+        class="safe-px mt-6 space-y-7"
+        classList={{
+          "pb-[calc(180px+env(safe-area-inset-bottom))]": !summaryFirst(),
+          "pb-[calc(112px+env(safe-area-inset-bottom))]": summaryFirst(),
+        }}
+      >
         <ReceiptInfoCard
           merchantName={store.snapshot.receipt.merchantName}
           receiptDate={store.snapshot.receipt.receiptDate}
@@ -826,7 +839,7 @@ function Loaded(props: {
           currencyCode={store.snapshot.receipt.currencyCode}
           receiptTaxRate={store.snapshot.receipt.taxRate}
           taxInclusive={store.snapshot.receipt.taxInclusive}
-          activeContactId={activeContactId()}
+          activeContactId={shownActiveContactId()}
           onToggleItem={onToggleItem}
           readOnly={isReadOnly()}
         />
@@ -899,33 +912,31 @@ function Loaded(props: {
           totalsByContact={totalsByContact()}
           currencyCode={displayCurrency()}
           payerPhoneNumber={store.snapshot.receipt.payerPhoneNumber}
-          activeContactId={activeContactId()}
+          activeContactId={shownActiveContactId()}
+          showsEveryone={!isReadOnly()}
           onSelectContact={(id) => {
             if (!isReadOnly() && liveStatus() !== "open") return;
             setActiveContactId(id);
           }}
         />
       </div>
-      <div class="relative safe-px pb-3 pt-1">
-        <button
-          type="button"
-          class="w-full h-12 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity"
-          onClick={() => {
-            // Medium-impact haptic on the primary submit
-            // action — distinguishes the "commit" feel from
-            // the lighter selection haptic on item taps.
-            triggerHaptic(HAPTIC_MEDIUM);
-            // In items-first: push to summary. In summary-
-            // first (where the editor IS the overlay): the
-            // summary is already underneath, so Continue
-            // means "I'm done editing" → pop back to it.
-            if (summaryFirst()) popSummary();
-            else pushSummary();
-          }}
-        >
-          {summaryFirst() ? t("bottomBarDoneButton") : t("bottomBarContinueButton")}
-        </button>
-      </div>
+      <Show when={!summaryFirst()}>
+        <div class="relative safe-px pb-3 pt-1">
+          <button
+            type="button"
+            class="w-full h-12 rounded-full bg-ios-blue text-white text-ios-headline font-semibold active:opacity-80 transition-opacity"
+            onClick={() => {
+              // Medium-impact haptic on the primary submit
+              // action — distinguishes the "commit" feel from
+              // the lighter selection haptic on item taps.
+              triggerHaptic(HAPTIC_MEDIUM);
+              pushSummary();
+            }}
+          >
+            {t("bottomBarContinueButton")}
+          </button>
+        </div>
+      </Show>
     </div>
   );
 

@@ -50,7 +50,7 @@ export function ReceiptInfoCard(props: ReceiptInfoCardProps) {
           </button>
         </Show>
       </div>
-      <div class="px-4 py-3 flex items-center gap-2">
+      <div class="px-4 py-3 flex items-center gap-2" data-date-row>
         <span class="text-ios-label text-ios-body">{t("receiptDateLabel")}</span>
         {/* Always render the date pills. When `receiptDate` is
             null (the OCR pipeline didn't extract one, or the

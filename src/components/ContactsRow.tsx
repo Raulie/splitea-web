@@ -57,12 +57,14 @@ export interface ContactsRowProps {
   /// Called when the user taps a contact avatar or the
   /// Everyone pill to switch the active selection.
   onSelectContact: (id: string) => void;
+  showsEveryone?: boolean;
 }
 
 const ACTIVE_AVATAR = 56;
 const INACTIVE_AVATAR = 44;
 
 export function ContactsRow(props: ContactsRowProps) {
+  const showsEveryone = () => props.showsEveryone ?? true;
   const isEveryoneActive = () => props.activeContactId === EVERYONE_ID;
 
   /// Reorder snapshot order → display order: active contact
@@ -269,7 +271,7 @@ export function ContactsRow(props: ContactsRowProps) {
       }}
     >
       {/* Everyone pill at index 0 when active. */}
-      <Show when={isEveryoneActive()}>
+      <Show when={showsEveryone() && isEveryoneActive()}>
         <EveryonePill
           active
           onClick={() => handleSelectContact(EVERYONE_ID)}
@@ -361,7 +363,7 @@ export function ContactsRow(props: ContactsRowProps) {
       </For>
 
       {/* Inactive Everyone pill at the trailing edge. */}
-      <Show when={!isEveryoneActive()}>
+      <Show when={showsEveryone() && !isEveryoneActive()}>
         <EveryonePill
           active={false}
           onClick={() => handleSelectContact(EVERYONE_ID)}

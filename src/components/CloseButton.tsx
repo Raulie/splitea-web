@@ -20,7 +20,7 @@ export function CloseButton(props: CloseButtonProps) {
   return (
     <button
       type="button"
-      class="w-11 h-11 rounded-full bg-ios-card flex items-center justify-center text-ios-label active:opacity-60 transition-opacity"
+      class="ios-glass-button w-11 h-11 rounded-full flex items-center justify-center text-ios-label active:opacity-60 transition-opacity"
       aria-label={props.ariaLabel ?? t("closeButton")}
       onClick={() => props.onClick()}
     >
