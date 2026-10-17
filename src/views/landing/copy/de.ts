@@ -4,10 +4,10 @@ const de: Copy = {
   meta: {
     title: "Splitea fürs iPhone: Rechnung teilen, auf den Cent genau",
     description: "Rechnung mit Freunden centgenau teilen: Beleg fotografieren, antippen, wer was hatte, Link schicken. Freunde wählen ihre Artikel im Browser, ohne App.",
-    ogTitle: "Splitea: Rechnung teilen, auf den Cent genau",
     ogDescription: "Beleg fotografieren, antippen, wer was hatte, Link schicken. Freunde wählen ihre Artikel in jedem Browser. Fürs iPhone.",
     ogImageAlt: "Rechnung teilen, auf den Cent genau. Der Bildschirm „Artikel zuweisen“ von Splitea auf einem iPhone mit den Hinweisen „1 Wähl einen Kontakt“ und „2 Tipp seine Artikel an“.",
     ogTagline: "Fürs iPhone · splitea.app",
+    ogStamp: "Der genaueste Rechnungsteiler",
   },
   nav: {
     chapters: [
@@ -63,7 +63,7 @@ const de: Copy = {
       {
         rail: "Begleichen",
         title: "Alle quitt, ganz [[einfach]].",
-        body: "Freunde tippen auf „Zahlen“, und Venmo, PayPal oder Cash App öffnet sich mit ihrem Betrag. Das Geld läuft nie über Splitea.",
+        body: "Freunde tippen auf „Zahlen“, und Revolut oder PayPal öffnet sich mit ihrem Betrag. Das Geld läuft nie über Splitea.",
         tagline: "Anfordern · Kassieren · Nochmal",
       },
     ],
@@ -96,7 +96,7 @@ const de: Copy = {
   trips: {
     title: "Eine [[Reise]].\nEin Beleg.",
     tagline: "Gruppieren · Teilen · Abrechnen",
-    body: "Leg die Belege einer Reise in einen Ordner. Die Ordnerübersicht rechnet für jede Person die Summe über alle Splits zusammen und erkennt dieselbe Person auch dann, wenn ihre Nummer unterschiedlich gespeichert ist. Mit „Ordner exportieren“ teilst du dann ein einziges PDF mit den Summen aller.",
+    body: "Leg die Belege einer Reise in einen Ordner. Die Ordnerübersicht rechnet für jede Person die Summe über alle Splits zusammen. Mit „Ordner exportieren“ teilst du dann ein einziges PDF mit den Summen aller.",
     alt: "Ein Reiseordner mit mehreren Belegen.",
   },
   digital: {
@@ -186,7 +186,7 @@ const de: Copy = {
       },
       {
         q: "Funktioniert es außerhalb der USA?",
-        a: "Ja. Splitea gibt es im App Store in vielen Ländern, darunter Großbritannien, Mexiko, Japan, Deutschland, Indien, Brasilien und Südkorea. Es teilt in der Währung des Belegs, auch in Währungen ohne Cent wie Yen und Won, kommt mit Belegen zurecht, in denen die Steuer schon enthalten ist, wie in Japan und in der EU, und kann einen Split in deine eigene Währung umrechnen.",
+        a: "Ja. Splitea gibt es im App Store in vielen Ländern, und es ist dafür gemacht, Belege aus aller Welt zu lesen. Es teilt in der Währung des Belegs, auch in Währungen ohne Cent wie Yen und Won, kommt mit Preisen zurecht, in denen die Steuer schon enthalten ist, wie in Japan und in der EU, und kann einen Split in deine eigene Währung umrechnen. Wenn ein Beleg aus deinem Land nicht richtig herauskommt, sag uns Bescheid, damit wir es beheben: Tippe auf „Melden“, wenn Splitea einen Beleg nicht lesen kann, oder schreib an support@splitea.app.",
       },
       {
         q: "iOS 27 kann Rechnungen teilen. Warum Splitea?",
@@ -229,6 +229,75 @@ const de: Copy = {
     ],
   },
   badgeLabel: "Splitea im App Store laden",
+  v2: {
+    motion: { pause: "Animation pausieren", play: "Animation abspielen" },
+    boot: { label: "Rechnung von heute Abend", same: "Drei Anteile. Dieselbe Summe.", skip: "Zum Überspringen tippen" },
+    hero: {
+      giant: ["Rechnung", "teilen,"],
+      badge: "3 Gratis-Scans",
+      demoLink: "Live-Demo ausprobieren",
+      ticker: ["Beleg knipsen", "Antippen, wer was hatte", "Lokale Steuer auf jeden Artikel", "Ein Link für den ganzen Tisch", "Alle zahlen, wie sie wollen", "Auf den Cent genau"],
+      receipt: { place: "San Juan · Tisch 4", subtotal: "Zwischensumme", tax: "Steuer", tip: "Trinkgeld", total: "Gesamt", thanks: "Vielen Dank" },
+    },
+    how: {
+      caps: ["Splitea liest jeden Artikel und seinen Preis.", "Geteilte Gerichte zahlen nur die, die mitgegessen haben.", "Jeder Artikel bekommt seinen eigenen Steuersatz.", "Freunde zahlen dir mit der App zurück, die sie schon nutzen."],
+      words: ["Knipsen", "Tippen", "Steuer", "Zahlen"],
+      snapBubble: "Alle Artikel, alle Preise",
+      payTap: "Zum Bezahlen tippen",
+      payPick: "Eigene App wählen",
+    },
+    table: {
+      stamp: "Der Tisch",
+      bands: [
+        { stamp: "Hat ausgelegt", line: "Hat den Beleg geknipst und einen einzigen Link in den Gruppenchat geschickt." },
+        { stamp: "Keine App nötig", line: "Hat den Link im Browser geöffnet und seine eigenen Gerichte angetippt." },
+        { stamp: "Mit ihrer App bezahlt", line: "Hat Marisol mit der App zurückgezahlt, die sie sowieso nutzt, und dann auf „Als bezahlt markieren“ getippt." },
+        { stamp: "Hat nie Geld angefasst", line: "Hat gerechnet. Steuer pro Artikel, Trinkgeld nach dem, was jeder hatte, auf den Cent genau." },
+      ],
+      paypal: {
+        request: "Anfordern",
+        send: "Senden",
+        alt: (name: string, amount: string) => `PayPal geöffnet, um ${amount} an ${name} zu senden`,
+      },
+      cardTitle: "Splitea • Zum Bezahlen tippen",
+      payButton: (name: string, amount: string) => `${name} ${amount} zahlen`,
+      payNote: "Welche Zahlungs-Apps es gibt, hängt vom Land ab.",
+    },
+    try: { stamp: "Live-Demo", title: "Du bist dran. Setz dich dazu.", body: "Das ist die Seite, die Andrés und Nina geöffnet haben. Tipp auf einen Namen und dann auf das, was die Person hatte." },
+    trips: { word: "Eine Reise", bubble: "Ein Ordner pro Reise" },
+    digital: { stamp: "Digitale Belege", word: "Jedes PDF", sheet: { options: "Optionen", news: "News", reminders: "Erinnerungen", more: "Mehr" } },
+    abroad: { stamp: "Im Ausland", bubble: "Der Kurs deiner Karte" },
+    privacy: { stamp: "Datenschutz" },
+    check: {
+      stamp: "Die Rechnung",
+      title: "Die Rechnung, bitte.",
+      download: "Download",
+      free: "Kostenlos",
+      scans: "Scans zum Start",
+      scansNote: "3 insgesamt, nicht 3 pro Monat",
+      monthly: "Splitea Unlimited, monatlich",
+      yearly: "Splitea Unlimited, jährlich",
+      unlimitedNote: "Unbegrenzt viele Belege und eine eigene Akzentfarbe",
+      friends: "Link öffnen, für Freunde",
+      included: "Aufteilen, Live-Bearbeitung, Begleichen, Ordner, PDF-Export, Währungsumrechnung",
+      money: "Geld über Splitea",
+      ads: "Werbung und Tracker in der App",
+      due: "Heute fällig",
+      usNote: "US-Preise.\nDie Preise sind je nach Land unterschiedlich.",
+      faqTitle: "Fragen aus der Runde.",
+    },
+    last: {
+      stamp: "Letzte Runde",
+      title: "Dann zahlen dir alle zurück.",
+      body: "Wenn ein Freund seinen Anteil als bezahlt markiert, sagt dir Splitea Bescheid, und der Ring an deinem Split füllt sich mit jeder Zahlung.",
+      toast: (name: string, merchant: string) => `${name} hat den eigenen Anteil bei ${merchant} als bezahlt markiert`,
+      owed: "Du bekommst",
+      settled: (settled: number, total: number) => `${settled} von ${total} beglichen`,
+      allSettled: "Alles beglichen",
+      paid: "Bezahlt",
+    },
+    get: { word: "Bezahlt." },
+  },
 };
 
 export default de;

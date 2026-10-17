@@ -25,3 +25,6 @@ dist-ssr
 
 # Claude Code local tooling (launch profiles, scratch HTML for preview MCP)
 .claude/
+
+# Wrangler local state
+.wrangler/

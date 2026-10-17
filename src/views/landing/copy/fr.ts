@@ -4,10 +4,10 @@ const fr: Copy = {
   meta: {
     title: "Splitea pour iPhone : partager l'addition entre amis",
     description: "Photographiez le reçu, indiquez qui a pris quoi, envoyez un lien. Vos amis choisissent leurs articles sans app, et le compte est bon au centime près.",
-    ogTitle: "Splitea : partagez l'addition au centime près",
     ogDescription: "Photographiez le reçu, indiquez qui a pris quoi, envoyez un lien. Vos amis choisissent leurs articles dans leur navigateur. Pour iPhone.",
     ogImageAlt: "Partagez l'addition au centime près. L'écran Attribuer les articles de Splitea sur un iPhone, avec les légendes « 1 Touchez un contact » et « 2 Touchez ses articles ».",
     ogTagline: "Pour iPhone · splitea.app",
+    ogStamp: "Le partage d'addition le plus précis",
   },
   nav: {
     chapters: [
@@ -63,7 +63,7 @@ const fr: Copy = {
       {
         rail: "Règlement",
         title: "Tout réglé, [[simplement]].",
-        body: "Vos amis touchent Payer pour ouvrir Venmo, PayPal ou Cash App avec leur montant. Splitea ne touche jamais à l'argent.",
+        body: "Vos amis touchent Payer pour ouvrir Revolut ou PayPal avec leur montant. Splitea ne touche jamais à l'argent.",
         tagline: "Réclamer · Récupérer · Récidiver",
       },
     ],
@@ -96,7 +96,7 @@ const fr: Copy = {
   trips: {
     title: "Un seul [[voyage]].\nUn seul résumé.",
     tagline: "Regrouper · Partager · Encaisser",
-    body: "Rangez les reçus d'un voyage dans un dossier. Le Résumé du dossier cumule le total de chaque personne sur toutes les additions, et reconnaît la même personne même si son numéro est enregistré différemment. Avec Exporter le dossier, partagez ensuite un seul PDF avec le total de chacun.",
+    body: "Rangez les reçus d'un voyage dans un dossier. Le Résumé du dossier cumule le total de chaque personne sur toutes les additions. Avec Exporter le dossier, partagez ensuite un seul PDF avec le total de chacun.",
     alt: "Un dossier de voyage contenant plusieurs reçus.",
   },
   digital: {
@@ -165,19 +165,19 @@ const fr: Copy = {
     title: "Vos questions, nos [[réponses]].",
     items: [
       {
-        q: "Mes amis ont-ils besoin de Splitea ou d'un iPhone ?",
+        q: "Mes amis ont‑ils besoin de Splitea ou d'un iPhone ?",
         a: "Non. Votre lien s'ouvre dans n'importe quel navigateur, y compris sur les téléphones Android et les ordinateurs portables, sans app ni compte. La page existe en 10 langues, et ils paient avec leur propre app de paiement.",
       },
       {
-        q: "Ai-je besoin d'un compte ?",
+        q: "Ai‑je besoin d'un compte ?",
         a: "Oui. Vous vous connectez avec Apple pour scanner et partager, et Splitea demande l'accès à vos Contacts pour que vous puissiez choisir les participants. L'accès complet comme l'accès limité fonctionnent.",
       },
       {
-        q: "Que puis-je faire sans abonnement ?",
+        q: "Que puis‑je faire sans abonnement ?",
         a: "Tout, avec les reçus que vous avez déjà. Partager des liens, modifier en direct, régler les comptes, utiliser les dossiers, exporter en PDF et convertir les devises ne demandent aucun abonnement, pas plus que les additions que vos amis vous envoient. Après vos 3 scans gratuits, ajouter un nouveau reçu, par l'appareil photo, une photo, un PDF, la feuille de partage ou à la main, nécessite Splitea Unlimited, qui débloque aussi une couleur d'accentuation personnalisée.",
       },
       {
-        q: "Splitea gère-t-il l'argent ?",
+        q: "Splitea gère‑t‑il l'argent ?",
         a: "Non. Splitea ne déplace jamais d'argent. Il ouvre l'app ou le lien de paiement de votre ami : Venmo, Cash App, PayPal, ATH Móvil, Revolut, Monzo ou Google Pay UPI, selon votre pays. Chacun s'ouvre avec le montant prérempli, sauf ATH Móvil, où votre ami le saisit. Apple Pay, Apple Cash et Zelle ne sont pas pris en charge, mais vos amis peuvent quand même marquer leur part comme payée.",
       },
       {
@@ -185,8 +185,8 @@ const fr: Copy = {
         a: "Splitea compare le sous-total, la taxe et le total qu'il calcule à ceux imprimés sur le reçu, et vous prévient s'ils ne correspondent pas. Touchez un article pour modifier sa description, son prix ou sa taxe. L'appareil photo vous signale aussi quand une photo a des reflets ou est floue, coupe le reçu, montre un menu au lieu de l'addition ou contient plusieurs reçus.",
       },
       {
-        q: "Est-ce que ça marche en dehors des États-Unis ?",
-        a: "Oui. Splitea est disponible sur l'App Store dans de nombreux pays, dont le Royaume-Uni, le Mexique, le Japon, l'Allemagne, l'Inde, le Brésil et la Corée du Sud. Il partage l'addition dans la devise du reçu, y compris celles sans centimes comme le yen et le won, gère les reçus où la taxe est déjà incluse (TTC), comme au Japon et dans l'UE, et peut convertir une addition dans votre devise.",
+        q: "Est‑ce que ça marche en dehors des États-Unis ?",
+        a: "Oui. Splitea est disponible sur l'App Store dans de nombreux pays et il est conçu pour lire les reçus du monde entier. Il partage l'addition dans la devise du reçu, y compris celles sans centimes comme le yen et le won, gère les prix taxe incluse (TTC), comme au Japon et dans l'UE, et peut convertir une addition dans votre devise. Si un reçu de votre pays ne passe pas bien, dites-le-nous pour qu'on le corrige : touchez Signaler quand Splitea n'arrive pas à lire un reçu, ou écrivez à support@splitea.app.",
       },
       {
         q: "iOS 27 sait partager l'addition. Pourquoi utiliser Splitea ?",
@@ -197,7 +197,7 @@ const fr: Copy = {
         a: "Les liens de partage expirent 30 jours après leur création. Votre propre copie reste dans votre bibliothèque.",
       },
       {
-        q: "Sur quels iPhone Splitea fonctionne-t-il ?",
+        q: "Sur quels iPhone Splitea fonctionne‑t‑il ?",
         a: "Sur tout iPhone sous iOS 26 ou version ultérieure. Il n'existe pas d'app pour iPad, Mac ou Android : vos amis sur d'autres appareils utilisent le lien dans leur navigateur.",
       },
     ],
@@ -229,6 +229,75 @@ const fr: Copy = {
     ],
   },
   badgeLabel: "Télécharger Splitea dans l'App Store",
+  v2: {
+    motion: { pause: "Suspendre les animations", play: "Reprendre les animations" },
+    boot: { label: "L'addition de ce soir", same: "Trois parts. Même total.", skip: "Touchez pour passer" },
+    hero: {
+      giant: ["Partagez", "la note"],
+      badge: "3 scans gratuits",
+      demoLink: "Essayez la démo en direct",
+      ticker: ["Photographiez le reçu", "Indiquez qui a pris quoi", "Taxe locale sur chaque article", "Un seul lien pour toute la table", "Ils paient à leur façon", "Au centime près"],
+      receipt: { place: "San Juan · Table 4", subtotal: "Sous-total", tax: "Taxe", tip: "Pourboire", total: "Total", thanks: "Merci" },
+    },
+    how: {
+      caps: ["Splitea lit chaque article et son prix.", "Les plats partagés sont répartis entre ceux qui en ont pris.", "Chaque article a son propre taux de taxe local.", "Vos amis vous remboursent avec l'app qu'ils utilisent déjà."],
+      words: ["Scannez", "Touchez", "Taxes", "Payez"],
+      snapBubble: "Chaque article, chaque prix",
+      payTap: "Touchez Payer",
+      payPick: "Choisissez l'app",
+    },
+    table: {
+      stamp: "La table",
+      bands: [
+        { stamp: "A payé l'addition", line: "A pris le reçu en photo et posté un seul lien dans la conversation de groupe." },
+        { stamp: "Pas besoin d'app", line: "A ouvert le lien dans son navigateur et touché ses propres plats." },
+        { stamp: "A payé à sa façon", line: "A remboursé Marisol avec son app habituelle, puis a touché Marquer comme payé." },
+        { stamp: "Jamais touché à l'argent", line: "A fait le calcul. Taxe par article, pourboire selon ce que chacun a pris, au centime près." },
+      ],
+      paypal: {
+        request: "Demander",
+        send: "Envoyer",
+        alt: (name: string, amount: string) => `PayPal ouvert pour envoyer ${amount} à ${name}`,
+      },
+      cardTitle: "Splitea • Appuyer pour payer",
+      payButton: (name: string, amount: string) => `Payer ${amount} à ${name}`,
+      payNote: "Les apps de paiement dépendent du pays.",
+    },
+    try: { stamp: "Démo en direct", title: "À vous. Prenez place à table.", body: "Voici la page qu'Andrés et Nina ont ouverte. Touchez un nom, puis ce que la personne a pris." },
+    trips: { word: "Un voyage", bubble: "Un dossier par voyage" },
+    digital: { stamp: "Reçus numériques", word: "Tout PDF", sheet: { options: "Options", news: "News", reminders: "Rappels", more: "Plus" } },
+    abroad: { stamp: "À l'étranger", bubble: "Le taux de votre carte" },
+    privacy: { stamp: "Confidentialité" },
+    check: {
+      stamp: "L'addition",
+      title: "L'addition, s'il vous plaît.",
+      download: "Téléchargement",
+      free: "Gratuit",
+      scans: "Scans pour commencer",
+      scansNote: "3 au total, pas 3 par mois",
+      monthly: "Splitea Unlimited, mensuel",
+      yearly: "Splitea Unlimited, annuel",
+      unlimitedNote: "Reçus illimités et couleur d'accentuation personnalisée",
+      friends: "Lien pour vos amis",
+      included: "Diviser l'addition, modifier en direct, régler les comptes, dossiers, export PDF, conversion de devises",
+      money: "Argent touché par Splitea",
+      ads: "Pubs et traceurs dans l'app",
+      due: "À payer aujourd'hui",
+      usNote: "Prix aux États-Unis.\nLes prix varient selon les pays.",
+      faqTitle: "Questions autour de la table.",
+    },
+    last: {
+      stamp: "Dernière tournée",
+      title: "Puis tout le monde vous rembourse.",
+      body: "Quand un ami marque sa part comme payée, Splitea vous prévient, et l'anneau de votre addition se remplit à mesure que chacun règle ce qu'il doit.",
+      toast: (name: string, merchant: string) => `${name} a marqué sa part chez ${merchant} comme payée`,
+      owed: "On vous doit",
+      settled: (settled: number, total: number) => `${settled} sur ${total} ${settled > 1 ? "réglés" : "réglé"}`,
+      allSettled: "Tout est réglé",
+      paid: "Payé",
+    },
+    get: { word: "Payé." },
+  },
 };
 
 export default fr;

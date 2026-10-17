@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "gsap": "3.12.5",
     "solid-js": "^1.9.3"
   },
   "devDependencies": {

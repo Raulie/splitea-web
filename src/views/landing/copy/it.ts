@@ -4,10 +4,10 @@ const it: Copy = {
   meta: {
     title: "Splitea per iPhone: dividi il conto tra amici, al centesimo",
     description: "Fotografa lo scontrino, tocca chi ha preso cosa e manda un link. Gli amici scelgono i loro articoli dal browser, senza app, e i conti tornano al centesimo.",
-    ogTitle: "Splitea: dividi il conto fino all'ultimo centesimo",
     ogDescription: "Fotografa lo scontrino, tocca chi ha preso cosa, manda un link. Gli amici scelgono i loro articoli in qualsiasi browser. Per iPhone.",
     ogImageAlt: "Dividi il conto fino all'ultimo centesimo. La schermata Assegna articoli di Splitea su un iPhone con le etichette 1 Tocca un contatto e 2 Tocca i suoi articoli.",
     ogTagline: "Per iPhone · splitea.app",
+    ogStamp: "Il divisore di conti più preciso",
   },
   nav: {
     chapters: [
@@ -63,7 +63,7 @@ const it: Copy = {
       {
         rail: "Salda",
         title: "Tutto saldato, [[semplice]].",
-        body: "Gli amici toccano Paga per aprire Venmo, PayPal o Cash App con l'importo che devono. Splitea non tocca mai i soldi.",
+        body: "Gli amici toccano Paga per aprire Revolut o PayPal con l'importo che devono. Splitea non tocca mai i soldi.",
         tagline: "Richiedi · Ricevi · Ripeti",
       },
     ],
@@ -96,7 +96,7 @@ const it: Copy = {
   trips: {
     title: "Un [[viaggio]].\nUn solo conto.",
     tagline: "Raggruppa · Condividi · Incassa",
-    body: "Metti gli scontrini di un viaggio in una cartella. Il Riepilogo cartella somma il totale di ogni persona su tutte le divisioni e riconosce la stessa persona anche quando il suo numero è salvato in modo diverso. Poi, con Esporta cartella, condividi un solo PDF con il totale di ciascuno.",
+    body: "Metti gli scontrini di un viaggio in una cartella. Il Riepilogo cartella somma il totale di ogni persona su tutte le divisioni. Poi, con Esporta cartella, condividi un solo PDF con il totale di ciascuno.",
     alt: "Una cartella di viaggio con diversi scontrini.",
   },
   digital: {
@@ -186,7 +186,7 @@ const it: Copy = {
       },
       {
         q: "Funziona fuori dagli Stati Uniti?",
-        a: "Sì. Splitea è sull'App Store in molti paesi, tra cui Regno Unito, Messico, Giappone, Germania, India, Brasile e Corea. Divide nella valuta dello scontrino, anche in quelle senza centesimi come lo yen e il won, gestisce gli scontrini con le tasse già incluse, come quelli in Giappone e nell'UE, e può convertire una divisione nella tua valuta.",
+        a: "Sì. Splitea è sull'App Store in molti paesi ed è pensato per leggere scontrini da tutto il mondo. Divide nella valuta dello scontrino, anche in quelle senza centesimi come lo yen e il won, gestisce i prezzi con le tasse già incluse, come in Giappone e nell'UE, e può convertire una divisione nella tua valuta. Se uno scontrino del tuo paese non viene letto bene, faccelo sapere così lo sistemiamo: tocca Segnala quando Splitea non riesce a leggere uno scontrino, oppure scrivi a support@splitea.app.",
       },
       {
         q: "iOS 27 sa dividere i conti. Perché usare Splitea?",
@@ -229,6 +229,75 @@ const it: Copy = {
     ],
   },
   badgeLabel: "Scarica Splitea su App Store",
+  v2: {
+    motion: { pause: "Ferma le animazioni", play: "Riattiva le animazioni" },
+    boot: { label: "Il conto di stasera", same: "Tre quote. Stesso totale.", skip: "Tocca per saltare" },
+    hero: {
+      giant: ["Dividi", "il conto"],
+      badge: "3 scansioni gratuite",
+      demoLink: "Prova la demo live",
+      ticker: ["Fotografa lo scontrino", "Tocca chi ha preso cosa", "Tasse locali su ogni articolo", "Un link per tutto il tavolo", "Ti pagano come preferiscono", "Fino all'ultimo centesimo"],
+      receipt: { place: "San Juan · Tavolo 4", subtotal: "Subtotale", tax: "Tasse", tip: "Mancia", total: "Totale", thanks: "Grazie" },
+    },
+    how: {
+      caps: ["Splitea legge ogni articolo e il suo prezzo.", "I piatti condivisi si dividono tra chi li ha presi.", "Ogni articolo ha la sua aliquota locale.", "Gli amici ti rimborsano con l'app che già usano."],
+      words: ["Scatta", "Tocca", "Tasse", "Paga"],
+      snapBubble: "Ogni articolo, ogni prezzo",
+      payTap: "Tocca Paga",
+      payPick: "Scegli la tua app",
+    },
+    table: {
+      stamp: "Il tavolo",
+      bands: [
+        { stamp: "Ha pagato il conto", line: "Ha fotografato lo scontrino e mandato un solo link nella chat di gruppo." },
+        { stamp: "Senza bisogno di app", line: "Ha aperto il link nel suo browser e ha toccato i suoi piatti." },
+        { stamp: "Ha pagato a modo suo", line: "Ha rimborsato Marisol con l'app che usa già, poi ha toccato Segna come pagato." },
+        { stamp: "Mai toccato un soldo", line: "Ha fatto i conti. Tasse per articolo, mancia in base a cosa ha preso ognuno, al centesimo." },
+      ],
+      paypal: {
+        request: "Richiedi",
+        send: "Invia",
+        alt: (name: string, amount: string) => `PayPal aperto per inviare ${amount} a ${name}`,
+      },
+      cardTitle: "Splitea • Tocca per pagare",
+      payButton: (name: string, amount: string) => `Paga ${amount} a ${name}`,
+      payNote: "Le app di pagamento variano in base al paese.",
+    },
+    try: { stamp: "Demo live", title: "Tocca a te. Accomodati.", body: "Questa è la pagina che hanno aperto Andrés e Nina. Tocca un nome, poi tocca quello che ha preso." },
+    trips: { word: "Un viaggio", bubble: "Cartella per viaggio" },
+    digital: { stamp: "Scontrini digitali", word: "Ogni PDF", sheet: { options: "Opzioni", news: "News", reminders: "Promemoria", more: "Altro" } },
+    abroad: { stamp: "All'estero", bubble: "Il cambio della carta" },
+    privacy: { stamp: "Privacy" },
+    check: {
+      stamp: "Il conto",
+      title: "Il conto, per favore.",
+      download: "Download",
+      free: "Gratis",
+      scans: "Scansioni per iniziare",
+      scansNote: "3 in tutto, non 3 al mese",
+      monthly: "Unlimited, mensile",
+      yearly: "Unlimited, annuale",
+      unlimitedNote: "Scontrini illimitati e un colore accento personalizzato",
+      friends: "Link per gli amici",
+      included: "Divisioni, modifica in tempo reale, saldo dei conti, cartelle, esportazione PDF, conversione di valuta",
+      money: "Soldi che Splitea tocca",
+      ads: "Pubblicità e tracciamento",
+      due: "Da pagare oggi",
+      usNote: "Prezzi negli Stati Uniti.\nI prezzi variano in base al paese.",
+      faqTitle: "Domande dal tavolo.",
+    },
+    last: {
+      stamp: "Ultimo giro",
+      title: "Poi tutti ti rimborsano.",
+      body: "Quando un amico segna la sua parte come pagata, Splitea ti avvisa, e l'anello della tua divisione si riempie man mano che tutti saldano.",
+      toast: (name: string, merchant: string) => `${name} ha contrassegnato la propria parte da ${merchant} come pagata`,
+      owed: "Ti devono",
+      settled: (settled: number, total: number) => `${settled} di ${total} saldati`,
+      allSettled: "Tutto saldato",
+      paid: "Pagato",
+    },
+    get: { word: "Pagato." },
+  },
 };
 
 export default it;

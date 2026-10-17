@@ -26,7 +26,7 @@ const alternates = [
 
 for (const page of landingPages) {
   const url = `${ORIGIN}${page.path}`;
-  const image = `${ORIGIN}/og/splitea-${page.seg || "en"}-v1-1200x630.png`;
+  const image = `${ORIGIN}/og/splitea-${page.seg || "en"}-v5-1200x630.png`;
   let html = shell.replace(/<html lang="[^"]*">/, `<html lang="${page.code}">`);
   html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(page.meta.title)}</title>`);
   html = setMeta(html, "name", "description", page.meta.description);
@@ -36,11 +36,11 @@ for (const page of landingPages) {
   );
   html = setMeta(html, "property", "og:url", url);
   html = setMeta(html, "property", "og:locale", page.og);
-  html = setMeta(html, "property", "og:title", page.meta.ogTitle);
+  html = setMeta(html, "property", "og:title", "Splitea");
   html = setMeta(html, "property", "og:description", page.meta.ogDescription);
   html = setMeta(html, "property", "og:image", image);
   html = setMeta(html, "property", "og:image:alt", page.meta.ogImageAlt);
-  html = setMeta(html, "name", "twitter:title", page.meta.ogTitle);
+  html = setMeta(html, "name", "twitter:title", "Splitea");
   html = setMeta(html, "name", "twitter:description", page.meta.ogDescription);
   html = setMeta(html, "name", "twitter:image", image);
 

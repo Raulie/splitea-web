@@ -2,10 +2,10 @@ export const en = {
   meta: {
     title: "Splitea for iPhone: split receipts with friends, to the cent",
     description: "Snap the receipt, tap who had what, and send one link. Friends pick their items in any browser with no app, and every share adds up to the exact total.",
-    ogTitle: "Splitea: split the bill to the last cent",
     ogDescription: "Snap the receipt, tap who had what, send a link. Friends pick their items in any browser. For iPhone.",
     ogImageAlt: "Split the bill to the last cent. Splitea's Assign Items screen on an iPhone with the callouts 1 Tap a contact and 2 Tap their items.",
     ogTagline: "For iPhone · splitea.app",
+    ogStamp: "Most accurate bill splitter",
   },
   nav: {
     chapters: [
@@ -94,7 +94,7 @@ export const en = {
   trips: {
     title: "One [[trip]].\nOne summary.",
     tagline: "Group · Export · Settle",
-    body: "Put a trip's receipts in a folder. Folder Summary adds up each person's total across every split, and matches the same person even when their number is saved differently. Then Export Folder shares one PDF with everyone's totals.",
+    body: "Put a trip's receipts in a folder. Folder Summary adds up each person's total across every split. Then Export Folder shares one PDF with everyone's totals.",
     alt: "A trip folder holding several receipts.",
   },
   digital: {
@@ -184,7 +184,7 @@ export const en = {
       },
       {
         q: "Does it work outside the US?",
-        a: "Yes. Splitea is on the App Store in many countries, including the UK, Mexico, Japan, Germany, India, Brazil and Korea. It splits in the receipt's currency, including ones without cents like yen and won, handles receipts with tax already included, like those in Japan and the EU, and can convert a split to your home currency.",
+        a: "Yes. Splitea is on the App Store in many countries and is built to read receipts from anywhere in the world. It splits in the receipt's currency, including ones without cents like yen and won, handles prices with tax already included, as in Japan and the EU, and can convert a split to your home currency. If a receipt from your country doesn't come out right, tell us so we can fix it: tap Report when Splitea can't read a receipt, or email support@splitea.app.",
       },
       {
         q: "iOS 27 can split bills. Why use Splitea?",
@@ -227,6 +227,75 @@ export const en = {
     ],
   },
   badgeLabel: "Download Splitea on the App Store",
+  v2: {
+    motion: { pause: "Pause motion", play: "Play motion" },
+    boot: { label: "Tonight's bill", same: "Three shares. Same total.", skip: "Tap to skip" },
+    hero: {
+      giant: ["Split", "the bill"],
+      badge: "3 free scans",
+      demoLink: "Try the live demo",
+      ticker: ["Snap the receipt", "Tap who had what", "Local tax on every item", "One link for the whole table", "They pay their way", "To the last cent"],
+      receipt: { place: "San Juan · Table 4", subtotal: "Subtotal", tax: "Tax", tip: "Tip", total: "Total", thanks: "Thank you" },
+    },
+    how: {
+      caps: ["Splitea reads every item and price.", "Shared plates split between whoever had them.", "Each item gets its own local tax rate.", "Friends pay you back in the app they already use."],
+      words: ["Snap", "Tap", "Tax", "Pay"],
+      snapBubble: "Every item, every price",
+      payTap: "Tap Pay",
+      payPick: "Pick their app",
+    },
+    table: {
+      stamp: "The table",
+      bands: [
+        { stamp: "Paid the bill", line: "Snapped the receipt and dropped one link in the group chat." },
+        { stamp: "No app needed", line: "Opened the link in his browser and tapped his own plates." },
+        { stamp: "Paid her way", line: "Paid Marisol back in the app she already uses, then tapped Mark as paid." },
+        { stamp: "Never touched the money", line: "Did the math. Tax per item, tip by what each person had, every cent accounted for." },
+      ],
+      paypal: {
+        request: "Request",
+        send: "Send",
+        alt: (name: string, amount: string) => `PayPal open to send ${amount} to ${name}`,
+      },
+      cardTitle: "Splitea • Tap to pay",
+      payButton: (name: string, amount: string) => `Pay ${name} ${amount}`,
+      payNote: "Payment apps depend on the country.",
+    },
+    try: { stamp: "Live demo", title: "Your turn. Pull up a chair.", body: "This is the page Andrés and Nina opened. Tap a name, then tap what they had." },
+    trips: { word: "One trip", bubble: "One folder per trip" },
+    digital: { stamp: "Digital receipts", word: "Any PDF", sheet: { options: "Options", news: "News", reminders: "Reminders", more: "More" } },
+    abroad: { stamp: "Abroad", bubble: "Your card's rate" },
+    privacy: { stamp: "Privacy" },
+    check: {
+      stamp: "The check",
+      title: "The check, please.",
+      download: "Download",
+      free: "Free",
+      scans: "Scans to start",
+      scansNote: "3 in total, not 3 a month",
+      monthly: "Splitea Unlimited, monthly",
+      yearly: "Splitea Unlimited, yearly",
+      unlimitedNote: "Unlimited receipts and a custom accent color",
+      friends: "Opening a link, for friends",
+      included: "Splitting, live editing, settling up, folders, PDF export, currency conversion",
+      money: "Money Splitea touches",
+      ads: "Ads and trackers in the app",
+      due: "Due today",
+      usNote: "US prices.\nPrices vary by country.",
+      faqTitle: "Questions from the table.",
+    },
+    last: {
+      stamp: "Last call",
+      title: "Then everyone pays you back.",
+      body: "When a friend marks their share as paid, Splitea lets you know, and the ring on your split fills as everyone settles up.",
+      toast: (name: string, merchant: string) => `${name} marked their ${merchant} share as paid`,
+      owed: "You're owed",
+      settled: (settled: number, total: number) => `${settled} of ${total} settled`,
+      allSettled: "All settled",
+      paid: "Paid",
+    },
+    get: { word: "Paid." },
+  },
 };
 
 export type Copy = typeof en;

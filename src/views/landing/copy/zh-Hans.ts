@@ -4,10 +4,10 @@ const zhHans: Copy = {
   meta: {
     title: "Splitea：iPhone 分账 App，拍下收据和朋友 AA，精确到分",
     description: "拍下收据，点选谁吃了什么，再发一个链接。朋友无需安装 App，在任意浏览器里选好自己的项目，每个人的份额加起来正好等于账单总额。",
-    ogTitle: "Splitea：分账精确到每一分",
     ogDescription: "拍下收据，点选谁吃了什么，发个链接。朋友在任意浏览器里选自己的项目。适用于 iPhone。",
     ogImageAlt: "和朋友分账，每一分都不差。iPhone 上 Splitea 的“分配项目”界面，标注着“1 点击联系人”和“2 点击TA的项目”。",
     ogTagline: "适用于 iPhone · splitea.app",
+    ogStamp: "最精准的分账应用",
   },
   nav: {
     chapters: [
@@ -28,7 +28,7 @@ const zhHans: Copy = {
     tagline: "一分一厘都算清楚",
     body: "拍下收据，点一点分清谁吃了什么，再把链接发出去。朋友在任意浏览器里选好自己的项目，然后把钱还给你。他们不需要下载 App。",
     noteTop: "免费下载。",
-    noteBottom: "适用于 iOS 26 或更高版本的 iPhone。",
+    noteBottom: "适用于 iOS 26\u200b或更高版本的 iPhone。",
     android: "用的是 Android？Splitea 链接可以直接在浏览器中打开。App 仅适用于 iPhone。",
     pills: ["点击联系人", "点击TA的项目"],
     tryIt: "动手试一试",
@@ -63,7 +63,7 @@ const zhHans: Copy = {
       {
         rail: "结清",
         title: "账单结清，\n就这么[[简单]]。",
-        body: "朋友点击“支付”，就会打开 Venmo、PayPal 或 Cash App，并带上自己的应付金额。Splitea 从不经手钱款。",
+        body: "朋友点击“支付”，就会打开 PayPal 等付款 App，并带上自己的应付金额。Splitea 从不经手钱款。",
         tagline: "收款 · 到账 · 再来",
       },
     ],
@@ -96,7 +96,7 @@ const zhHans: Copy = {
   trips: {
     title: "一趟[[旅行]]，\n一份账单。",
     tagline: "汇总 · 分享 · 收款",
-    body: "把一趟旅行的收据放进一个文件夹。“文件夹摘要”会汇总每个人在所有分账中的总额，即使同一个人的电话号码保存格式不同，也能认出是同一个人。然后用“导出文件夹”分享一份包含每个人总额的 PDF。",
+    body: "把一趟旅行的收据放进一个文件夹。“文件夹摘要”会汇总每个人在所有分账中的总额。然后用“导出文件夹”分享一份包含每个人总额的 PDF。",
     alt: "装着多张收据的旅行文件夹。",
   },
   digital: {
@@ -186,10 +186,10 @@ const zhHans: Copy = {
       },
       {
         q: "在美国以外能用吗？",
-        a: "可以。Splitea 已在许多国家和地区的 App Store 上架，包括英国、墨西哥、日本、德国、印度、巴西和韩国。它按收据上的货币分账，包括日元、韩元这类没有小数位的货币；也能处理已含税的收据，比如日本和欧盟的收据；还可以把分账换算成你的本国货币。",
+        a: "可以。Splitea 已在许多国家和地区的 App Store 上架，目标是读懂世界各地的收据。它按收据上的货币分账，包括日元、韩元这类没有小数位的货币；也能处理价格已含税的收据，比如日本和欧盟的收据；还可以把分账换算成你的本国货币。如果你所在国家的收据识别得不对，请告诉我们，我们会尽快修好：在 Splitea 无法读取收据时点一下“反馈”，或发邮件到 support@splitea.app。",
       },
       {
-        q: "iOS 27 自带分账功能，为什么还要用 Splitea？",
+        q: "iOS 27 自带分账功能，\u200b为什么还要用 Splitea？",
         a: "Apple 的分账功能是系统内置的，而且免费。它依托 Apple Cash，而 Apple Cash 面向美国 50 个州、华盛顿特区和波多黎各年满 18 岁、使用 iPhone、iPad 或 Apple Watch 的美国居民。使用 Splitea，朋友可以在任意手机或电脑上打开你的链接，并用 Venmo、PayPal 或 ATH Móvil 等 App 付款；它在许多国家和地区都能用，扫描也不需要 Apple 智能。每位朋友实时挑选自己的项目，每个项目都按当地税率计税，一趟旅行的收据还能汇总成一份 PDF。Splitea 提供 3 次免费扫描，之后需要订阅。",
       },
       {
@@ -229,6 +229,75 @@ const zhHans: Copy = {
     ],
   },
   badgeLabel: "在 App Store 下载 Splitea",
+  v2: {
+    motion: { pause: "暂停动画", play: "播放动画" },
+    boot: { label: "今晚的账单", same: "分成三份，总额不变。", skip: "点击跳过" },
+    hero: {
+      giant: ["和朋友", "分账"],
+      badge: "3 次免费扫描",
+      demoLink: "体验实时演示",
+      ticker: ["拍下收据", "点选谁吃了什么", "逐项套用当地税率", "全桌共用一个链接", "朋友用习惯的方式付款", "精确到每一分"],
+      receipt: { place: "San Juan · 4 号桌", subtotal: "小计", tax: "税费", tip: "小费", total: "总计", thanks: "谢谢惠顾" },
+    },
+    how: {
+      caps: ["Splitea 读取每一项和价格。", "共享的菜由点了的人平分。", "每一项都按当地税率单独计算。", "朋友用自己常用的 App 还你钱。"],
+      words: ["拍照", "点选", "税费", "支付"],
+      snapBubble: "项目价格，一个不漏",
+      payTap: "点击“支付”",
+      payPick: "选择付款 App",
+    },
+    table: {
+      stamp: "这一桌",
+      bands: [
+        { stamp: "付款人", line: "拍下收据，在群聊里发了一个链接。" },
+        { stamp: "无需下载 App", line: "在浏览器里打开链接，点了自己吃的菜。" },
+        { stamp: "按自己的方式付款", line: "用自己常用的 App 把钱还给 Marisol，再点了“标记为已付”。" },
+        { stamp: "从不经手钱款", line: "账算好了：税按每一项算，小费按各人点的分，精确到分。" },
+      ],
+      paypal: {
+        request: "请求",
+        send: "发送",
+        alt: (name: string, amount: string) => `PayPal 已打开，向 ${name} 发送 ${amount}`,
+      },
+      cardTitle: "Splitea • 点按支付",
+      payButton: (name: string, amount: string) => `向 ${name} 支付 ${amount}`,
+      payNote: "可用的付款 App 因国家或地区而异。",
+    },
+    try: { stamp: "实时演示", title: "轮到你了，快来入座。", body: "这就是 Andrés 和 Nina 打开的页面。点一个名字，再点TA吃过的项目。" },
+    trips: { word: "一趟旅行", bubble: "一趟一个文件夹" },
+    digital: { stamp: "电子收据", word: "PDF 也行", sheet: { options: "选项", news: "News", reminders: "提醒事项", more: "更多" } },
+    abroad: { stamp: "海外", bubble: "按你的刷卡汇率" },
+    privacy: { stamp: "隐私" },
+    check: {
+      stamp: "账单",
+      title: "服务员，买单！",
+      download: "下载",
+      free: "免费",
+      scans: "初始扫描次数",
+      scansNote: "总共 3 次，不是每月 3 次",
+      monthly: "Splitea Unlimited 月付",
+      yearly: "Splitea Unlimited 年付",
+      unlimitedNote: "无限添加收据，外加自定义强调色",
+      friends: "朋友打开链接",
+      included: "分账、\u200b实时编辑、\u200b结清、\u200b文件夹、\u200bPDF 导出、\u200b货币换算",
+      money: "Splitea 经手的钱款",
+      ads: "App 内的广告和跟踪器",
+      due: "今日应付",
+      usNote: "美国价格。\n价格因国家或地区而异。",
+      faqTitle: "席间问答。",
+    },
+    last: {
+      stamp: "散场之后",
+      title: "然后，大家把钱还给你。",
+      body: "朋友把自己的份额标记为已付时，Splitea 会通知你。随着大家陆续结清，分账上的圆环也会逐渐填满。",
+      toast: (name: string, merchant: string) => `${name} 已将自己在 ${merchant} 的份额标记为已付`,
+      owed: "待收款",
+      settled: (settled: number, total: number) => `${total}人中${settled}人已结清`,
+      allSettled: "全部结清",
+      paid: "已付",
+    },
+    get: { word: "已付清。" },
+  },
 };
 
 export default zhHans;

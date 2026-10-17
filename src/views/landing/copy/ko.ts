@@ -4,10 +4,10 @@ const ko: Copy = {
   meta: {
     title: "iPhone용 Splitea: 영수증 찍고 친구와 1원까지 정확하게 더치페이",
     description: "친구와 더치페이할 땐 영수증을 찍고 누가 뭘 먹었는지 탭한 뒤 링크 하나만 보내세요. 친구는 앱 없이 어떤 브라우저에서든 자기 항목을 고르고, 각자의 몫을 더하면 합계와 1원까지 딱 맞아요.",
-    ogTitle: "Splitea: 1원까지 딱 맞는 더치페이",
     ogDescription: "영수증을 찍고, 누가 뭘 먹었는지 탭하고, 링크를 보내세요. 친구는 어떤 브라우저에서든 자기 항목을 골라요. iPhone용.",
     ogImageAlt: "더치페이, 1원까지 딱 맞게. iPhone에 띄운 Splitea의 항목 배정 화면과 '1 연락처를 탭', '2 항목을 탭' 안내.",
     ogTagline: "iPhone용 · splitea.app",
+    ogStamp: "가장 정확한 더치페이 앱",
   },
   nav: {
     chapters: [
@@ -63,7 +63,7 @@ const ko: Copy = {
       {
         rail: "정산",
         title: "정산은, [[간단하게]].",
-        body: "친구가 '결제'를 탭하면 자기 몫의 금액이 입력된 채로 Venmo, PayPal 또는 Cash App이 열려요. 돈은 Splitea를 거치지 않아요.",
+        body: "친구가 '결제'를 탭하면 자기 몫의 금액이 입력된 채로 PayPal 같은 결제 앱이 열려요. 돈은 Splitea를 거치지 않아요.",
         tagline: "요청 · 입금 · 끝",
       },
     ],
@@ -96,7 +96,7 @@ const ko: Copy = {
   trips: {
     title: "[[여행]] 경비,\n한 장에 정리.",
     tagline: "모임 · 공유 · 정산",
-    body: "여행 영수증을 폴더 하나에 모으세요. 폴더 요약은 폴더 안 모든 정산에서 사람별 합계를 더해 주고, 같은 사람의 번호가 다르게 저장되어 있어도 한 사람으로 묶어 줘요. 그다음 폴더 내보내기로 각자의 합계가 담긴 PDF 하나를 공유하세요.",
+    body: "여행 영수증을 폴더 하나에 모으세요. 폴더 요약은 폴더 안 모든 정산에서 사람별 합계를 더해 줘요. 그다음 폴더 내보내기로 각자의 합계가 담긴 PDF 하나를 공유하세요.",
     alt: "영수증 여러 장이 담긴 여행 폴더.",
   },
   digital: {
@@ -186,7 +186,7 @@ const ko: Copy = {
       },
       {
         q: "미국 밖에서도 쓸 수 있나요?",
-        a: "네. Splitea는 영국, 멕시코, 일본, 독일, 인도, 브라질, 한국 등 여러 나라의 App Store에서 받을 수 있어요. 엔화나 원화처럼 소수점 아래 단위가 없는 통화를 포함해 영수증의 통화 그대로 나누고, 일본이나 EU처럼 세금이 이미 포함된 영수증도 처리하고, 정산을 내 통화로 환산할 수도 있어요.",
+        a: "네. Splitea는 여러 나라의 App Store에서 받을 수 있고, 세계 어디의 영수증이든 읽을 수 있도록 만들어졌어요. 엔화나 원화처럼 소수점 아래 단위가 없는 통화를 포함해 영수증의 통화 그대로 나누고, 일본이나 EU처럼 세금이 이미 포함된 가격도 처리하고, 정산을 내 통화로 환산할 수도 있어요. 사는 나라의 영수증이 제대로 나오지 않으면 알려 주세요. 저희가 고칠게요. Splitea가 영수증을 읽지 못했을 때 '신고'를 탭하거나 support@splitea.app으로 메일을 보내 주세요.",
       },
       {
         q: "iOS 27도 더치페이를 지원하는데, 왜 Splitea를 써야 하나요?",
@@ -229,6 +229,75 @@ const ko: Copy = {
     ],
   },
   badgeLabel: "App Store에서 Splitea 다운로드",
+  v2: {
+    motion: { pause: "모션 일시정지", play: "모션 재생" },
+    boot: { label: "오늘 저녁 계산서", same: "몫은 셋, 합계는 그대로.", skip: "탭해서 건너뛰기" },
+    hero: {
+      giant: ["더치", "페이"],
+      badge: "무료 스캔 3회",
+      demoLink: "라이브 데모 체험하기",
+      ticker: ["영수증을 찰칵", "누가 뭘 먹었는지 탭", "항목마다 현지 세금", "테이블 모두에게 링크 하나", "각자 편한 방법으로 결제", "1원까지 딱 맞게"],
+      receipt: { place: "San Juan · 4번 테이블", subtotal: "소계", tax: "세금", tip: "팁", total: "합계", thanks: "감사합니다" },
+    },
+    how: {
+      caps: ["Splitea가 모든 항목과 가격을 읽어요.", "나눠 먹은 메뉴는 먹은 사람끼리 나눠요.", "항목마다 현지 세율이 따로 적용돼요.", "친구들은 평소 쓰는 앱으로 돈을 보내요."],
+      words: ["찰칵", "탭", "세금", "결제"],
+      snapBubble: "항목도 가격도 전부",
+      payTap: "결제를 탭",
+      payPick: "쓰는 앱을 선택",
+    },
+    table: {
+      stamp: "우리 테이블",
+      bands: [
+        { stamp: "결제자", line: "영수증을 찍고 단톡방에 링크 하나를 올렸어요." },
+        { stamp: "앱 설치 없이", line: "브라우저에서 링크를 열고 자기가 먹은 메뉴를 탭했어요." },
+        { stamp: "편한 앱으로 결제", line: "이미 쓰는 앱으로 Marisol에게 돈을 보낸 뒤 '결제 완료로 표시'를 탭했어요." },
+        { stamp: "돈엔 손 안 대요", line: "계산은 Splitea가. 세금은 항목별로, 팁은 먹은 만큼, 1센트까지 정확하게." },
+      ],
+      paypal: {
+        request: "요청",
+        send: "보내기",
+        alt: (name: string, amount: string) => `PayPal 송금 화면: ${name}, ${amount}`,
+      },
+      cardTitle: "Splitea • 탭하여 결제",
+      payButton: (name: string, amount: string) => `${name}님에게 ${amount} 결제`,
+      payNote: "결제 앱은 국가마다 달라요.",
+    },
+    try: { stamp: "라이브 데모", title: "이제 직접 해 보세요. 자리는 비워 뒀어요.", body: "Andrés와 Nina가 열었던 바로 그 페이지예요. 이름을 탭한 다음, 그 사람이 먹은 항목을 탭하세요." },
+    trips: { word: "여행 경비", bubble: "여행마다 폴더 하나" },
+    digital: { stamp: "전자 영수증", word: "PDF도 OK", sheet: { options: "옵션", news: "News", reminders: "미리 알림", more: "더 보기" } },
+    abroad: { stamp: "해외", bubble: "내 카드 환율" },
+    privacy: { stamp: "개인정보" },
+    check: {
+      stamp: "계산서",
+      title: "계산서 주세요.",
+      download: "다운로드",
+      free: "무료",
+      scans: "기본 제공 스캔",
+      scansNote: "매달 3회가 아니라 총 3회",
+      monthly: "Splitea Unlimited, 월간",
+      yearly: "Splitea Unlimited, 연간",
+      unlimitedNote: "영수증 무제한, 강조 색상 직접 고르기",
+      friends: "친구가 링크 열기",
+      included: "비용 나누기, 실시간 편집, 정산, 폴더, PDF 내보내기, 통화 환산",
+      money: "Splitea가 거치는 돈",
+      ads: "앱 속 광고와 추적",
+      due: "오늘 낼 금액",
+      usNote: "미국 기준 가격이에요.\n가격은 국가마다 달라요.",
+      faqTitle: "테이블에서 나온 질문들.",
+    },
+    last: {
+      stamp: "라스트 오더",
+      title: "이제 모두가 돈을 갚아요.",
+      body: "친구가 자기 몫을 결제 완료로 표시하면 Splitea가 알려 주고, 한 명씩 정산할 때마다 내 정산의 링이 채워져요.",
+      toast: (name: string, merchant: string) => `${name}님이 ${merchant}에서 본인 몫을 결제 완료로 표시했어요`,
+      owed: "받을 금액",
+      settled: (settled: number, total: number) => `${total}명 중 ${settled}명 정산 완료`,
+      allSettled: "모두 정산 완료",
+      paid: "지불 완료",
+    },
+    get: { word: "정산 끝." },
+  },
 };
 
 export default ko;

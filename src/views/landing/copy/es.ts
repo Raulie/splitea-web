@@ -4,10 +4,10 @@ const es: Copy = {
   meta: {
     title: "Splitea para iPhone: divide la cuenta con amigos al centavo",
     description: "Tómale una foto al recibo, toca quién pidió qué y envía un enlace. Tus amigos eligen lo suyo en cualquier navegador, sin app, y todo cuadra al centavo.",
-    ogTitle: "Splitea: divide la cuenta al centavo",
     ogDescription: "Tómale una foto al recibo, toca quién pidió qué y envía un enlace. Tus amigos eligen lo suyo en cualquier navegador. Para iPhone.",
     ogImageAlt: "Divide la cuenta al centavo. La pantalla Asignar artículos de Splitea en un iPhone con las indicaciones 1 Toca un contacto y 2 Toca sus artículos.",
     ogTagline: "Para iPhone · splitea.app",
+    ogStamp: "El divisor de cuentas más preciso",
   },
   nav: {
     chapters: [
@@ -96,7 +96,7 @@ const es: Copy = {
   trips: {
     title: "Un [[viaje]].\nUn resumen.",
     tagline: "Agrupa · Comparte · Cobra",
-    body: "Guarda los recibos de un viaje en una carpeta. El Resumen de carpeta suma el total de cada persona en todos los splits y reconoce a la misma persona aunque su número esté guardado de otra forma. Luego, con Exportar carpeta compartes un solo PDF con el total de cada uno.",
+    body: "Guarda los recibos de un viaje en una carpeta. El Resumen de carpeta suma el total de cada persona en todos los splits. Luego, con Exportar carpeta compartes un solo PDF con el total de cada uno.",
     alt: "Una carpeta de viaje con varios recibos.",
   },
   digital: {
@@ -186,7 +186,7 @@ const es: Copy = {
       },
       {
         q: "¿Funciona fuera de Estados Unidos?",
-        a: "Sí. Splitea está en el App Store de muchos países, como el Reino Unido, México, Japón, Alemania, India, Brasil y Corea del Sur. Divide en la moneda del recibo, incluidas las que no tienen centavos, como el yen y el won, maneja recibos con el impuesto ya incluido, como los de Japón y la UE, y puede convertir un split a tu moneda.",
+        a: "Sí. Splitea está en el App Store de muchos países y está hecho para leer recibos de cualquier parte del mundo. Divide en la moneda del recibo, incluidas las que no tienen centavos, como el yen y el won, maneja precios con el impuesto ya incluido, como en Japón y la UE, y puede convertir un split a tu moneda. Si un recibo de tu país no sale bien, avísanos para arreglarlo: toca Reportar cuando Splitea no pueda leer un recibo, o escribe a support@splitea.app.",
       },
       {
         q: "iOS 27 puede dividir cuentas. ¿Por qué usar Splitea?",
@@ -229,6 +229,75 @@ const es: Copy = {
     ],
   },
   badgeLabel: "Descarga Splitea en el App Store",
+  v2: {
+    motion: { pause: "Pausar animación", play: "Reproducir animación" },
+    boot: { label: "La cuenta de esta noche", same: "Tres partes. El mismo total.", skip: "Toca para saltar" },
+    hero: {
+      giant: ["Divide", "la cuenta"],
+      badge: "3 escaneos gratis",
+      demoLink: "Prueba la demo en vivo",
+      ticker: ["Escanea el recibo", "Toca quién pidió qué", "Impuesto local en cada artículo", "Un enlace para toda la mesa", "Pagan como prefieran", "Hasta el último centavo"],
+      receipt: { place: "San Juan · Mesa 4", subtotal: "Subtotal", tax: "Impuesto", tip: "Propina", total: "Total", thanks: "Gracias" },
+    },
+    how: {
+      caps: ["Splitea lee cada artículo y su precio.", "Los platos compartidos se dividen entre quienes los pidieron.", "Cada artículo lleva su propio impuesto local.", "Tus amigos te pagan con la app que ya usan."],
+      words: ["Escanea", "Asigna", "Tasa", "Paga"],
+      snapBubble: "Artículos y precios",
+      payTap: "Toca Pagar",
+      payPick: "Elige su app",
+    },
+    table: {
+      stamp: "La mesa",
+      bands: [
+        { stamp: "Pagó la cuenta", line: "Escaneó el recibo y mandó un solo enlace al chat del grupo." },
+        { stamp: "No necesitó la app", line: "Abrió el enlace en su navegador y tocó sus propios platos." },
+        { stamp: "Pagó a su manera", line: "Le devolvió el dinero a Marisol con la app que ya usa y luego tocó Marcar como pagado." },
+        { stamp: "Nunca tocó el dinero", line: "Hizo las cuentas. Impuesto por artículo, propina según lo que pidió cada quien, al centavo." },
+      ],
+      paypal: {
+        request: "Solicitar",
+        send: "Enviar",
+        alt: (name: string, amount: string) => `PayPal abierto para enviar ${amount} a ${name}`,
+      },
+      cardTitle: "Splitea • Toca para pagar",
+      payButton: (name: string, amount: string) => `Pagar ${amount} a ${name}`,
+      payNote: "Las apps de pago dependen del país.",
+    },
+    try: { stamp: "Demo en vivo", title: "Te toca. Siéntate a la mesa.", body: "Esta es la página que abrieron Andrés y Nina. Toca un nombre y luego toca lo que pidió." },
+    trips: { word: "Un viaje", bubble: "Una carpeta por viaje" },
+    digital: { stamp: "Recibos digitales", word: "Web o PDF", sheet: { options: "Opciones", news: "News", reminders: "Recordatorios", more: "Más" } },
+    abroad: { stamp: "En el extranjero", bubble: "Tasa de tu tarjeta" },
+    privacy: { stamp: "Privacidad" },
+    check: {
+      stamp: "La cuenta",
+      title: "La cuenta, por favor.",
+      download: "Descarga",
+      free: "Gratis",
+      scans: "Escaneos para empezar",
+      scansNote: "3 en total, no 3 al mes",
+      monthly: "Unlimited, mensual",
+      yearly: "Unlimited, anual",
+      unlimitedNote: "Recibos ilimitados y un color de acento personalizado",
+      friends: "Enlace para tus amigos",
+      included: "Dividir, editar en vivo, saldar cuentas, usar carpetas, exportar a PDF, convertir monedas",
+      money: "Dinero que toca Splitea",
+      ads: "Anuncios y rastreadores",
+      due: "A pagar hoy",
+      usNote: "Precios de EE. UU.\nLos precios varían según el país.",
+      faqTitle: "Preguntas de la mesa.",
+    },
+    last: {
+      stamp: "Última ronda",
+      title: "Y luego todos te pagan.",
+      body: "Cuando un amigo marca su parte como pagada, Splitea te avisa, y el anillo de tu split se va llenando a medida que todos pagan.",
+      toast: (name: string, merchant: string) => `${name} marcó su parte de ${merchant} como pagada`,
+      owed: "Te deben",
+      settled: (settled: number, total: number) => `${settled} de ${total} ya pagaron`,
+      allSettled: "Todo saldado",
+      paid: "Pagado",
+    },
+    get: { word: "Pagado." },
+  },
 };
 
 export default es;

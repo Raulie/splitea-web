@@ -4,10 +4,10 @@ const ptBR: Copy = {
   meta: {
     title: "Splitea para iPhone: divida a conta com amigos, até o centavo",
     description: "Fotografe o recibo, toque em quem pediu o quê e mande um link. Os amigos escolhem os itens em qualquer navegador, sem app, e as partes somam o total exato.",
-    ogTitle: "Splitea: divida a conta até o último centavo",
     ogDescription: "Fotografe o recibo, toque em quem pediu o quê e mande um link. Os amigos escolhem os itens em qualquer navegador. Para iPhone.",
     ogImageAlt: "Divida a conta até o último centavo. A tela Atribuir itens do Splitea em um iPhone, com as indicações 1 Toque em um contato e 2 Toque nos itens.",
     ogTagline: "Para iPhone · splitea.app",
+    ogStamp: "O divisor de contas mais preciso",
   },
   nav: {
     chapters: [
@@ -63,7 +63,7 @@ const ptBR: Copy = {
       {
         rail: "Acertar",
         title: "Tudo acertado, [[simples]].",
-        body: "Os amigos tocam em Pagar para abrir o Venmo, o PayPal ou o Cash App com o valor que devem. O Splitea nunca mexe no dinheiro.",
+        body: "Os amigos tocam em Pagar para abrir o PayPal com o valor que devem. O Splitea nunca mexe no dinheiro.",
         tagline: "Cobre · Receba · Repita",
       },
     ],
@@ -96,7 +96,7 @@ const ptBR: Copy = {
   trips: {
     title: "Uma [[viagem]].\nUm resumo.",
     tagline: "Agrupe · Exporte · Acerte",
-    body: "Coloque os recibos de uma viagem em uma pasta. O Resumo da pasta soma o total de cada pessoa em todas as divisões e reconhece a mesma pessoa mesmo quando o número dela está salvo de outro jeito. Depois, com Exportar pasta, você compartilha um só PDF com o total de cada um.",
+    body: "Coloque os recibos de uma viagem em uma pasta. O Resumo da pasta soma o total de cada pessoa em todas as divisões. Depois, com Exportar pasta, você compartilha um só PDF com o total de cada um.",
     alt: "Uma pasta de viagem com vários recibos.",
   },
   digital: {
@@ -186,7 +186,7 @@ const ptBR: Copy = {
       },
       {
         q: "Funciona fora dos EUA?",
-        a: "Sim. O Splitea está na App Store em muitos países, incluindo Reino Unido, México, Japão, Alemanha, Índia, Brasil e Coreia. Ele divide na moeda do recibo, inclusive nas que não têm centavos, como o iene e o won, lida com recibos que já incluem o imposto, como os do Japão e da UE, e pode converter uma divisão para a sua moeda.",
+        a: "Sim. O Splitea está na App Store em muitos países e foi feito para ler recibos de qualquer lugar do mundo. Ele divide na moeda do recibo, inclusive nas que não têm centavos, como o iene e o won, lida com preços que já incluem o imposto, como no Japão e na UE, e pode converter uma divisão para a sua moeda. Se um recibo do seu país não sair certo, avise a gente para corrigirmos: toque em Relatar quando o Splitea não conseguir ler um recibo, ou escreva para support@splitea.app.",
       },
       {
         q: "O iOS 27 divide contas. Por que usar o Splitea?",
@@ -229,6 +229,75 @@ const ptBR: Copy = {
     ],
   },
   badgeLabel: "Baixar o Splitea na App Store",
+  v2: {
+    motion: { pause: "Pausar animações", play: "Reproduzir animações" },
+    boot: { label: "A conta de hoje", same: "Três partes. O mesmo total.", skip: "Toque para pular" },
+    hero: {
+      giant: ["Divida", "a conta"],
+      badge: "3 escaneamentos grátis",
+      demoLink: "Experimente a demo ao vivo",
+      ticker: ["Fotografe o recibo", "Toque em quem pediu o quê", "Imposto local em cada item", "Um link para a mesa toda", "Cada um paga do seu jeito", "Até o último centavo"],
+      receipt: { place: "San Juan · Mesa 4", subtotal: "Subtotal", tax: "Imposto", tip: "Gorjeta", total: "Total", thanks: "Obrigado" },
+    },
+    how: {
+      caps: ["O Splitea lê cada item e seu preço.", "Pratos compartilhados são divididos entre quem pediu.", "Cada item recebe a própria alíquota local.", "Os amigos pagam você pelo app que já usam."],
+      words: ["Foto", "Toque", "Imposto", "Pague"],
+      snapBubble: "Cada item, cada preço",
+      payTap: "Toque em Pagar",
+      payPick: "Escolha o app",
+    },
+    table: {
+      stamp: "A mesa",
+      bands: [
+        { stamp: "Pagou a conta", line: "Fotografou o recibo e mandou um link no grupo." },
+        { stamp: "Sem precisar de app", line: "Abriu o link no navegador e tocou nos próprios pratos." },
+        { stamp: "Pagou do jeito dela", line: "Acertou com Marisol no app que já usa e depois tocou em Marcar como pago." },
+        { stamp: "Nunca mexeu no dinheiro", line: "Fez as contas. Imposto por item, gorjeta pelo que cada um pediu, centavo por centavo." },
+      ],
+      paypal: {
+        request: "Solicitar",
+        send: "Enviar",
+        alt: (name: string, amount: string) => `PayPal aberto para enviar ${amount} para ${name}`,
+      },
+      cardTitle: "Splitea • Toque para pagar",
+      payButton: (name: string, amount: string) => `Pagar ${amount} para ${name}`,
+      payNote: "Os apps de pagamento variam de acordo com o país.",
+    },
+    try: { stamp: "Demo ao vivo", title: "Sua vez. Puxe uma cadeira.", body: "Esta é a página que Andrés e Nina abriram. Toque em um nome e depois no que a pessoa pediu." },
+    trips: { word: "Uma viagem", bubble: "Uma pasta por viagem" },
+    digital: { stamp: "Recibos digitais", word: "Todo PDF", sheet: { options: "Opções", news: "News", reminders: "Lembretes", more: "Mais" } },
+    abroad: { stamp: "No exterior", bubble: "Taxa do seu cartão" },
+    privacy: { stamp: "Privacidade" },
+    check: {
+      stamp: "A conta",
+      title: "A conta, por favor.",
+      download: "Download",
+      free: "Grátis",
+      scans: "Escaneamentos para começar",
+      scansNote: "3 no total, não 3 por mês",
+      monthly: "Splitea Unlimited, mensal",
+      yearly: "Splitea Unlimited, anual",
+      unlimitedNote: "Recibos ilimitados e uma cor de destaque personalizada",
+      friends: "Abrir um link, para os amigos",
+      included: "Divisão, edição ao vivo, acerto de contas, pastas, exportação em PDF, conversão de moeda",
+      money: "Dinheiro que passa pelo Splitea",
+      ads: "Anúncios e rastreadores no app",
+      due: "A pagar hoje",
+      usNote: "Preços nos EUA.\nOs preços variam de acordo com o país.",
+      faqTitle: "Perguntas da mesa.",
+    },
+    last: {
+      stamp: "Saideira",
+      title: "Depois, todo mundo acerta com você.",
+      body: "Quando um amigo marca a parte dele como paga, o Splitea avisa você, e o anel da sua divisão vai se completando conforme todos acertam.",
+      toast: (name: string, merchant: string) => `${name} marcou a própria parte de ${merchant} como paga`,
+      owed: "A receber",
+      settled: (settled: number, total: number) => `${settled} de ${total} acertados`,
+      allSettled: "Tudo acertado",
+      paid: "Pago",
+    },
+    get: { word: "Pago." },
+  },
 };
 
 export default ptBR;
