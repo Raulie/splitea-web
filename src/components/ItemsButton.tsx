@@ -8,7 +8,7 @@ export function ItemsButton(props: { onClick: () => void; ariaLabel: string }) {
       aria-label={props.ariaLabel}
       onClick={() => props.onClick()}
     >
-      <ChecklistGlyph size={18} />
+      <ChecklistGlyph size={18} class="rtl-mirror" />
     </button>
   );
 }

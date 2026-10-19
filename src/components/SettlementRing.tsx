@@ -219,7 +219,7 @@ function RollingText(props: { text: string; animate: boolean }) {
       when={!RTL.test(props.text)}
       fallback={<span aria-hidden="true">{props.text}</span>}
     >
-      <span class="inline-flex whitespace-nowrap select-none" aria-hidden="true">
+      <span class="inline-flex whitespace-nowrap select-none" dir="ltr" aria-hidden="true">
         <For each={chars()}>
           {(c) => (
             <span class="relative inline-block" classList={{ "ring-roll-ghost": c.ch === "" }}>

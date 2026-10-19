@@ -80,7 +80,7 @@ export function BillSummary(props: BillSummaryProps) {
     const trimmed = Number.isInteger(rate)
       ? rate.toString()
       : rate.toFixed(2).replace(/\.?0+$/, "");
-    return t("summaryTaxLabelWithRate", { rate: trimmed });
+    return t("summaryTaxLabelWithRate", { rate: Number(trimmed) });
   };
 
   /// Tip label — same treatment as the tax rate: "Tip (20%)" when the
@@ -94,7 +94,7 @@ export function BillSummary(props: BillSummaryProps) {
     const trimmed = Number.isInteger(tipValue)
       ? tipValue.toString()
       : tipValue.toFixed(2).replace(/\.?0+$/, "");
-    return t("summaryTipLabelWithRate", { rate: trimmed });
+    return t("summaryTipLabelWithRate", { rate: Number(trimmed) });
   };
 
   // Card chrome + concentric padding:
@@ -153,7 +153,7 @@ function Row(props: RowProps) {
       <span class="text-ios-subheadline text-ios-label-secondary">
         {props.label}
       </span>
-      <span class="ml-auto text-ios-subheadline font-medium text-ios-label">
+      <span class="ms-auto text-ios-subheadline font-medium text-ios-label">
         {props.value}
       </span>
     </div>
@@ -172,7 +172,7 @@ function TotalRow(props: { value: string; secondary?: string | null }) {
       <span class="text-ios-subheadline font-bold text-ios-label">
         {t("summaryTotalLabel")}
       </span>
-      <span class="ml-auto flex flex-col items-end">
+      <span class="ms-auto flex flex-col items-end">
         <span class="text-ios-title-3 font-bold text-ios-label">{props.value}</span>
         <Show when={props.secondary}>
           <span class="text-ios-subheadline text-ios-label-secondary">{props.secondary}</span>

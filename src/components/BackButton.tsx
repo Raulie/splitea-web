@@ -30,7 +30,7 @@ export function BackButton(props: BackButtonProps) {
       aria-label={props.ariaLabel ?? t("backButton")}
       onClick={() => props.onClick()}
     >
-      <ChevronGlyph size={17} />
+      <ChevronGlyph size={17} class="rtl-mirror" />
     </button>
   );
 }

@@ -1,6 +1,7 @@
 import { Show, createEffect, createSignal, onCleanup } from "solid-js";
 import type { JSX } from "solid-js";
 import { Portal } from "solid-js/web";
+import { dir } from "../lib/i18n";
 
 export interface MenuButtonProps {
   label: JSX.Element;
@@ -28,7 +29,8 @@ export function MenuButton(props: MenuButtonProps) {
   const open = () => {
     const rect = trigger.getBoundingClientRect();
     const width = Math.min(MENU_WIDTH, window.innerWidth - EDGE * 2);
-    const left = Math.min(Math.max(EDGE, rect.left - 16), window.innerWidth - width - EDGE);
+    const start = dir === "rtl" ? rect.right + 16 - width : rect.left - 16;
+    const left = Math.min(Math.max(EDGE, start), window.innerWidth - width - EDGE);
     const above = rect.bottom + MENU_GAP + 64 > window.innerHeight;
     setPlacement({
       left,
@@ -97,7 +99,7 @@ export function MenuButton(props: MenuButtonProps) {
                 ref={item}
                 type="button"
                 role="menuitem"
-                class="ios-menu-item flex w-full items-center gap-3 text-left text-ios-body"
+                class="ios-menu-item flex w-full items-center gap-3 text-start text-ios-body"
                 classList={{
                   "text-ios-red": props.destructive,
                   "text-ios-label": !props.destructive,

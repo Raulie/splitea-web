@@ -366,7 +366,7 @@ html { scroll-behavior: smooth; }
    Apply `.ios-list-divide` to a parent whose direct children
    are the rows; each row except the last gets a 1px hairline
    along its bottom edge via an `::after` pseudo-element,
-   inset 16px from the left. 16px = the standard `px-4` row
+   inset 16px from the leading edge. 16px = the standard `px-4` row
    padding the rest of the layout uses, so the separator
    aligns with the text column. */
 .ios-list-divide > *:not(:last-child) {
@@ -375,8 +375,8 @@ html { scroll-behavior: smooth; }
 .ios-list-divide > *:not(:last-child)::after {
   content: "";
   position: absolute;
-  left: 1rem;
-  right: 0;
+  inset-inline-start: 1rem;
+  inset-inline-end: 0;
   bottom: 0;
   height: 0;
   /* iOS hairlines are 1 PHYSICAL pixel — on a @2x or @3x
@@ -588,6 +588,26 @@ html { scroll-behavior: smooth; }
   from { transform: translate3d(0, 0, 0); }
   to   { transform: translate3d(100%, 0, 0); }
 }
+[dir="rtl"] .ios-nav-page-pushed {
+  transform: translate3d(25%, 0, 0);
+}
+[dir="rtl"] .ios-nav-pushed {
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.45);
+}
+[dir="rtl"] .ios-nav-pushed-in {
+  animation-name: ios-nav-push-in-rtl;
+}
+[dir="rtl"] .ios-nav-pushed-out {
+  animation-name: ios-nav-push-out-rtl;
+}
+@keyframes ios-nav-push-in-rtl {
+  from { transform: translate3d(-100%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+@keyframes ios-nav-push-out-rtl {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-100%, 0, 0); }
+}
 
 /* Pinned page chrome on ItemsView — contacts row + Continue
    button. `position: fixed` so it stays viewport-anchored as
@@ -616,6 +636,9 @@ html { scroll-behavior: smooth; }
 .ios-nav-page-bottom.ios-nav-page-pushed {
   transform: translate3d(-25%, 0, 0);
   opacity: 0.9;
+}
+[dir="rtl"] .ios-nav-page-bottom.ios-nav-page-pushed {
+  transform: translate3d(25%, 0, 0);
 }
 /* When the bar lives INSIDE the pushed overlay (the items
    editor reached via the pencil), anchor it to the overlay with
@@ -747,6 +770,15 @@ html { scroll-behavior: smooth; }
 .ios-menu-above {
   translate: 0 -100%;
   transform-origin: 16px 100%;
+}
+[dir="rtl"] .ios-menu {
+  transform-origin: calc(100% - 16px) 0;
+}
+[dir="rtl"] .ios-menu-above {
+  transform-origin: calc(100% - 16px) 100%;
+}
+[dir="rtl"] .rtl-mirror {
+  scale: -1 1;
 }
 @media (prefers-color-scheme: dark) {
   .ios-menu {

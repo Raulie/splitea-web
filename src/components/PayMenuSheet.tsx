@@ -433,7 +433,7 @@ function IdentityStage(props: IdentityStageProps) {
                   surface. Tabular nums kept on the amount so
                   multi-row dollar figures align right-edge.
                 */}
-                <span class="flex-1 text-left text-ios-subheadline font-semibold text-ios-label truncate">
+                <span class="flex-1 text-start text-ios-subheadline font-semibold text-ios-label truncate">
                   {c.displayName}
                 </span>
                 <span class="text-ios-subheadline font-semibold text-ios-label tabular-nums">
@@ -442,7 +442,7 @@ function IdentityStage(props: IdentityStageProps) {
                 <ChevronGlyph
                   size={13}
                   rotation={180}
-                  class="text-ios-label-tertiary shrink-0"
+                  class="rtl-mirror text-ios-label-tertiary shrink-0"
                 />
               </button>
               <Show when={i() < props.candidates.length - 1}>
@@ -547,13 +547,13 @@ function ProvidersStage(props: ProvidersStageProps) {
                   height={36}
                   class="rounded-[8px] shrink-0"
                 />
-                <span class="flex-1 text-left text-ios-body text-ios-label">
+                <span class="flex-1 text-start text-ios-body text-ios-label">
                   {entry.provider.displayName}
                 </span>
                 <ChevronGlyph
                   size={13}
                   rotation={180}
-                  class="text-ios-label-tertiary shrink-0"
+                  class="rtl-mirror text-ios-label-tertiary shrink-0"
                 />
               </a>
               <Show when={i() < props.entries.length - 1}>

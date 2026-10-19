@@ -30,7 +30,7 @@ export function UnassignedItemsSection(props: UnassignedItemsSectionProps) {
         <h2 class="text-ios-title-3 font-bold text-ios-label">
           {t("unassignedItemsTitle")}
         </h2>
-        <span class="ml-auto">
+        <span class="ms-auto">
           <WarningTriangleGlyph size={20} />
         </span>
       </div>
@@ -42,7 +42,7 @@ export function UnassignedItemsSection(props: UnassignedItemsSectionProps) {
           {(item) => (
             <div class="flex items-center text-ios-subheadline text-ios-label-secondary">
               <span class="truncate">{item.itemDescription}</span>
-              <span class="ml-auto">
+              <span class="ms-auto">
                 {formatCurrency(item.price, props.currencyCode)}
               </span>
             </div>

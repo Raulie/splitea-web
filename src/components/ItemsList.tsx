@@ -108,7 +108,7 @@ function ItemRow(props: ItemRowProps) {
     props.item.tax !== null &&
     props.item.tax !== undefined &&
     props.item.tax > 0;
-  const rowClass = "w-full text-left px-4 py-[15px] flex items-center gap-3";
+  const rowClass = "w-full text-start px-4 py-[15px] flex items-center gap-3";
   const content = () => (
     <>
       <AssigneeIndicator

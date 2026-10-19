@@ -37,6 +37,7 @@ function match(tag: string): Locale | null {
   // is far closer than falling through to English.
   if (base === "pt") return "pt-BR";
   if (base === "no" || base === "nn") return "nb";
+  if (base === "iw") return "he";
 
   const exact = LOCALES.find((l) => l.toLowerCase() === lower);
   if (exact) return exact;
@@ -82,11 +83,23 @@ function resolve(): Locale {
 
 export const locale: Locale = resolve();
 
+function resolveDir(): "ltr" | "rtl" {
+  if (locale !== "ar" && locale !== "he") return "ltr";
+  try {
+    return landingSegment(window.location.pathname) === undefined ? "rtl" : "ltr";
+  } catch {
+    return "rtl";
+  }
+}
+
+export const dir = resolveDir();
+
 /// Tell the document what language it is in. Drives `:lang()` font
 /// selection in `index.css` — without it, Chinese text renders with
 /// Japanese glyph forms — and lets VoiceOver pick the right voice.
 export function applyDocumentLanguage() {
   document.documentElement.lang = locale;
+  document.documentElement.dir = dir;
 }
 
 /// Look up a string, substituting `{name}`-style placeholders.
@@ -100,7 +113,9 @@ export function t(
   let out: string = table[key] ?? messages[FALLBACK][key] ?? key;
   if (params) {
     for (const name in params) {
-      out = out.split(`{${name}}`).join(String(params[name]));
+      const value = params[name];
+      const text = dir === "rtl" && typeof value === "string" ? `\u2068${value}\u2069` : String(value);
+      out = out.split(`{${name}}`).join(text);
     }
   }
   return out;

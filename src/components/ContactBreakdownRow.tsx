@@ -96,7 +96,7 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
           fallback={
             <Show when={props.contact.phoneNumber}>
               <div class="text-ios-caption text-ios-label-secondary truncate">
-                {formatPhoneNumber(props.contact.phoneNumber)}
+                <span dir="ltr">{formatPhoneNumber(props.contact.phoneNumber)}</span>
               </div>
             </Show>
           }
@@ -117,7 +117,7 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
           >
             <div class="flex min-w-0">
               <MenuButton
-                class="pointer-events-auto relative inline-flex max-w-full min-w-0 text-left text-ios-caption after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-['']"
+                class="pointer-events-auto relative inline-flex max-w-full min-w-0 text-start text-ios-caption after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-['']"
                 label={
                   <span
                     class="min-w-0 truncate underline decoration-1 underline-offset-[3px]"
@@ -130,7 +130,7 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
                   </span>
                 }
                 itemLabel={t("markUnpaidButton")}
-                itemIcon={<UturnBackwardGlyph size={17} />}
+                itemIcon={<UturnBackwardGlyph size={17} class="rtl-mirror" />}
                 destructive
                 onSelect={() => props.onMarkUnpaid?.()}
               />
@@ -168,7 +168,7 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
           rotation prop. */}
       <Show when={props.items.length > 0}>
         <span
-          class="text-ios-label-tertiary shrink-0 inline-flex"
+          class="rtl-mirror text-ios-label-tertiary shrink-0 inline-flex"
           // `isOpen` is a SIGNAL GETTER — calling it inside
           // this style object turns into a reactive binding
           // that only updates the `transform` string. The
@@ -254,7 +254,7 @@ export function ContactBreakdownRow(props: ContactBreakdownRowProps) {
                     per-item amount in `.foregroundStyle
                     (.secondary)` for visual hierarchy
                     against the bolder header total above. */}
-                <span class="ml-auto">
+                <span class="ms-auto">
                   {formatCurrency(share.amount, props.currencyCode)}
                 </span>
               </li>
@@ -307,7 +307,7 @@ function BreakdownLine(props: { label: string; value: string }) {
   return (
     <div class="flex items-center text-ios-caption text-ios-label-secondary">
       <span>{props.label}</span>
-      <span class="ml-auto">{props.value}</span>
+      <span class="ms-auto">{props.value}</span>
     </div>
   );
 }

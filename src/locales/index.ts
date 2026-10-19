@@ -12,6 +12,14 @@ import { nl } from './nl';
 import { sv } from './sv';
 import { da } from './da';
 import { nb } from './nb';
+import { fi } from './fi';
+import { pl } from './pl';
+import { cs } from './cs';
+import { ro } from './ro';
+import { hu } from './hu';
+import { el } from './el';
+import { ar } from './ar';
+import { he } from './he';
 
 export type { Messages, MessageKey } from './en';
 
@@ -33,6 +41,14 @@ export const messages = {
   "sv": sv,
   "da": da,
   "nb": nb,
+  "fi": fi,
+  "pl": pl,
+  "cs": cs,
+  "ro": ro,
+  "hu": hu,
+  "el": el,
+  "ar": ar,
+  "he": he,
 } as const;
 
 export type Locale = keyof typeof messages;

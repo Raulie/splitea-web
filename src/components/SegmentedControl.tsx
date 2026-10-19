@@ -1,4 +1,5 @@
 import { For } from "solid-js";
+import { dir } from "../lib/i18n";
 
 export interface SegmentedControlProps<T extends string> {
   options: { value: T; label: string }[];
@@ -18,10 +19,10 @@ export function SegmentedControl<T extends string>(props: SegmentedControlProps<
     >
       <div
         aria-hidden="true"
-        class="segmented-thumb absolute top-0.5 bottom-0.5 left-0.5 rounded-full"
+        class="segmented-thumb absolute top-0.5 bottom-0.5 start-0.5 rounded-full"
         style={{
           width: `calc((100% - 4px) / ${props.options.length})`,
-          transform: `translateX(${index() * 100}%)`,
+          transform: `translateX(${(dir === "rtl" ? -index() : index()) * 100}%)`,
           background: "rgb(90, 90, 95)",
         }}
       />

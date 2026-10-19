@@ -65,7 +65,7 @@ export function ReceiptInfoCard(props: ReceiptInfoCardProps) {
         {(() => {
           const ts = props.receiptDate ?? Date.now();
           return (
-            <div class="ml-auto flex items-center gap-2">
+            <div class="ms-auto flex items-center gap-2">
               <span class="px-3 py-1.5 rounded-full bg-ios-card-hi text-ios-callout">
                 {formatReceiptDate(ts)}
               </span>
