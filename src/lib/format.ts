@@ -12,18 +12,23 @@
 /// whoever was at the table, on whatever locale their phone is
 /// set to, so the default made the same receipt read
 /// differently per recipient. "narrowSymbol" pins it to "$".
+const ZERO_DECIMAL_CURRENCIES = new Set(["HUF"]);
+
 export function formatCurrency(amount: number, currencyCode: string): string {
+  const digits = ZERO_DECIMAL_CURRENCIES.has(currencyCode) ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : {};
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: currencyCode,
       currencyDisplay: "narrowSymbol",
+      ...digits,
     }).format(amount);
   } catch {
     // Pre-2020 engines reject `narrowSymbol` with a RangeError.
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: currencyCode,
+      ...digits,
     }).format(amount);
   }
 }
