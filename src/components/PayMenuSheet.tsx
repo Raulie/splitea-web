@@ -9,6 +9,8 @@ import {
 } from "../lib/payProviders";
 import { formatCurrency } from "../lib/format";
 import { t } from "../lib/i18n";
+import { bankTransferDetails, type BankTransferDetails } from "../lib/bankTransfer";
+import { BankTransferStage, BankTransferIcon } from "./BankTransferStage";
 
 /// "Pay <Sender>" provider-picker sheet shown when the
 /// recipient taps the Pay button on `SavedReceiptView`.
@@ -127,6 +129,8 @@ export function identityCacheKey(receiptID: string): string {
 export function PayMenuSheet(props: PayMenuSheetProps) {
   const providerEntries = () =>
     configuredPayProviders(props.paymentUsernames);
+  const bankDetails = () => bankTransferDetails(props.paymentUsernames);
+  const [showingBank, setShowingBank] = createSignal(false);
 
   /// Initial identity. Four sources, in priority order:
   ///
@@ -180,8 +184,10 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
   /// stage — a cached or forced identity must not silently claim
   /// payment on the visitor's behalf, and must not land them on
   /// an empty provider list either.
-  const stage = (): "identity" | "providers" =>
-    props.settleOnly || selectedCandidate() === null ? "identity" : "providers";
+  const stage = (): "identity" | "providers" | "bank" => {
+    if (props.settleOnly || selectedCandidate() === null) return "identity";
+    return showingBank() && bankDetails() ? "bank" : "providers";
+  };
 
   /// Mount-time animation flags — same two-frame pattern as
   /// `ReceiptViewer` so the browser actually transitions
@@ -220,6 +226,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
   }
 
   function clearIdentity() {
+    setShowingBank(false);
     setSelectedContactId(null);
     try {
       localStorage.removeItem(identityCacheKey(props.receiptID));
@@ -310,7 +317,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
   // via the back button.
 
   return (
-    <Show when={props.settleOnly || providerEntries().length > 0}>
+    <Show when={props.settleOnly || providerEntries().length > 0 || bankDetails() !== null}>
       <Portal>
       <div
         class="fixed inset-0 z-[60] bg-black/40 pay-backdrop"
@@ -320,7 +327,7 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
       />
       <div class="fixed inset-x-0 bottom-0 z-[70] flex justify-center pointer-events-none">
       <div
-        class="pointer-events-auto w-full sm:max-w-md bg-ios-card text-ios-label rounded-t-ios-sheet pb-[env(safe-area-inset-bottom)] shadow-2xl pay-sheet"
+        class="pointer-events-auto w-full sm:max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain bg-ios-card text-ios-label rounded-t-ios-sheet pb-[env(safe-area-inset-bottom)] shadow-2xl pay-sheet"
         classList={{ "pay-sheet-presented": presented() }}
         role="dialog"
         aria-modal="true"
@@ -353,6 +360,8 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
             candidate={selectedCandidate()!}
             currencyCode={props.currencyCode}
             entries={providerEntries()}
+            bankDetails={bankDetails()}
+            onShowBank={() => setShowingBank(true)}
             buildURL={urlForProvider}
             onMarkPaid={props.onMarkPaid}
             onProviderTap={props.onProviderTap}
@@ -366,6 +375,26 @@ export function PayMenuSheet(props: PayMenuSheetProps) {
               props.candidates.length > 1 ? clearIdentity : undefined
             }
           />
+        </Show>
+
+        <Show when={stage() === "bank" && bankDetails()}>
+          {(details) => (
+            <BankTransferStage
+              details={details()}
+              candidate={selectedCandidate()!}
+              currencyCode={props.currencyCode}
+              merchantName={props.merchantName}
+              onBack={() => setShowingBank(false)}
+              onCopy={() => {
+                const candidate = selectedCandidate();
+                if (candidate?.settlementState === "owes") {
+                  props.onProviderTap?.(candidate.contactId);
+                }
+              }}
+              onMarkPaid={props.onMarkPaid}
+              onDismiss={handleDismiss}
+            />
+          )}
         </Show>
       </div>
       </div>
@@ -460,6 +489,8 @@ interface ProvidersStageProps {
   candidate: PayCandidate;
   currencyCode: string;
   entries: { provider: PayProvider; username: string }[];
+  bankDetails: BankTransferDetails | null;
+  onShowBank: () => void;
   /// Builds the splitea.app/p/<slug>/<b64u> URL for the
   /// given provider + username — closure over the
   /// currently-selected candidate's amount so each row's
@@ -556,12 +587,31 @@ function ProvidersStage(props: ProvidersStageProps) {
                   class="rtl-mirror text-ios-label-tertiary shrink-0"
                 />
               </a>
-              <Show when={i() < props.entries.length - 1}>
+              <Show when={i() < props.entries.length - 1 || props.bankDetails}>
                 <div class="ios-hairline mx-3" />
               </Show>
             </li>
           )}
         </For>
+        <Show when={props.bankDetails}>
+          <li>
+            <button
+              type="button"
+              onClick={() => props.onShowBank()}
+              class="w-full flex items-center gap-3 px-3 py-3 rounded-ios-card-inner active:bg-ios-card-hi transition-colors"
+            >
+              <BankTransferIcon size={36} />
+              <span class="flex-1 text-start text-ios-body text-ios-label">
+                {t("bankTransferProviderName")}
+              </span>
+              <ChevronGlyph
+                size={13}
+                rotation={180}
+                class="rtl-mirror text-ios-label-tertiary shrink-0"
+              />
+            </button>
+          </li>
+        </Show>
       </ul>
       {/* "Mark as paid" — a plain iOS action row, shown ONLY
           while the selected contact still owes. Once they've

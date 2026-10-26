@@ -19,6 +19,7 @@ import {
 } from "../lib/moneyMath";
 import { formatCurrency, formatReceiptDateTime } from "../lib/format";
 import { configuredPayProviders } from "../lib/payProviders";
+import { bankTransferDetails } from "../lib/bankTransfer";
 import { claimPaid } from "../lib/api";
 import { settlementState } from "../lib/settlement";
 import { t } from "../lib/i18n";
@@ -363,7 +364,9 @@ export function SavedReceiptView(props: SavedReceiptViewProps) {
   /// Whether the payer can be paid THROUGH the app — they have at
   /// least one configured provider. Chooses which action the
   /// bottom bar offers, not whether it appears.
-  const payerIsPayable = () => payerProviders().length > 0;
+  const payerIsPayable = () =>
+    payerProviders().length > 0 ||
+    bankTransferDetails(payerContact()?.paymentUsernames) !== null;
 
   /// Candidates who still owe. Settling only means something for
   /// these; once everyone has claimed or been confirmed there is
